@@ -1,0 +1,57 @@
+/* src/styles/ComingSoon.css */
+.coming-soon-container {
+  min-height: 90vh; /* Ocupa casi toda la pantalla */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at top right, var(--color-primary) 0%, transparent 50%);
+  padding: 1rem;
+  text-align: center;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--border-radius-medium);
+  padding: 3rem;
+  max-width: 600px;
+  box-shadow: 0 10px 30px rgba(236, 19, 128, 0.1);
+}
+
+.main-icon {
+  font-size: 64px !important;
+  color: var(--color-primary-vibrant);
+  margin-bottom: 1rem;
+}
+
+.headline {
+  font-size: var(--font-size-h2);
+  color: var(--color-text);
+  margin-bottom: 0.5rem;
+}
+
+.subtext {
+  font-size: var(--font-size-base);
+  opacity: 0.8;
+  margin-bottom: 2rem;
+}
+
+.notify-btn {
+  background-color: #d10f70; 
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 50px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.notify-btn:hover { 
+  transform: scale(1.05); 
+  background-color: #b00c5e; 
+}

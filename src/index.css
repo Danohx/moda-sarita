@@ -1,0 +1,38 @@
+/* src/index.css */
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0');
+
+:root {
+  /* --- 🎨 PALETA DE COLORES --- */
+  --color-background: #f8f6f7;
+  --color-surface: #ffffff;
+  --color-text: #5c4b57;
+  --color-primary: #f7d5e9;
+  --color-accent: rgba(247, 213, 233, 0.6);
+  --color-primary-vibrant: #ec1380;
+  --color-text-on-vibrant: #ffffff;
+
+  /* --- ✒️ TIPOGRAFÍA --- */
+  --font-primary: "Manrope", sans-serif;
+  
+  /* --- 📐 TAMAÑOS --- */
+  --font-size-h1: 60px;
+  --font-size-h2: 36px;
+  --font-size-h3: 30px;
+  --font-size-base: 18px;
+  --font-size-aux: 14px;
+  
+  --border-radius-medium: 12px;
+  --border-radius-small: 8px;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-primary);
+  font-size: var(--font-size-base);
+  background-color: var(--color-background);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+* { box-sizing: border-box; }
