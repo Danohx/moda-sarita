@@ -29,7 +29,17 @@
   text-decoration: none;
 }
 
-.logoIcon { color: var(--color-primary-vibrant); }
+.logoImage {
+  height: 40px; /* Ajusta este número según el tamaño de tu barra */
+  width: auto;  /* Mantiene la proporción original */
+  object-fit: contain; /* Asegura que se vea completa */
+  display: block;
+}
+
+.brandName {
+  /* Opcional: si quieres estilos específicos para el texto "Moda Sarita" */
+  font-family: 'Manrope', sans-serif; /* O tu fuente principal */
+}
 
 .navMenu {
   display: flex;
