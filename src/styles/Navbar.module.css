@@ -1,14 +1,15 @@
-/* src/styles/Navbar.module.css */
 .navbar {
   width: 100%;
-  background-color: var(--color-surface);
+  background-color: rgba(255, 255, 255, 0.95); /* Efecto vidrio ligero */
+  backdrop-filter: blur(10px);
   padding: 0.75rem 2rem;
-  border-bottom: 1px solid var(--color-accent);
+  border-bottom: 1px solid #f7d5e9; /* Borde rosa suave */
   display: flex;
-  justify-content: center; /* Centrar todo */
+  justify-content: center;
   position: sticky;
   top: 0;
   z-index: 1000;
+  box-shadow: 0 4px 20px rgba(236, 19, 128, 0.05);
 }
 
 .navContainer {
@@ -25,20 +26,12 @@
   gap: 0.5rem;
   font-weight: 800;
   font-size: 1.5rem;
-  color: var(--color-text);
+  color: #5c4b57; /* Color oscuro marca */
   text-decoration: none;
 }
 
-.logoImage {
-  height: 40px; /* Ajusta este número según el tamaño de tu barra */
-  width: auto;  /* Mantiene la proporción original */
-  object-fit: contain; /* Asegura que se vea completa */
-  display: block;
-}
-
 .brandName {
-  /* Opcional: si quieres estilos específicos para el texto "Moda Sarita" */
-  font-family: 'Manrope', sans-serif; /* O tu fuente principal */
+  font-family: 'Manrope', sans-serif;
 }
 
 .navMenu {
@@ -47,36 +40,165 @@
   gap: 2rem;
   margin: 0;
   padding: 0;
+  transition: all 0.3s ease;
 }
 
 .navLink {
   text-decoration: none;
-  color: var(--color-text);
+  color: #5c4b57;
   font-weight: 600;
   font-size: 0.95rem;
   transition: color 0.2s;
+  padding-bottom: 5px;
+  border-bottom: 2px solid transparent;
 }
 
-.navLink:hover { color: var(--color-primary-vibrant); }
+.navLink:hover { 
+  color: #ec1380; 
+}
+
+/* Clase para el enlace activo (agregada) */
+.activeLink {
+  color: #ec1380;
+  border-bottom: 2px solid #ec1380;
+}
 
 .navActions {
   display: flex;
   gap: 1rem;
+  align-items: center;
 }
 
 .iconButton {
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--color-text);
+  color: #5c4b57;
   padding: 0.5rem;
   border-radius: 50%;
   transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none; /* Importante para NavLinks que actúan como botones */
 }
 
-.iconButton:hover { background-color: var(--color-primary); }
+.iconButton:hover { 
+  background-color: #f7d5e9; /* Fondo rosa claro al pasar mouse */
+}
 
-/* Ocultar menú en móviles muy pequeños */
+.hamburger {
+  display: none;
+  cursor: pointer;
+  background: none;
+  border: none;
+  color: #5c4b57;
+}
+
+/* --- BARRA DE BÚSQUEDA --- */
+.searchForm {
+  display: flex;
+  align-items: center;
+  background-color: #f8f6f7;
+  border: 1px solid #eee;
+  border-radius: 20px;
+  padding: 2px 10px;
+  margin-right: 10px;
+  transition: border-color 0.3s;
+}
+
+.searchForm:focus-within {
+  border-color: #ec1380;
+  background-color: #fff;
+  box-shadow: 0 0 0 2px rgba(236, 19, 128, 0.1);
+}
+
+.searchInput {
+  border: none;
+  background: transparent;
+  outline: none;
+  padding: 5px;
+  font-size: 0.9rem;
+  width: 120px;
+  color: #5c4b57;
+  font-family: inherit;
+}
+
+.searchButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  color: #888;
+  padding: 0;
+}
+
+.searchButton:hover {
+  color: #ec1380;
+}
+
+/* --- RESPONSIVE (Móvil) --- */
 @media (max-width: 768px) {
-  .navMenu { display: none; }
+  .hamburger {
+    display: block;
+    order: 3;
+  }
+
+  /* Ocultamos búsqueda completa en móvil si quieres ahorrar espacio, 
+     o ajustamos su tamaño */
+  .searchForm {
+    display: none; /* Simplificación para móvil, o puedes dejarlo visible */
+  }
+
+  .navActions {
+    gap: 0.5rem;
+  }
+
+  .navMenu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    flex-direction: column;
+    background-color: white;
+    border-bottom: 2px solid #ec1380;
+    padding: 1rem 0;
+    gap: 0;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .navMenu.active {
+    max-height: 300px;
+    opacity: 1;
+    pointer-events: auto;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+  }
+
+  .navMenu li {
+    width: 100%;
+    text-align: center;
+  }
+
+  .navLink {
+    display: block;
+    padding: 1rem;
+    width: 100%;
+    border-bottom: 1px solid #f8f6f7;
+    border-color: transparent; /* Reset del borde activo en escritorio */
+  }
+
+  .navLink:hover {
+    background-color: #f7d5e9;
+    color: #ec1380;
+  }
+}
+
+@media (max-width: 480px) {
+  .searchInput {
+    width: 80px;
+  }
 }

@@ -1,20 +1,13 @@
 // src/App.jsx
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Navbar from './components/Navbar';
-import ComingSoon from './pages/ComingSoon';
+import { AuthProvider } from './context/AuthContext';
 import './index.css';
+import { AppRouter } from './routes/AppRouter';
 
 function App() {
   return (
-    <BrowserRouter>
-      {/* El Navbar fijo arriba */}
-      <Navbar />
-      
-      {/* El contenido de las páginas */}
-      <Routes>
-        <Route path="/" element={<ComingSoon />} />
-      </Routes>
-    </BrowserRouter>
+    <AuthProvider>
+      <AppRouter />
+    </AuthProvider>
   );
 }
 

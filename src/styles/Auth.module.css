@@ -1,0 +1,107 @@
+.authContainer {
+  min-height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at top right, #f7d5e9 0%, transparent 40%);
+  padding: 1rem;
+}
+
+.authCard {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #f7d5e9;
+  border-radius: 16px;
+  padding: 2.5rem;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 10px 30px rgba(236, 19, 128, 0.1);
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.header h2 {
+  color: #5c4b57;
+  margin: 0.5rem 0;
+}
+
+.inputGroup {
+  margin-bottom: 1.5rem;
+}
+
+.inputGroup label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #5c4b57;
+  font-size: 0.9rem;
+}
+
+.inputGroup input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.inputGroup input:focus {
+  outline: none;
+  border-color: #ec1380;
+  box-shadow: 0 0 0 3px rgba(236, 19, 128, 0.1);
+}
+
+.submitBtn {
+  width: 100%;
+  padding: 14px;
+  background-color: #ec1380;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.submitBtn:hover {
+  background-color: #b00c5e;
+}
+
+.submitBtn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.errorMessage {
+  background-color: #ffebee;
+  color: #c62828;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.footer {
+  margin-top: 1.5rem;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.footer a {
+  color: #ec1380;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.forgotLink {
+  display: block;
+  margin-top: 0.5rem;
+  color: #888 !important;
+  font-weight: 400 !important;
+}

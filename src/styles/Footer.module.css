@@ -1,0 +1,232 @@
+/* src/styles/Footer.module.css */
+
+.footer {
+  background-color: #fcfcfc;
+  color: #5c4b57;
+  border-top: 5px solid #ec1380; /* Línea superior rosa distintiva */
+  padding-top: 4rem;
+  margin-top: auto;
+  font-family: 'Manrope', sans-serif;
+}
+
+/* --- SECCIÓN SUPERIOR --- */
+.footerTop {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4rem;
+  margin-bottom: 3rem;
+}
+
+/* Marca y Redes */
+.brandSection {
+  flex: 1;
+  min-width: 280px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #ec1380;
+  margin-bottom: 1rem;
+}
+
+.logoText {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+  font-weight: 800;
+  font-size: 1.2rem;
+  letter-spacing: 1px;
+  color: #5c4b57;
+}
+
+.logoAccent {
+  color: #ec1380;
+}
+
+.tagline {
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+  max-width: 300px;
+}
+
+.socialLinks {
+  display: flex;
+  gap: 1rem;
+}
+
+.socialLinks a {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #f7d5e9;
+  color: #ec1380;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.socialLinks a:hover {
+  background-color: #ec1380;
+  color: white;
+  transform: translateY(-3px);
+}
+
+/* Grid de Enlaces */
+.linksGrid {
+  flex: 2;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 2rem;
+}
+
+.linksSection h3 {
+  color: #ec1380;
+  font-size: 1.1rem;
+  margin-bottom: 1.2rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.linksSection ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.linksSection li {
+  margin-bottom: 0.8rem;
+}
+
+.linksSection a {
+  color: #5c4b57;
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: color 0.2s;
+}
+
+.linksSection a:hover {
+  color: #ec1380;
+  text-decoration: underline;
+}
+
+/* --- BARRA DE CONTACTO (Centro) --- */
+.contactBar {
+  background-color: #f8f6f7;
+  padding: 2rem;
+  border-top: 1px solid #eee;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 2rem;
+}
+
+.contactItem {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 220px;
+}
+
+.contactIcon {
+  color: #ec1380;
+  font-size: 2rem;
+  background: white;
+  padding: 10px;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+.contactItem h4 {
+  margin: 0 0 0.2rem 0;
+  color: #333;
+  font-size: 1rem;
+}
+
+.contactItem p {
+  margin: 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* --- SECCIÓN INFERIOR --- */
+.footerBottom {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.paymentMethods {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.paymentMethods span:first-child {
+  font-weight: 700;
+  color: #5c4b57;
+  font-size: 0.9rem;
+}
+
+.paymentIcons {
+  display: flex;
+  gap: 0.5rem;
+  color: #888;
+}
+
+.copyright {
+  text-align: right;
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.copyright p {
+  margin: 0.2rem 0;
+}
+
+.madeWith {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+}
+
+/* --- RESPONSIVE --- */
+@media (max-width: 768px) {
+  .footerTop {
+    flex-direction: column;
+    gap: 2rem;
+  }
+  
+  .contactBar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .footerBottom {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .copyright {
+    text-align: center;
+  }
+  
+  .madeWith {
+    justify-content: center;
+  }
+}

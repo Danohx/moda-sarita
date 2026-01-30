@@ -1,0 +1,138 @@
+.card {
+  background-color: var(--color-surface);
+  border-radius: var(--border-radius-medium);
+  overflow: hidden;
+  border: 1px solid var(--color-accent);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(236, 19, 128, 0.15); /* Sombra rosada suave */
+  border-color: var(--color-primary-vibrant);
+}
+
+.imageContainer {
+  height: 280px;
+  position: relative;
+  overflow: hidden;
+  background-color: var(--color-background);
+}
+
+.imageContainer img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.card:hover .imageContainer img {
+  transform: scale(1.05);
+}
+
+.badge {
+  position: absolute;
+  top: 10px; 
+  left: 10px;
+  background-color: var(--color-primary-vibrant);
+  color: var(--color-text-on-vibrant);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.card:hover .overlay {
+    opacity: 1;
+}
+
+.actionButton {
+    background: var(--color-surface);
+    border: none;
+    border-radius: 50%;
+    width: 45px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--color-text);
+    transition: transform 0.2s;
+}
+
+.actionButton:hover {
+    color: var(--color-primary-vibrant);
+    transform: scale(1.1);
+}
+
+.content {
+  padding: 1.2rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  color: var(--color-text);
+}
+
+.description {
+  font-size: 0.85rem;
+  color: var(--color-text);
+  opacity: 0.7;
+  margin-bottom: 1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-accent);
+}
+
+.price {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-primary-vibrant);
+}
+
+.cartButton {
+  background: var(--color-primary);
+  border: none;
+  width: 40px; 
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center; 
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-text);
+  transition: all 0.2s;
+}
+
+.cartButton:hover {
+  background: var(--color-primary-vibrant);
+  color: var(--color-text-on-vibrant);
+}

@@ -1,0 +1,206 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn { from {opacity: 0;} to {opacity: 1;} }
+
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  color: var(--color-gray);
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 2rem;
+  font-size: 1rem;
+  transition: color 0.2s;
+}
+
+.backButton:hover {
+  color: var(--color-primary-vibrant);
+}
+
+.content {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 3rem;
+  background: var(--color-surface);
+  padding: 2rem;
+  border-radius: var(--border-radius-medium);
+  border: 1px solid var(--color-accent);
+}
+
+@media (min-width: 900px) {
+  .content {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Galería */
+.gallery {
+  display: flex;
+  flex-direction: column;
+}
+
+.mainImage {
+  height: 500px;
+  border-radius: var(--border-radius-medium);
+  overflow: hidden;
+  background-color: var(--color-background);
+}
+
+.mainImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Información */
+.info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.badge {
+  display: inline-block;
+  background: var(--color-primary);
+  color: var(--color-primary-vibrant);
+  padding: 0.25rem 1rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  width: fit-content;
+}
+
+.title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin: 0 0 1rem 0;
+  line-height: 1.1;
+  color: var(--color-text);
+}
+
+.rating {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.stars {
+  color: #fbbf24; /* Amarillo estrellas */
+  display: flex;
+}
+
+.ratingCount {
+  color: var(--color-gray);
+  font-size: 0.9rem;
+}
+
+.price {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--color-primary-vibrant);
+  margin: 0 0 1.5rem 0;
+}
+
+.description {
+  font-size: 1.1rem;
+  color: var(--color-text);
+  opacity: 0.8;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+}
+
+/* Opciones */
+.options {
+  margin-bottom: 2rem;
+}
+
+.optionTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.sizes {
+  display: flex;
+  gap: 1rem;
+}
+
+.sizeButton {
+  width: 50px;
+  height: 50px;
+  border: 2px solid var(--color-accent);
+  background: transparent;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--color-text);
+  transition: all 0.2s;
+}
+
+.sizeButton:hover, .sizeButton:focus {
+  border-color: var(--color-primary-vibrant);
+  color: var(--color-primary-vibrant);
+}
+
+/* Acciones */
+.actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.quantitySelector {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: var(--color-background);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+}
+
+.qtyBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  color: var(--color-text);
+}
+
+.qtyValue {
+  font-weight: 700;
+  font-size: 1.1rem;
+  width: 20px;
+  text-align: center;
+}
+
+.addToCartBtn {
+  flex: 1;
+  background: var(--color-primary-vibrant);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: transform 0.2s;
+  padding: 1rem;
+}
+
+.addToCartBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(236, 19, 128, 0.3);
+}

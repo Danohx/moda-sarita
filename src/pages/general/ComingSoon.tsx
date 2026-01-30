@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import '../styles/ComingSoon.css';
+import '../../styles/ComingSoon.css';
 
 interface MensajeEstado {
   tipo: 'exito' | 'error';
