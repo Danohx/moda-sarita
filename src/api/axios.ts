@@ -45,8 +45,10 @@ api.interceptors.response.use(
                 // FALLÓ EL REFRESCO (Aquí ocurre la "Revocación")
                 // Si el token fue borrado de la BD, caeremos aquí.
                 console.error("Sesión expirada o revocada remotamente");
-                localStorage.clear();
-                window.location.href = '/login'; // Redirección forzada
+                if (window.location.pathname !== '/login') {
+                    localStorage.removeItem('token'); // O tu lógica de limpieza
+                    window.location.href = '/login';
+                }
                 return Promise.reject(refreshError);
             }
         }
