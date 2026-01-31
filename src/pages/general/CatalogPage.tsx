@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import styles from '../../styles/CatalogPage.module.css';
 import ProductCard from '../../components/common/ProductCard';
