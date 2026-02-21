@@ -13,6 +13,12 @@ import HomePage from '../pages/general/HomePage';
 import CatalogPage from '../pages/general/CatalogPage';
 import ProductDetailPage from '../pages/general/ProductDetail';
 
+import PaginaPrincipal from '../pages/public/PaginaPrincipal';
+import TiendaPage from '../pages/public/CatalogoProductos';
+import ProductoDetallePage from '../pages/public/ProductoDetalle';  
+import CarritoPage from '../pages/public/CarritoPage';
+import CheckoutPage from '../pages/public/CheckoutPage';
+
 export const AppRouter = () => {
   return (
     <BrowserRouter>
@@ -31,6 +37,12 @@ export const AppRouter = () => {
             <Route path="/register" element={<Register />} />
             <Route path="/contacto" element={<ContactPage />} />
             <Route path="/catalogo" element={<CatalogPage />} />
+
+            <Route path="/" element={<PaginaPrincipal />} />
+            <Route path="/tienda" element={<TiendaPage />} />
+            <Route path="/producto/:id" element={<ProductoDetallePage />} />
+            <Route path="/carrito" element={<CarritoPage />} />
+            <Route path="/checkout" element={<CheckoutPage />} />
             
             {/* Ruta dinámica */}
             <Route path="/catalogo/:id" element={<ProductDetailPage />} />
