@@ -6,7 +6,7 @@ interface ErrorProps {
   code: string;
   title: string;
   message: string;
-  icon: string;
+  icon: React.ReactNode;
 }
 
 const ErrorLayout: React.FC<ErrorProps> = ({ code, title, message, icon }) => {
