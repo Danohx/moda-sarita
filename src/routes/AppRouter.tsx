@@ -1,5 +1,5 @@
 // src/routes/AppRouter.tsx
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import PublicNavbar from '../components/layout/PublicNavbar';
 import NotFound from '../pages/general/NotFound';
 import ServerError from '../pages/general/ServerError';
@@ -13,12 +13,21 @@ import HomePage from '../pages/general/HomePage';
 import CatalogPage from '../pages/general/CatalogPage';
 import ProductDetailPage from '../pages/general/ProductDetail';
 
-import PaginaPrincipal from '../pages/public/PaginaPrincipal';
-import TiendaPage from '../pages/public/CatalogoProductos';
-import ProductoDetallePage from '../pages/public/ProductoDetalle';  
-import CarritoPage from '../pages/public/CarritoPage';
-import CheckoutPage from '../pages/public/CheckoutPage';
+// Para el Layout (subir un nivel a src, entrar a components)
+import AdminLayout from '../components/layout/AdminLayout';
 
+// Para las Páginas (subir un nivel a src, entrar a pages)
+import AdminLogin from '../pages/admin/AdminLogin';
+import Dashboard from '../pages/admin/Dashboard';
+import POS from '../pages/admin/POS';
+import Inventory from '../pages/admin/Inventory';
+import { OrdersManager } from '../pages/admin/OrdersManager';
+import AdminUsers from '../pages/admin/AdminUsers';
+import { AdminSettings } from '../pages/admin/AdminSettings';
+import AdminReports from '../pages/admin/AdminReports';
+import AdminMarketing from '../pages/admin/AdminMarketing';
+import { AdminCustomers } from '../pages/admin/AdminCustomers';
+import AdminPanel from '../pages/admin/AdminPanel';
 export const AppRouter = () => {
   return (
     <BrowserRouter>
@@ -38,11 +47,30 @@ export const AppRouter = () => {
             <Route path="/contacto" element={<ContactPage />} />
             <Route path="/catalogo" element={<CatalogPage />} />
 
-            <Route path="/" element={<PaginaPrincipal />} />
-            <Route path="/tienda" element={<TiendaPage />} />
-            <Route path="/producto/:id" element={<ProductoDetallePage />} />
-            <Route path="/carrito" element={<CarritoPage />} />
-            <Route path="/checkout" element={<CheckoutPage />} />
+            {/* ==============================================================
+            🔐 MUNDO ADMIN (Independiente)
+           ============================================================== */}
+        <Route path="/admin/login" element={<AdminLogin />} />
+        
+        {/* Agrupamos las rutas de admin para que todas usen AdminLayout */}
+        <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+        
+        <Route path="/admin/*" element={
+          <AdminLayout role="admin">
+            <Routes>
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="pos" element={<POS />} />
+              <Route path="inventory" element={<Inventory />} />
+              <Route path="orders" element={<OrdersManager />} />
+              <Route path="users" element={<AdminUsers />} />
+              <Route path="settings" element={<AdminSettings />} />
+              <Route path="reports" element={<AdminReports />} />
+              <Route path="marketing" element={<AdminMarketing />} />
+              <Route path="customers" element={<AdminCustomers />} />
+              <Route path="panel" element={<AdminPanel />} />
+            </Routes>
+          </AdminLayout>
+        } />
             
             {/* Ruta dinámica */}
             <Route path="/catalogo/:id" element={<ProductDetailPage />} />
