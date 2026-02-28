@@ -1,8 +1,69 @@
-import { useState } from 'react';
-import { Settings, Users, Shield, CreditCard, Plus, Edit, Lock, Unlock, Eye, EyeOff } from 'lucide-react';
-import { Modal } from '../../components/ui/Modal';
+// src/pages/admin/AdminSettings.tsx
 
-// Interfaces TypeScript
+import React, { useState } from 'react';
+import {
+  Box,
+  Paper,
+  Typography,
+  Button,
+  TextField,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  IconButton,
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Tabs,
+  Tab,
+  Card,
+  CardContent,
+  Grid,
+  Switch,
+  FormControlLabel,
+  Checkbox,
+  InputAdornment,
+  Divider
+} from '@mui/material';
+import {
+  Add,
+  Edit,
+  Lock,
+  LockOpen,
+  Visibility,
+  VisibilityOff,
+  Settings,
+  People,
+  Shield,
+  CreditCard,
+  Store
+} from '@mui/icons-material';
+import { AdminLayout } from '../../components/layout/AdminLayout';
+
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+const TabPanel = (props: TabPanelProps) => {
+  const { children, value, index, ...other } = props;
+  return (
+    <div hidden={value !== index} {...other}>
+      {value === index && <Box sx={{ py: 3 }}>{children}</Box>}
+    </div>
+  );
+};
+
 interface Employee {
   id: string;
   name: string;
@@ -34,14 +95,8 @@ interface PaymentMethod {
   };
 }
 
-interface Permission {
-  id: string;
-  name: string;
-  category: string;
-}
-
-export const AdminSettings = () => {
-  const [activeTab, setActiveTab] = useState('employees');
+const AdminSettings: React.FC = () => {
+  const [tabValue, setTabValue] = useState(0);
   const [openEmployeeModal, setOpenEmployeeModal] = useState(false);
   const [openRoleModal, setOpenRoleModal] = useState(false);
   const [openPaymentModal, setOpenPaymentModal] = useState(false);
@@ -49,7 +104,6 @@ export const AdminSettings = () => {
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [showApiKey, setShowApiKey] = useState(false);
 
-  // Datos de ejemplo con tipos
   const employees: Employee[] = [
     {
       id: '1',
@@ -68,15 +122,6 @@ export const AdminSettings = () => {
       status: 'active',
       lastLogin: '2024-01-14 09:15',
       createdAt: '2023-08-22'
-    },
-    {
-      id: '3',
-      name: 'María Rodríguez',
-      email: 'maria@modasarita.com',
-      role: 'Vendedor',
-      status: 'inactive',
-      lastLogin: '2024-01-10 16:45',
-      createdAt: '2023-11-05'
     }
   ];
 
@@ -93,13 +138,6 @@ export const AdminSettings = () => {
       name: 'Cajero',
       permissions: ['sales.view', 'sales.create', 'customers.view'],
       userCount: 2,
-      isSystem: false
-    },
-    {
-      id: '3',
-      name: 'Vendedor',
-      permissions: ['sales.view', 'customers.view'],
-      userCount: 1,
       isSystem: false
     }
   ];
@@ -125,604 +163,690 @@ export const AdminSettings = () => {
       type: 'gateway',
       status: 'inactive',
       config: { apiKey: 'sk_*************1234' }
-    },
-    {
-      id: '4',
-      name: 'Transferencia Bancaria',
-      type: 'manual',
-      status: 'active',
-      config: { 
-        bank: 'BBVA', 
-        account: '0123456789',
-        clabe: '012180001234567890'
-      }
     }
   ];
 
-  const allPermissions: Permission[] = [
+  const allPermissions = [
     { id: 'sales.view', name: 'Ver Ventas', category: 'Ventas' },
     { id: 'sales.create', name: 'Registrar Ventas', category: 'Ventas' },
-    { id: 'sales.cancel', name: 'Cancelar Ventas', category: 'Ventas' },
     { id: 'customers.view', name: 'Ver Clientes', category: 'Clientes' },
-    { id: 'customers.edit', name: 'Editar Clientes', category: 'Clientes' },
-    { id: 'customers.credit', name: 'Gestionar Crédito', category: 'Clientes' },
-    { id: 'inventory.view', name: 'Ver Inventario', category: 'Inventario' },
-    { id: 'inventory.edit', name: 'Editar Productos', category: 'Inventario' },
-    { id: 'reports.view', name: 'Ver Reportes', category: 'Reportes' },
-    { id: 'settings.employees', name: 'Gestionar Empleados', category: 'Configuración' },
-    { id: 'settings.roles', name: 'Gestionar Roles', category: 'Configuración' }
+    { id: 'inventory.view', name: 'Ver Inventario', category: 'Inventario' }
   ];
 
-  const handleEditEmployee = (employee: Employee) => {
-    setSelectedEmployee(employee);
-    setOpenEmployeeModal(true);
-  };
-
-  const handleEditRole = (role: Role) => {
-    setSelectedRole(role);
-    setOpenRoleModal(true);
-  };
-
-  const handleEditPayment = (_method: PaymentMethod) => {
-    setOpenPaymentModal(true);
-  };
-
-  const toggleEmployeeStatus = (employee: Employee) => {
-    console.log(`${employee.status === 'active' ? 'Desactivando' : 'Activando'} empleado:`, employee.name);
-  };
-
-  // Interface para agrupar permisos por categoría
-  interface PermissionCategory {
-    category: string;
-    permissions: Permission[];
-  }
-
   return (
-    <div>
-      <h1 className="account-title">Configuración del Sistema</h1>
+    <AdminLayout role="admin">
+      <Box>
+        <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#333', mb: 4 }}>
+          Configuración del Sistema
+        </Typography>
 
-      {/* Navegación por Tabs */}
-      <div style={{ 
-        display: 'flex', 
-        gap: '0.5rem', 
-        marginBottom: '2rem',
-        borderBottom: '1px solid var(--color-accent)',
-        flexWrap: 'wrap'
-      }}>
-        <button 
-          className={`tab-button ${activeTab === 'employees' ? 'active' : ''}`}
-          onClick={() => setActiveTab('employees')}
-        >
-          <Users size={18} style={{ marginRight: '0.5rem' }} />
-          Empleados
-        </button>
-        <button 
-          className={`tab-button ${activeTab === 'roles' ? 'active' : ''}`}
-          onClick={() => setActiveTab('roles')}
-        >
-          <Shield size={18} style={{ marginRight: '0.5rem' }} />
-          Roles y Permisos
-        </button>
-        <button 
-          className={`tab-button ${activeTab === 'payments' ? 'active' : ''}`}
-          onClick={() => setActiveTab('payments')}
-        >
-          <CreditCard size={18} style={{ marginRight: '0.5rem' }} />
-          Métodos de Pago
-        </button>
-        <button 
-          className={`tab-button ${activeTab === 'store' ? 'active' : ''}`}
-          onClick={() => setActiveTab('store')}
-        >
-          <Settings size={18} style={{ marginRight: '0.5rem' }} />
-          Datos de la Tienda
-        </button>
-      </div>
+        {/* Tabs */}
+        <Paper sx={{ mb: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+          <Tabs
+            value={tabValue}
+            onChange={(e, v) => setTabValue(v)}
+            sx={{
+              '& .MuiTab-root': { textTransform: 'none', fontWeight: 'bold' },
+              '& .Mui-selected': { color: '#E91E8C' },
+              '& .MuiTabs-indicator': { bgcolor: '#E91E8C' }
+            }}
+          >
+            <Tab icon={<People />} iconPosition="start" label="Empleados" />
+            <Tab icon={<Shield />} iconPosition="start" label="Roles y Permisos" />
+            <Tab icon={<CreditCard />} iconPosition="start" label="Métodos de Pago" />
+            <Tab icon={<Store />} iconPosition="start" label="Datos de la Tienda" />
+          </Tabs>
+        </Paper>
 
-      {/* TAB: EMPLEADOS */}
-      {activeTab === 'employees' && (
-        <div className="checkout-section">
-          <div className="catalog-header">
-            <h2 className="checkout-section-title">
-              <Users className="section-icon" style={{ marginRight: '0.5rem' }} /> 
+        {/* TAB 1: EMPLEADOS */}
+        <TabPanel value={tabValue} index={0}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#333' }}>
               Gestión de Empleados
-            </h2>
-            <button 
-              className="button button-primary" 
+            </Typography>
+            <Button
+              variant="contained"
+              startIcon={<Add />}
               onClick={() => {
                 setSelectedEmployee(null);
                 setOpenEmployeeModal(true);
               }}
+              sx={{
+                bgcolor: '#E91E8C',
+                '&:hover': { bgcolor: '#C2185B' },
+                borderRadius: '25px',
+                px: 3,
+                textTransform: 'none',
+                fontWeight: 'bold'
+              }}
             >
-              <Plus size={20} style={{ marginRight: '0.5rem' }} /> Nuevo Empleado
-            </button>
-          </div>
+              Nuevo Empleado
+            </Button>
+          </Box>
 
-          <div className="transactions-table-container">
-            <table className="transactions-table">
-              <thead>
-                <tr>
-                  <th>Empleado</th>
-                  <th>Rol</th>
-                  <th>Último Acceso</th>
-                  <th>Estado</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {employees.map(employee => (
-                  <tr key={employee.id}>
-                    <td>
-                      <div>
-                        <div style={{ fontWeight: 'bold' }}>{employee.name}</div>
-                        <div style={{ fontSize: '0.875rem', color: 'var(--color-gray)' }}>
-                          {employee.email}
-                        </div>
-                      </div>
-                    </td>
-                    <td>{employee.role}</td>
-                    <td>
-                      <div style={{ fontSize: '0.875rem' }}>
-                        {new Date(employee.lastLogin).toLocaleDateString()}
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--color-gray)' }}>
-                        {new Date(employee.lastLogin).toLocaleTimeString()}
-                      </div>
-                    </td>
-                    <td>
-                      <span className={`status-badge ${employee.status}`}>
-                        {employee.status === 'active' ? 'Activo' : 'Inactivo'}
-                      </span>
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                        <button 
-                          className="btn-outline-sm"
-                          onClick={() => handleEditEmployee(employee)}
+          <Paper sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow sx={{ bgcolor: '#FDE8F4' }}>
+                    <TableCell><strong style={{ color: '#E91E8C' }}>Empleado</strong></TableCell>
+                    <TableCell><strong style={{ color: '#E91E8C' }}>Rol</strong></TableCell>
+                    <TableCell><strong style={{ color: '#E91E8C' }}>Último Acceso</strong></TableCell>
+                    <TableCell align="center"><strong style={{ color: '#E91E8C' }}>Estado</strong></TableCell>
+                    <TableCell align="center"><strong style={{ color: '#E91E8C' }}>Acciones</strong></TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {employees.map((employee) => (
+                    <TableRow key={employee.id} hover sx={{ '&:hover': { bgcolor: '#FFF5FA' } }}>
+                      <TableCell>
+                        <Box>
+                          <Typography fontWeight="bold">{employee.name}</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {employee.email}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell>{employee.role}</TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {new Date(employee.lastLogin).toLocaleDateString()}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {new Date(employee.lastLogin).toLocaleTimeString()}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="center">
+                        <Chip
+                          label={employee.status === 'active' ? 'Activo' : 'Inactivo'}
+                          size="small"
+                          sx={{
+                            bgcolor: employee.status === 'active' ? '#E8F5E9' : '#FFEBEE',
+                            color: employee.status === 'active' ? '#2E7D32' : '#C62828',
+                            fontWeight: 'bold'
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell align="center">
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            setSelectedEmployee(employee);
+                            setOpenEmployeeModal(true);
+                          }}
+                          sx={{ color: '#E91E8C' }}
                         >
-                          <Edit size={14} /> Editar
-                        </button>
-                        <button 
-                          className={`btn-outline-sm ${employee.status === 'active' ? 'danger' : 'success'}`}
-                          onClick={() => toggleEmployeeStatus(employee)}
+                          <Edit />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          sx={{ color: employee.status === 'active' ? '#C62828' : '#2E7D32' }}
                         >
-                          {employee.status === 'active' ? <Lock size={14} /> : <Unlock size={14} />}
-                          {employee.status === 'active' ? 'Bloquear' : 'Activar'}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+                          {employee.status === 'active' ? <Lock /> : <LockOpen />}
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
+        </TabPanel>
 
-      {/* TAB: ROLES Y PERMISOS */}
-      {activeTab === 'roles' && (
-        <div className="checkout-section">
-          <div className="catalog-header">
-            <h2 className="checkout-section-title">
-              <Shield className="section-icon" style={{ marginRight: '0.5rem' }} /> 
+        {/* TAB 2: ROLES Y PERMISOS */}
+        <TabPanel value={tabValue} index={1}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#333' }}>
               Roles y Permisos
-            </h2>
-            <button 
-              className="button button-primary" 
+            </Typography>
+            <Button
+              variant="contained"
+              startIcon={<Add />}
               onClick={() => {
                 setSelectedRole(null);
                 setOpenRoleModal(true);
               }}
+              sx={{
+                bgcolor: '#E91E8C',
+                '&:hover': { bgcolor: '#C2185B' },
+                borderRadius: '25px',
+                px: 3,
+                textTransform: 'none',
+                fontWeight: 'bold'
+              }}
             >
-              <Plus size={20} style={{ marginRight: '0.5rem' }} /> Nuevo Rol
-            </button>
-          </div>
+              Nuevo Rol
+            </Button>
+          </Box>
 
-          <div className="transactions-table-container">
-            <table className="transactions-table">
-              <thead>
-                <tr>
-                  <th>Nombre del Rol</th>
-                  <th>Permisos</th>
-                  <th>Usuarios</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {roles.map(role => (
-                  <tr key={role.id}>
-                    <td style={{ fontWeight: 'bold' }}>
-                      {role.name}
-                      {role.isSystem && (
-                        <span style={{ 
-                          fontSize: '0.75rem', 
-                          background: 'var(--color-primary)', 
-                          color: 'var(--color-text)',
-                          padding: '0.25rem 0.5rem',
-                          borderRadius: '1rem',
-                          marginLeft: '0.5rem'
-                        }}>
-                          Sistema
-                        </span>
-                      )}
-                    </td>
-                    <td>
-                      <div style={{ fontSize: '0.875rem', color: 'var(--color-gray)' }}>
-                        {role.permissions[0] === 'all' ? 'Todos los permisos' : `${role.permissions.length} permisos`}
-                      </div>
-                    </td>
-                    <td>
-                      <span style={{ fontWeight: 'bold' }}>{role.userCount}</span> usuarios
-                    </td>
-                    <td>
-                      <button 
-                        className="btn-outline-sm"
-                        onClick={() => handleEditRole(role)}
-                        disabled={role.isSystem}
-                      >
-                        <Edit size={14} /> {role.isSystem ? 'Ver' : 'Editar'}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+          <Paper sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow sx={{ bgcolor: '#FDE8F4' }}>
+                    <TableCell><strong style={{ color: '#E91E8C' }}>Nombre del Rol</strong></TableCell>
+                    <TableCell><strong style={{ color: '#E91E8C' }}>Permisos</strong></TableCell>
+                    <TableCell><strong style={{ color: '#E91E8C' }}>Usuarios</strong></TableCell>
+                    <TableCell align="center"><strong style={{ color: '#E91E8C' }}>Acciones</strong></TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {roles.map((role) => (
+                    <TableRow key={role.id} hover sx={{ '&:hover': { bgcolor: '#FFF5FA' } }}>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography fontWeight="bold">{role.name}</Typography>
+                          {role.isSystem && (
+                            <Chip
+                              label="Sistema"
+                              size="small"
+                              sx={{
+                                ml: 1,
+                                bgcolor: '#FDE8F4',
+                                color: '#E91E8C',
+                                fontSize: '0.7rem'
+                              }}
+                            />
+                          )}
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="text.secondary">
+                          {role.permissions[0] === 'all'
+                            ? 'Todos los permisos'
+                            : `${role.permissions.length} permisos`}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography fontWeight="bold">{role.userCount}</Typography> usuarios
+                      </TableCell>
+                      <TableCell align="center">
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<Edit />}
+                          disabled={role.isSystem}
+                          onClick={() => {
+                            setSelectedRole(role);
+                            setOpenRoleModal(true);
+                          }}
+                          sx={{
+                            borderColor: '#E91E8C',
+                            color: '#E91E8C',
+                            '&:hover': { borderColor: '#C2185B', bgcolor: '#FFF5FA' },
+                            borderRadius: '20px',
+                            textTransform: 'none'
+                          }}
+                        >
+                          {role.isSystem ? 'Ver' : 'Editar'}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
+        </TabPanel>
 
-      {/* TAB: MÉTODOS DE PAGO */}
-      {activeTab === 'payments' && (
-        <div className="checkout-section">
-          <h2 className="checkout-section-title">
-            <CreditCard className="section-icon" style={{ marginRight: '0.5rem' }} /> 
+        {/* TAB 3: MÉTODOS DE PAGO */}
+        <TabPanel value={tabValue} index={2}>
+          <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#333', mb: 3 }}>
             Métodos de Pago
-          </h2>
+          </Typography>
 
-          <div style={{ display: 'grid', gap: '1rem' }}>
-            {paymentMethods.map(method => (
-              <div key={method.id} style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '1rem',
-                border: '1px solid var(--color-accent)',
-                borderRadius: 'var(--border-radius-small)',
-                background: 'var(--color-surface)'
-              }}>
-                <div>
-                  <div style={{ fontWeight: 'bold', marginBottom: '0.25rem' }}>
-                    {method.name}
-                  </div>
-                  <div style={{ fontSize: '0.875rem', color: 'var(--color-gray)' }}>
-                    {method.type === 'gateway' ? 'Pasarela de pago' : 
-                     method.type === 'terminal' ? 'Terminal punto de venta' : 'Método manual'}
-                  </div>
-                  {method.config?.bank && (
-                    <div style={{ fontSize: '0.75rem', color: 'var(--color-gray)', marginTop: '0.25rem' }}>
-                      {method.config.bank} - {method.config.account}
-                    </div>
-                  )}
-                </div>
-                
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <span className={`status-badge ${method.status}`}>
-                    {method.status === 'active' ? 'Activo' : 'Inactivo'}
-                  </span>
-                  <button 
-                    className="btn-outline-sm"
-                    onClick={() => handleEditPayment(method)}
-                  >
-                    <Edit size={14} /> Configurar
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+          <Grid container spacing={2}>
+            {paymentMethods.map((method) => (
+              <Grid size={{ xs: 12 }} key={method.id}>
+                <Card sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+                  <CardContent>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Box>
+                        <Typography variant="h6" fontWeight="bold">
+                          {method.name}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {method.type === 'gateway'
+                            ? 'Pasarela de pago'
+                            : method.type === 'terminal'
+                            ? 'Terminal punto de venta'
+                            : 'Método manual'}
+                        </Typography>
+                        {method.config?.bank && (
+                          <Typography variant="caption" color="text.secondary">
+                            {method.config.bank} - {method.config.account}
+                          </Typography>
+                        )}
+                      </Box>
 
-      {/* TAB: DATOS DE LA TIENDA */}
-      {activeTab === 'store' && (
-        <div className="checkout-section">
-          <h2 className="checkout-section-title">
-            <Settings className="section-icon" style={{ marginRight: '0.5rem' }} /> 
-            Datos de la Tienda
-          </h2>
-          
-          <div className="form-grid">
-            <div className="input-container full-width">
-              <label className="input-label">Nombre de la Tienda</label>
-              <input className="input-field" defaultValue="Moda Sarita" />
-            </div>
-            
-            <div className="input-container full-width">
-              <label className="input-label">Dirección Física</label>
-              <input className="input-field" defaultValue="Av. Principal #123, Col. Centro, Huejutla" />
-            </div>
-
-            <div className="input-container full-width">
-              <label className="input-label">Teléfono de Contacto</label>
-              <input className="input-field" defaultValue="771 123 4567" />
-            </div>
-
-            <div className="input-container full-width">
-              <label className="input-label">Correo Electrónico</label>
-              <input className="input-field" defaultValue="contacto@modasarita.com" />
-            </div>
-
-            <div className="input-container full-width">
-              <label className="input-label">Métodos de Pago Aceptados</label>
-              <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
-                <label className="filter-option">
-                  <input type="checkbox" defaultChecked className="filter-checkbox" /> Efectivo
-                </label>
-                <label className="filter-option">
-                  <input type="checkbox" defaultChecked className="filter-checkbox" /> Tarjeta
-                </label>
-                <label className="filter-option">
-                  <input type="checkbox" defaultChecked className="filter-checkbox" /> Transferencia
-                </label>
-              </div>
-            </div>
-
-            <div className="full-width">
-              <button className="button button-primary">Guardar Cambios</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* --- MODAL: EMPLEADO --- */}
-      <Modal 
-        isOpen={openEmployeeModal} 
-        onClose={() => {
-          setOpenEmployeeModal(false);
-          setSelectedEmployee(null);
-        }} 
-        title={selectedEmployee ? `Editar Empleado` : 'Nuevo Empleado'} 
-        maxWidth="600px"
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div className="input-container">
-              <label className="input-label">Nombre completo *</label>
-              <input 
-                type="text" 
-                className="input-field" 
-                defaultValue={selectedEmployee?.name || ''}
-                placeholder="Ana García"
-              />
-            </div>
-            <div className="input-container">
-              <label className="input-label">Correo electrónico *</label>
-              <input 
-                type="email" 
-                className="input-field" 
-                defaultValue={selectedEmployee?.email || ''}
-                placeholder="empleado@modasarita.com"
-              />
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div className="input-container">
-              <label className="input-label">Rol *</label>
-              <select className="input-field" defaultValue={selectedEmployee?.role || ''}>
-                <option value="">Seleccionar rol...</option>
-                {roles.map(role => (
-                  <option key={role.id} value={role.name}>{role.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="input-container">
-              <label className="input-label">Estado</label>
-              <select className="input-field" defaultValue={selectedEmployee?.status || 'active'}>
-                <option value="active">Activo</option>
-                <option value="inactive">Inactivo</option>
-              </select>
-            </div>
-          </div>
-
-          {!selectedEmployee && (
-            <div className="input-container">
-              <label className="input-label">Contraseña temporal</label>
-              <input 
-                type="password" 
-                className="input-field" 
-                placeholder="Generar automáticamente"
-              />
-              <div style={{ fontSize: '0.875rem', color: 'var(--color-gray)', marginTop: '0.25rem' }}>
-                Se enviará un correo al empleado para que establezca su contraseña
-              </div>
-            </div>
-          )}
-
-          {selectedEmployee && (
-            <div style={{ 
-              background: 'var(--color-primary)', 
-              padding: '1rem', 
-              borderRadius: 'var(--border-radius-small)',
-              fontSize: '0.875rem'
-            }}>
-              <div><strong>Fecha de registro:</strong> {new Date(selectedEmployee.createdAt).toLocaleDateString()}</div>
-              <div><strong>Último acceso:</strong> {new Date(selectedEmployee.lastLogin).toLocaleString()}</div>
-            </div>
-          )}
-        </div>
-
-        <div className="modal-actions">
-          <button className="button button-ghost" onClick={() => setOpenEmployeeModal(false)}>Cancelar</button>
-          <button className="button button-primary">
-            {selectedEmployee ? 'Actualizar Empleado' : 'Crear Empleado'}
-          </button>
-        </div>
-      </Modal>
-
-      {/* --- MODAL: ROLES --- */}
-      <Modal 
-        isOpen={openRoleModal} 
-        onClose={() => {
-          setOpenRoleModal(false);
-          setSelectedRole(null);
-        }} 
-        title={selectedRole ? `Editar Rol: ${selectedRole.name}` : 'Nuevo Rol'} 
-        maxWidth="700px"
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <div className="input-container">
-            <label className="input-label">Nombre del Rol *</label>
-            <input 
-              type="text" 
-              className="input-field" 
-              defaultValue={selectedRole?.name || ''}
-              placeholder="Ej: Cajero, Vendedor, Gerente"
-              disabled={selectedRole?.isSystem}
-            />
-          </div>
-
-          <div>
-            <label className="input-label">Permisos *</label>
-            <div style={{ 
-              maxHeight: '300px', 
-              overflowY: 'auto', 
-              border: '1px solid var(--color-accent)',
-              borderRadius: 'var(--border-radius-small)',
-              padding: '1rem'
-            }}>
-              {allPermissions.reduce((acc: PermissionCategory[], permission: Permission) => {
-                const category = permission.category;
-                const existingCategory = acc.find(item => item.category === category);
-                
-                if (!existingCategory) {
-                  acc.push({ category, permissions: [permission] });
-                } else {
-                  existingCategory.permissions.push(permission);
-                }
-                return acc;
-              }, []).map((categoryGroup: PermissionCategory) => (
-                <div key={categoryGroup.category} style={{ marginBottom: '1.5rem' }}>
-                  <h4 style={{ 
-                    margin: '0 0 1rem 0', 
-                    color: 'var(--color-text)',
-                    fontSize: '1rem',
-                    borderBottom: '1px solid var(--color-accent)',
-                    paddingBottom: '0.5rem'
-                  }}>
-                    {categoryGroup.category}
-                  </h4>
-                  <div style={{ display: 'grid', gap: '0.5rem' }}>
-                    {categoryGroup.permissions.map((permission: Permission) => (
-                      <label key={permission.id} className="filter-option" style={{ display: 'flex', alignItems: 'center' }}>
-                        <input 
-                          type="checkbox" 
-                          className="filter-checkbox"
-                          defaultChecked={
-                            selectedRole?.permissions?.includes('all') || 
-                            selectedRole?.permissions?.includes(permission.id)
-                          }
-                          disabled={selectedRole?.isSystem}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Chip
+                          label={method.status === 'active' ? 'Activo' : 'Inactivo'}
+                          sx={{
+                            bgcolor: method.status === 'active' ? '#E8F5E9' : '#FFEBEE',
+                            color: method.status === 'active' ? '#2E7D32' : '#C62828',
+                            fontWeight: 'bold'
+                          }}
                         />
-                        <span style={{ marginLeft: '0.5rem' }}>{permission.name}</span>
-                      </label>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          startIcon={<Settings />}
+                          onClick={() => setOpenPaymentModal(true)}
+                          sx={{
+                            borderColor: '#E91E8C',
+                            color: '#E91E8C',
+                            '&:hover': { borderColor: '#C2185B', bgcolor: '#FFF5FA' },
+                            borderRadius: '20px',
+                            textTransform: 'none'
+                          }}
+                        >
+                          Configurar
+                        </Button>
+                      </Box>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </TabPanel>
+
+        {/* TAB 4: DATOS DE LA TIENDA */}
+        <TabPanel value={tabValue} index={3}>
+          <Paper sx={{ p: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+            <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#E91E8C', mb: 3 }}>
+              Datos de la Tienda
+            </Typography>
+
+            <Grid container spacing={3}>
+              <Grid size={{ xs: 12 }}>
+                <TextField
+                  fullWidth
+                  label="Nombre de la Tienda"
+                  defaultValue="Moda Sarita"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&.Mui-focused fieldset': { borderColor: '#E91E8C' }
+                    },
+                    '& .MuiInputLabel-root.Mui-focused': { color: '#E91E8C' }
+                  }}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12 }}>
+                <TextField
+                  fullWidth
+                  label="Dirección Física"
+                  defaultValue="Av. Principal #123, Col. Centro, Huejutla"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&.Mui-focused fieldset': { borderColor: '#E91E8C' }
+                    },
+                    '& .MuiInputLabel-root.Mui-focused': { color: '#E91E8C' }
+                  }}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  fullWidth
+                  label="Teléfono de Contacto"
+                  defaultValue="771 123 4567"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&.Mui-focused fieldset': { borderColor: '#E91E8C' }
+                    },
+                    '& .MuiInputLabel-root.Mui-focused': { color: '#E91E8C' }
+                  }}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  fullWidth
+                  label="Correo Electrónico"
+                  defaultValue="contacto@modasarita.com"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&.Mui-focused fieldset': { borderColor: '#E91E8C' }
+                    },
+                    '& .MuiInputLabel-root.Mui-focused': { color: '#E91E8C' }
+                  }}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12 }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  Métodos de Pago Aceptados
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                  <FormControlLabel control={<Checkbox defaultChecked />} label="Efectivo" />
+                  <FormControlLabel control={<Checkbox defaultChecked />} label="Tarjeta" />
+                  <FormControlLabel control={<Checkbox defaultChecked />} label="Transferencia" />
+                </Box>
+              </Grid>
+
+              <Grid size={{ xs: 12 }}>
+                <Button
+                  variant="contained"
+                  sx={{
+                    bgcolor: '#E91E8C',
+                    '&:hover': { bgcolor: '#C2185B' },
+                    borderRadius: '25px',
+                    px: 4,
+                    textTransform: 'none',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  Guardar Cambios
+                </Button>
+              </Grid>
+            </Grid>
+          </Paper>
+        </TabPanel>
+
+        {/* MODAL: EMPLEADO */}
+        <Dialog
+          open={openEmployeeModal}
+          onClose={() => {
+            setOpenEmployeeModal(false);
+            setSelectedEmployee(null);
+          }}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle sx={{ bgcolor: '#FDE8F4', color: '#E91E8C', fontWeight: 'bold' }}>
+            {selectedEmployee ? 'Editar Empleado' : 'Nuevo Empleado'}
+          </DialogTitle>
+          <DialogContent sx={{ mt: 2 }}>
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12 }}>
+                <TextField
+                  fullWidth
+                  label="Nombre completo"
+                  defaultValue={selectedEmployee?.name || ''}
+                  placeholder="Ana García"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&.Mui-focused fieldset': { borderColor: '#E91E8C' }
+                    },
+                    '& .MuiInputLabel-root.Mui-focused': { color: '#E91E8C' }
+                  }}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12 }}>
+                <TextField
+                  fullWidth
+                  label="Correo electrónico"
+                  type="email"
+                  defaultValue={selectedEmployee?.email || ''}
+                  placeholder="empleado@modasarita.com"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&.Mui-focused fieldset': { borderColor: '#E91E8C' }
+                    },
+                    '& .MuiInputLabel-root.Mui-focused': { color: '#E91E8C' }
+                  }}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <FormControl fullWidth>
+                  <InputLabel>Rol</InputLabel>
+                  <Select
+                    defaultValue={selectedEmployee?.role || ''}
+                    label="Rol"
+                    sx={{
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#E91E8C' }
+                    }}
+                  >
+                    {roles.map((role) => (
+                      <MenuItem key={role.id} value={role.name}>
+                        {role.name}
+                      </MenuItem>
                     ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+                  </Select>
+                </FormControl>
+              </Grid>
 
-          {selectedRole?.isSystem && (
-            <div style={{ 
-              background: 'var(--color-primary)', 
-              padding: '1rem', 
-              borderRadius: 'var(--border-radius-small)',
-              fontSize: '0.875rem',
-              color: 'var(--color-text)'
-            }}>
-              Este es un rol del sistema y no puede ser modificado.
-            </div>
-          )}
-        </div>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <FormControl fullWidth>
+                  <InputLabel>Estado</InputLabel>
+                  <Select
+                    defaultValue={selectedEmployee?.status || 'active'}
+                    label="Estado"
+                    sx={{
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#E91E8C' }
+                    }}
+                  >
+                    <MenuItem value="active">Activo</MenuItem>
+                    <MenuItem value="inactive">Inactivo</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
 
-        <div className="modal-actions">
-          <button className="button button-ghost" onClick={() => setOpenRoleModal(false)}>Cancelar</button>
-          <button className="button button-primary" disabled={selectedRole?.isSystem}>
-            {selectedRole ? 'Actualizar Rol' : 'Crear Rol'}
-          </button>
-        </div>
-      </Modal>
+              {!selectedEmployee && (
+                <Grid size={{ xs: 12 }}>
+                  <TextField
+                    fullWidth
+                    type="password"
+                    label="Contraseña temporal"
+                    placeholder="Generar automáticamente"
+                    helperText="Se enviará un correo al empleado"
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        '&.Mui-focused fieldset': { borderColor: '#E91E8C' }
+                      },
+                      '& .MuiInputLabel-root.Mui-focused': { color: '#E91E8C' }
+                    }}
+                  />
+                </Grid>
+              )}
+            </Grid>
+          </DialogContent>
+          <DialogActions sx={{ p: 3 }}>
+            <Button onClick={() => setOpenEmployeeModal(false)} sx={{ color: '#666' }}>
+              Cancelar
+            </Button>
+            <Button
+              variant="contained"
+              sx={{
+                bgcolor: '#E91E8C',
+                '&:hover': { bgcolor: '#C2185B' },
+                borderRadius: '20px',
+                px: 3
+              }}
+            >
+              {selectedEmployee ? 'Actualizar' : 'Crear'}
+            </Button>
+          </DialogActions>
+        </Dialog>
 
-      {/* --- MODAL: MÉTODOS DE PAGO --- */}
-      <Modal 
-        isOpen={openPaymentModal} 
-        onClose={() => setOpenPaymentModal(false)} 
-        title="Configurar Método de Pago" 
-        maxWidth="500px"
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <div className="input-container">
-            <label className="input-label">Clave Pública de API</label>
-            <div style={{ position: 'relative' }}>
-              <input 
-                type={showApiKey ? "text" : "password"}
-                className="input-field" 
-                placeholder="pk_************"
-                defaultValue="pk_************"
-              />
-              <button 
-                type="button"
-                onClick={() => setShowApiKey(!showApiKey)}
-                style={{
-                  position: 'absolute',
-                  right: '1rem',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--color-gray)',
-                  cursor: 'pointer'
-                }}
-              >
-                {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-          </div>
-
-          <div className="input-container">
-            <label className="input-label">Clave Secreta de API</label>
-            <input 
-              type="password"
-              className="input-field" 
-              placeholder="sk_************"
-              defaultValue="sk_************"
+        {/* MODAL: ROLES */}
+        <Dialog
+          open={openRoleModal}
+          onClose={() => {
+            setOpenRoleModal(false);
+            setSelectedRole(null);
+          }}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle sx={{ bgcolor: '#FDE8F4', color: '#E91E8C', fontWeight: 'bold' }}>
+            {selectedRole ? `Editar Rol: ${selectedRole.name}` : 'Nuevo Rol'}
+          </DialogTitle>
+          <DialogContent sx={{ mt: 2 }}>
+            <TextField
+              fullWidth
+              label="Nombre del Rol"
+              defaultValue={selectedRole?.name || ''}
+              placeholder="Ej: Cajero, Vendedor"
+              disabled={selectedRole?.isSystem}
+              sx={{
+                mb: 3,
+                '& .MuiOutlinedInput-root': {
+                  '&.Mui-focused fieldset': { borderColor: '#E91E8C' }
+                },
+                '& .MuiInputLabel-root.Mui-focused': { color: '#E91E8C' }
+              }}
             />
-          </div>
 
-          <div className="input-container">
-            <label className="input-label">Estado</label>
-            <select className="input-field" defaultValue="inactive">
-              <option value="active">Activo</option>
-              <option value="inactive">Inactivo</option>
-            </select>
-          </div>
+            <Typography variant="subtitle2" gutterBottom>
+              Permisos
+            </Typography>
+            <Box
+              sx={{
+                maxHeight: 300,
+                overflowY: 'auto',
+                border: '1px solid #e0e0e0',
+                borderRadius: 1,
+                p: 2
+              }}
+            >
+              {allPermissions.map((permission) => (
+                <FormControlLabel
+                  key={permission.id}
+                  control={
+                    <Checkbox
+                      defaultChecked={
+                        selectedRole?.permissions?.includes('all') ||
+                        selectedRole?.permissions?.includes(permission.id)
+                      }
+                      disabled={selectedRole?.isSystem}
+                    />
+                  }
+                  label={permission.name}
+                  sx={{ display: 'block', mb: 1 }}
+                />
+              ))}
+            </Box>
 
-          <div style={{ 
-            background: 'var(--color-primary)', 
-            padding: '1rem', 
-            borderRadius: 'var(--border-radius-small)',
-            fontSize: '0.875rem'
-          }}>
-            <strong>Importante:</strong> Las claves API son información sensible. 
-            Se almacenan encriptadas y nunca se muestran completas por seguridad.
-          </div>
-        </div>
+            {selectedRole?.isSystem && (
+              <Box sx={{ mt: 2, p: 2, bgcolor: '#FDE8F4', borderRadius: 1 }}>
+                <Typography variant="body2">
+                  Este es un rol del sistema y no puede ser modificado.
+                </Typography>
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions sx={{ p: 3 }}>
+            <Button onClick={() => setOpenRoleModal(false)} sx={{ color: '#666' }}>
+              Cancelar
+            </Button>
+            <Button
+              variant="contained"
+              disabled={selectedRole?.isSystem}
+              sx={{
+                bgcolor: '#E91E8C',
+                '&:hover': { bgcolor: '#C2185B' },
+                borderRadius: '20px',
+                px: 3
+              }}
+            >
+              {selectedRole ? 'Actualizar' : 'Crear'}
+            </Button>
+          </DialogActions>
+        </Dialog>
 
-        <div className="modal-actions">
-          <button className="button button-ghost" onClick={() => setOpenPaymentModal(false)}>Cancelar</button>
-          <button className="button button-primary">Guardar Configuración</button>
-        </div>
-      </Modal>
-    </div>
+        {/* MODAL: MÉTODOS DE PAGO */}
+        <Dialog
+          open={openPaymentModal}
+          onClose={() => setOpenPaymentModal(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle sx={{ bgcolor: '#FDE8F4', color: '#E91E8C', fontWeight: 'bold' }}>
+            Configurar Método de Pago
+          </DialogTitle>
+          <DialogContent sx={{ mt: 2 }}>
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12 }}>
+                <TextField
+                  fullWidth
+                  label="Clave Pública de API"
+                  type={showApiKey ? 'text' : 'password'}
+                  defaultValue="pk_************"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&.Mui-focused fieldset': { borderColor: '#E91E8C' }
+                    },
+                    '& .MuiInputLabel-root.Mui-focused': { color: '#E91E8C' }
+                  }}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton onClick={() => setShowApiKey(!showApiKey)} edge="end">
+                          {showApiKey ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    )
+                  }}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12 }}>
+                <TextField
+                  fullWidth
+                  label="Clave Secreta de API"
+                  type="password"
+                  defaultValue="sk_************"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&.Mui-focused fieldset': { borderColor: '#E91E8C' }
+                    },
+                    '& .MuiInputLabel-root.Mui-focused': { color: '#E91E8C' }
+                  }}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12 }}>
+                <FormControl fullWidth>
+                  <InputLabel>Estado</InputLabel>
+                  <Select
+                    defaultValue="inactive"
+                    label="Estado"
+                    sx={{
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#E91E8C' }
+                    }}
+                  >
+                    <MenuItem value="active">Activo</MenuItem>
+                    <MenuItem value="inactive">Inactivo</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              <Grid size={{ xs: 12 }}>
+                <Box sx={{ p: 2, bgcolor: '#FDE8F4', borderRadius: 1 }}>
+                  <Typography variant="body2">
+                    <strong>Importante:</strong> Las claves API son información sensible. Se
+                    almacenan encriptadas.
+                  </Typography>
+                </Box>
+              </Grid>
+            </Grid>
+          </DialogContent>
+          <DialogActions sx={{ p: 3 }}>
+            <Button onClick={() => setOpenPaymentModal(false)} sx={{ color: '#666' }}>
+              Cancelar
+            </Button>
+            <Button
+              variant="contained"
+              sx={{
+                bgcolor: '#E91E8C',
+                '&:hover': { bgcolor: '#C2185B' },
+                borderRadius: '20px',
+                px: 3
+              }}
+            >
+              Guardar
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Box>
+    </AdminLayout>
   );
 };
+
+export default AdminSettings;

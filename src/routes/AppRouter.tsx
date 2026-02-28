@@ -21,12 +21,12 @@ import AdminLogin from '../pages/admin/AdminLogin';
 import Dashboard from '../pages/admin/Dashboard';
 import POS from '../pages/admin/POS';
 import Inventory from '../pages/admin/Inventory';
-import { OrdersManager } from '../pages/admin/OrdersManager';
+import OrdersManager from '../pages/admin/OrdersManager';
 import AdminUsers from '../pages/admin/AdminUsers';
-import { AdminSettings } from '../pages/admin/AdminSettings';
+import AdminSettings from '../pages/admin/AdminSettings';
 import AdminReports from '../pages/admin/AdminReports';
 import AdminMarketing from '../pages/admin/AdminMarketing';
-import { AdminCustomers } from '../pages/admin/AdminCustomers';
+import AdminCustomers from '../pages/admin/AdminCustomers';
 import AdminPanel from '../pages/admin/AdminPanel';
 export const AppRouter = () => {
   return (

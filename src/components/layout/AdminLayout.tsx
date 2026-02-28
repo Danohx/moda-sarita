@@ -5,7 +5,7 @@ import {
   Settings, LogOut, Truck, BarChart3 
 } from 'lucide-react';
 
-// 1. Definimos la Interface que TypeScript dice que falta
+// Interface para TypeScript
 interface AdminLayoutProps {
   children: React.ReactNode;
   role: 'admin' | 'empleado';
@@ -14,8 +14,9 @@ interface AdminLayoutProps {
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, role }) => {
   const location = useLocation();
   
+  // Función para resaltar el link activo
   const isActive = (path: string) => 
-    location.pathname === path ? { backgroundColor: '#f3f4f6', fontWeight: 'bold' } : {};
+    location.pathname === path ? { backgroundColor: '#fce7f3', color: '#be185d', fontWeight: 'bold' } : {};
 
   const iconStyle = { marginRight: '0.75rem' };
 
@@ -25,14 +26,13 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, role }) => {
       width: '100vw', 
       height: '100vh', 
       overflow: 'hidden',
-      position: 'fixed', // Forzamos que ocupe toda la pantalla real
+      position: 'fixed', 
       top: 0,
       left: 0,
       backgroundColor: '#f3f4f6' 
     }}>
       
-      {/* SID
-      EBAR */}
+      {/* SIDEBAR LATERAL */}
       <aside style={{ 
         width: '260px', 
         minWidth: '260px', 
@@ -43,6 +43,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, role }) => {
         flexDirection: 'column',
         zIndex: 100
       }}>
+        {/* Perfil de Usuario en Sidebar */}
         <div style={{ padding: '20px', borderBottom: '1px solid #f3f4f6' }}>
           <div style={{ 
             width: '40px', 
@@ -53,42 +54,49 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, role }) => {
             display: 'flex', 
             alignItems: 'center', 
             justifyContent: 'center',
-            marginBottom: '10px'
+            marginBottom: '10px',
+            fontWeight: 'bold'
           }}>
             {role === 'admin' ? 'AD' : 'EM'}
           </div>
-          <div style={{ fontWeight: 'bold' }}>{role === 'admin' ? 'Administrador' : 'Empleado'}</div>
+          <div style={{ fontWeight: 'bold', color: '#111827' }}>
+            {role === 'admin' ? 'Administrador' : 'Empleado'}
+          </div>
           <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>Panel de Control</div>
         </div>
 
+        {/* Navegación */}
         <nav style={{ flex: 1, overflowY: 'auto', padding: '10px' }}>
-          <Link to="/admin/dashboard" style={{ display: 'flex', alignItems: 'center', padding: '12px', textDecoration: 'none', color: '#374151', borderRadius: '8px', ...isActive('/admin/dashboard') }}>
+          <Link to="/admin/dashboard" style={{ display: 'flex', alignItems: 'center', padding: '12px', textDecoration: 'none', color: '#374151', borderRadius: '8px', marginBottom: '4px', ...isActive('/admin/dashboard') }}>
             <LayoutDashboard size={20} style={iconStyle} /> Inicio
           </Link>
           
-          <Link to="/admin/pos" style={{ display: 'flex', alignItems: 'center', padding: '12px', textDecoration: 'none', color: '#374151', borderRadius: '8px', ...isActive('/admin/pos') }}>
+          <Link to="/admin/pos" style={{ display: 'flex', alignItems: 'center', padding: '12px', textDecoration: 'none', color: '#374151', borderRadius: '8px', marginBottom: '4px', ...isActive('/admin/pos') }}>
             <Store size={20} style={iconStyle} /> Punto de Venta
           </Link>
 
-          <Link to="/admin/orders" style={{ display: 'flex', alignItems: 'center', padding: '12px', textDecoration: 'none', color: '#374151', borderRadius: '8px', ...isActive('/admin/orders') }}>
+          <Link to="/admin/orders" style={{ display: 'flex', alignItems: 'center', padding: '12px', textDecoration: 'none', color: '#374151', borderRadius: '8px', marginBottom: '4px', ...isActive('/admin/orders') }}>
             <Truck size={20} style={iconStyle} /> Pedidos
           </Link>
 
-          <Link to="/admin/inventory" style={{ display: 'flex', alignItems: 'center', padding: '12px', textDecoration: 'none', color: '#374151', borderRadius: '8px', ...isActive('/admin/inventory') }}>
+          <Link to="/admin/inventory" style={{ display: 'flex', alignItems: 'center', padding: '12px', textDecoration: 'none', color: '#374151', borderRadius: '8px', marginBottom: '4px', ...isActive('/admin/inventory') }}>
             <Package size={20} style={iconStyle} /> Inventario
           </Link>
 
-          <Link to="/admin/customers" style={{ display: 'flex', alignItems: 'center', padding: '12px', textDecoration: 'none', color: '#374151', borderRadius: '8px', ...isActive('/admin/customers') }}>
-            <Package size={20} style={iconStyle} /> Gestion de clientes
+          {/* Corregido: Usando icono Users para clientes */}
+          <Link to="/admin/customers" style={{ display: 'flex', alignItems: 'center', padding: '12px', textDecoration: 'none', color: '#374151', borderRadius: '8px', marginBottom: '4px', ...isActive('/admin/customers') }}>
+            <Users size={20} style={iconStyle} /> Gestión de Clientes
           </Link>
 
           {role === 'admin' && (
             <>
-              <div style={{ padding: '20px 10px 5px', fontSize: '0.7rem', fontWeight: 'bold', color: '#9ca3af', textTransform: 'uppercase' }}>Administración</div>
-              <Link to="/admin/reports" style={{ display: 'flex', alignItems: 'center', padding: '12px', textDecoration: 'none', color: '#374151', borderRadius: '8px', ...isActive('/admin/reports') }}>
+              <div style={{ padding: '20px 10px 5px', fontSize: '0.7rem', fontWeight: 'bold', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Administración
+              </div>
+              <Link to="/admin/reports" style={{ display: 'flex', alignItems: 'center', padding: '12px', textDecoration: 'none', color: '#374151', borderRadius: '8px', marginBottom: '4px', ...isActive('/admin/reports') }}>
                 <BarChart3 size={20} style={iconStyle} /> Reportes
               </Link>
-              <Link to="/admin/settings" style={{ display: 'flex', alignItems: 'center', padding: '12px', textDecoration: 'none', color: '#374151', borderRadius: '8px', ...isActive('/admin/settings') }}>
+              <Link to="/admin/settings" style={{ display: 'flex', alignItems: 'center', padding: '12px', textDecoration: 'none', color: '#374151', borderRadius: '8px', marginBottom: '4px', ...isActive('/admin/settings') }}>
                 <Settings size={20} style={iconStyle} /> Ajustes
               </Link>
               <Link to="/admin/panel" style={{ display: 'flex', alignItems: 'center', padding: '12px', textDecoration: 'none', color: '#374151', borderRadius: '8px', ...isActive('/admin/panel') }}>
@@ -98,12 +106,25 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, role }) => {
           )}
         </nav>
 
-        <button style={{ margin: '20px', padding: '12px', display: 'flex', alignItems: 'center', border: 'none', background: '#fee2e2', color: '#b91c1c', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
+        {/* Botón Cerrar Sesión */}
+        <button style={{ 
+          margin: '20px', 
+          padding: '12px', 
+          display: 'flex', 
+          alignItems: 'center', 
+          border: 'none', 
+          background: '#fee2e2', 
+          color: '#b91c1c', 
+          borderRadius: '8px', 
+          cursor: 'pointer', 
+          fontWeight: 'bold',
+          transition: 'background 0.2s'
+        }}>
           <LogOut size={20} style={iconStyle} /> Cerrar Sesión
         </button>
       </aside>
 
-      {/* CONTENIDO PRINCIPAL */}
+      {/* CONTENIDO PRINCIPAL (Donde se renderizan las páginas) */}
       <main style={{ 
         flex: 1, 
         height: '100vh', 
