@@ -130,7 +130,6 @@ const AdminUsers: React.FC = () => {
   };
 
   return (
-    <AdminLayout role="admin">
       <Box>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
           <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#333' }}>
@@ -404,7 +403,6 @@ const AdminUsers: React.FC = () => {
           </Grid>
         </TabPanel>
       </Box>
-    </AdminLayout>
   );
 };
 

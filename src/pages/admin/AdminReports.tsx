@@ -1,905 +1,343 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  Card,
-  CardContent,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  TextField,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
-  Alert,
-  CircularProgress,
-} from "@mui/material";
-import Grid from "@mui/material/Grid";
+// src/pages/admin/AdminReports.tsx
+import React, { useState, useEffect } from 'react';
 import {
   TrendingUp,
-  Assessment,
-  Description,
-  BarChart as BarChartIcon,
-  Print,
-  Email,
-  PictureAsPdf,
-} from "@mui/icons-material";
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
+  DollarSign,
+  Users,
+  Package,
+  Calendar,
+  Download,
+  FileText,
+  BarChart3,
   PieChart,
-  Pie,
-  Cell,
-} from "recharts";
-import styles from "../../styles/AdminReports.module.css";
+  ShoppingBag,
+  CreditCard,
+  Filter
+} from 'lucide-react';
+import { AdminLayout } from '../../components/layout/AdminLayout';
+import styles from '../../styles/AdminReports.module.css';
 
-type TipoReporte = "ventas" | "inventario" | "clientes" | "financiero";
-type Periodo = "semana" | "mes" | "trimestre" | "ano" | "personalizado";
+type ReportType = 'ventas' | 'inventario' | 'clientes' | 'financiero';
+type Period = 'hoy' | 'semana' | 'mes' | 'año';
 
-type VentaMensual = {
-  mes: string;
-  ventas: number;
-  costos: number;
-  ganancia: number;
-};
-type VentaCategoria = {
-  name: string;
-  value: number;
-  ventas: number;
-  color: string;
-};
-type ProductoTop = {
+interface SummaryCard {
+  label: string;
+  value: string;
+  change: number;
+  icon: React.ComponentType<any>;
+}
+
+interface TopProduct {
   id: number;
   nombre: string;
-  cantidad: number;
-  total: number;
-  categoria: string;
-};
-type ClienteTop = {
+  ventas: number;
+  ingresos: number;
+}
+
+interface TopCustomer {
   id: number;
   nombre: string;
   compras: number;
   total: number;
-  ultimaCompra: string;
-};
-type VentaMetodo = {
-  metodo: string;
-  value: number;
-  monto: number;
-  color: string;
-};
-
-type Totales = {
-  ventasTotal: number;
-  costosTotal: number;
-  gananciaTotal: number;
-  margen: string;
-};
-
-type ReporteData = {
-  ventasMensuales: VentaMensual[];
-  ventasPorCategoria: VentaCategoria[];
-  ventasPorMetodo: VentaMetodo[];
-  productosMasVendidos: ProductoTop[];
-  clientesTop: ClienteTop[];
-};
-
-function formatMoneda(valor: number) {
-  return new Intl.NumberFormat("es-MX", {
-    style: "currency",
-    currency: "MXN",
-  }).format(valor);
 }
 
-/**
- * ✅ Placeholder para API
- * Cambias esta función por tu llamada real (axios/fetch).
- */
-async function fetchReportData(params: {
-  tipo: TipoReporte;
-  periodo: Periodo;
-  fechaInicio: string;
-  fechaFin: string;
-  signal: AbortSignal;
-}): Promise<ReporteData> {
-  const { signal } = params;
-
-  await new Promise<void>((resolve, reject) => {
-    const id = window.setTimeout(() => resolve(), 350);
-    signal.addEventListener("abort", () => {
-      window.clearTimeout(id);
-      reject(new DOMException("Aborted", "AbortError"));
-    });
-  });
-
-  return {
-    ventasMensuales: [],
-    ventasPorCategoria: [],
-    ventasPorMetodo: [],
-    productosMasVendidos: [],
-    clientesTop: [],
-  };
-}
-
-const AdminReports: React.FC = () => {
-  const [tipoReporte, setTipoReporte] = useState<TipoReporte>("ventas");
-  const [periodo, setPeriodo] = useState<Periodo>("mes");
-  const [fechaInicio, setFechaInicio] = useState("2025-02-01");
-  const [fechaFin, setFechaFin] = useState("2025-02-28");
-
-  const [loading, setLoading] = useState(false);
-  const [generandoPDF, setGenerandoPDF] = useState(false);
-  const [datosReporte, setDatosReporte] = useState<ReporteData | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const reportesDisponibles = useMemo(
-    () => [
-      {
-        id: "ventas" as const,
-        nombre: "Reporte de Ventas",
-        icon: <TrendingUp />,
-        descripcion: "Análisis detallado de ventas",
-      },
-      {
-        id: "inventario" as const,
-        nombre: "Reporte de Inventario",
-        icon: <Assessment />,
-        descripcion: "Estado del inventario",
-      },
-      {
-        id: "clientes" as const,
-        nombre: "Reporte de Clientes",
-        icon: <Description />,
-        descripcion: "Análisis de clientes",
-      },
-      {
-        id: "financiero" as const,
-        nombre: "Reporte Financiero",
-        icon: <BarChartIcon />,
-        descripcion: "Estado financiero",
-      },
-    ],
-    [],
-  );
-
-  const calcularTotales = useCallback(
-    (ventasMensuales: VentaMensual[]): Totales => {
-      const ventasTotal = ventasMensuales.reduce(
-        (sum, item) => sum + item.ventas,
-        0,
-      );
-      const costosTotal = ventasMensuales.reduce(
-        (sum, item) => sum + item.costos,
-        0,
-      );
-      const gananciaTotal = ventasTotal - costosTotal;
-      const margen =
-        ventasTotal > 0
-          ? ((gananciaTotal / ventasTotal) * 100).toFixed(1)
-          : "0.0";
-      return { ventasTotal, costosTotal, gananciaTotal, margen };
-    },
-    [],
-  );
-
-  const totales = useMemo(() => {
-    return calcularTotales(datosReporte?.ventasMensuales ?? []);
-  }, [calcularTotales, datosReporte]);
-
-  const load = useCallback(
-    async (signal: AbortSignal) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const resp = await fetchReportData({
-          tipo: tipoReporte,
-          periodo,
-          fechaInicio,
-          fechaFin,
-          signal,
-        });
-        setDatosReporte(resp);
-      } catch (e) {
-        if (e instanceof DOMException && e.name === "AbortError") return;
-        setDatosReporte(null);
-        setError("No se pudieron cargar los reportes (placeholder).");
-      } finally {
-        setLoading(false);
-      }
-    },
-    [tipoReporte, periodo, fechaInicio, fechaFin],
-  );
+export const AdminReports: React.FC = () => {
+  const [reportType, setReportType] = useState<ReportType>('ventas');
+  const [period, setPeriod] = useState<Period>('mes');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const controller = new AbortController();
-    void load(controller.signal);
-    return () => controller.abort();
-  }, [load]);
+    setTimeout(() => setLoading(false), 800);
+  }, [reportType, period]);
 
-  const handleGenerarPDF = async () => {
-    setGenerandoPDF(true);
-    try {
-      await new Promise((r) => setTimeout(r, 800));
-      alert("PDF generado (placeholder). Conecta backend luego.");
-    } finally {
-      setGenerandoPDF(false);
+  const summaryCards: SummaryCard[] = [
+    {
+      label: 'Ventas Totales',
+      value: '$125,450',
+      change: 12.5,
+      icon: DollarSign
+    },
+    {
+      label: 'Transacciones',
+      value: '1,247',
+      change: 8.3,
+      icon: ShoppingBag
+    },
+    {
+      label: 'Ticket Promedio',
+      value: '$850',
+      change: -3.2,
+      icon: CreditCard
+    },
+    {
+      label: 'Productos Vendidos',
+      value: '3,892',
+      change: 15.7,
+      icon: Package
     }
+  ];
+
+  const topProducts: TopProduct[] = [
+    { id: 1, nombre: 'Blusa Floral Rosa', ventas: 45, ingresos: 13455 },
+    { id: 2, nombre: 'Pantalón Mezclilla', ventas: 38, ingresos: 17100 },
+    { id: 3, nombre: 'Vestido Estampado', ventas: 32, ingresos: 17600 },
+    { id: 4, nombre: 'Falda Plisada', ventas: 28, ingresos: 8960 },
+    { id: 5, nombre: 'Chamarra Denim', ventas: 25, ingresos: 18750 }
+  ];
+
+  const topCustomers: TopCustomer[] = [
+    { id: 1, nombre: 'María González', compras: 12, total: 15600 },
+    { id: 2, nombre: 'Ana Martínez', compras: 9, total: 12300 },
+    { id: 3, nombre: 'Carmen López', compras: 8, total: 10800 },
+    { id: 4, nombre: 'Laura Hernández', compras: 7, total: 9450 },
+    { id: 5, nombre: 'Rosa Ramírez', compras: 6, total: 8200 }
+  ];
+
+  const formatMoneda = (valor: number) => {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN'
+    }).format(valor);
   };
 
-  const handleEnviarEmail = () => {
-    alert("Reporte enviado por email (placeholder).");
+  const exportarPDF = () => {
+    alert('Exportando reporte a PDF...');
   };
 
-  const handleImprimir = () => window.print();
-
-  const renderReporteVentas = () => {
-    const ventasMensuales = datosReporte?.ventasMensuales ?? [];
-    const ventasPorCategoria = datosReporte?.ventasPorCategoria ?? [];
-    const ventasPorMetodo = datosReporte?.ventasPorMetodo ?? [];
-    const productosMasVendidos = datosReporte?.productosMasVendidos ?? [];
-
-    return (
-      <>
-        <Grid container spacing={3} className={styles.section}>
-          <Grid size={{ xs: 12 }}>
-            <Paper className={styles.paper}>
-              <Typography variant="h6" className={styles.paperTitle}>
-                Ventas vs Costos - Últimos 7 Meses
-              </Typography>
-
-              {ventasMensuales.length === 0 ? (
-                <Alert severity="info" className={styles.alert}>
-                  Sin datos aún. Aquí se renderizará la serie mensual cuando
-                  conectes la API.
-                </Alert>
-              ) : (
-                <div className={styles.chartWrap}>
-                  <ResponsiveContainer width="100%" height={350}>
-                    <LineChart data={ventasMensuales}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="mes" stroke="#666" />
-                      <YAxis stroke="#666" />
-                      <Tooltip
-                        formatter={(value) => formatMoneda(Number(value))}
-                      />
-                      <Legend />
-                      <Line
-                        type="monotone"
-                        dataKey="ventas"
-                        stroke="#E91E8C"
-                        strokeWidth={3}
-                        name="Ventas"
-                        dot={{ r: 4 }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="costos"
-                        stroke="#F8BBD0"
-                        strokeWidth={3}
-                        name="Costos"
-                        dot={{ r: 4 }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="ganancia"
-                        stroke="#4CAF50"
-                        strokeWidth={3}
-                        name="Ganancia"
-                        dot={{ r: 4 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-            </Paper>
-          </Grid>
-        </Grid>
-
-        <Grid container spacing={3} className={styles.section}>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <Paper className={styles.paper}>
-              <Typography variant="h6" className={styles.paperTitle}>
-                Ventas por Categoría
-              </Typography>
-
-              {ventasPorCategoria.length === 0 ? (
-                <Alert severity="info" className={styles.alert}>
-                  Sin datos aún. La API llenará{" "}
-                  {`{ name, value, ventas, color }`}.
-                </Alert>
-              ) : (
-                <div className={styles.chartWrap}>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={ventasPorCategoria}
-                        cx="50%"
-                        cy="50%"
-                        labelLine
-                        label={(p) => {
-                          const payload = p.payload as
-                            | VentaCategoria
-                            | undefined;
-                          if (!payload) return "";
-                          return `${payload.name}: ${payload.value}%`;
-                        }}
-                        outerRadius={100}
-                        dataKey="value"
-                      >
-                        {ventasPorCategoria.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(
-                          value: unknown,
-                          name: unknown,
-                          props: unknown,
-                        ) => {
-                          const p = props as { payload?: VentaCategoria };
-                          const ventas = p.payload?.ventas ?? 0;
-                          return [
-                            `${String(value)}% (${formatMoneda(ventas)})`,
-                            String(name),
-                          ];
-                        }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-            </Paper>
-          </Grid>
-
-          <Grid size={{ xs: 12, md: 6 }}>
-            <Paper className={styles.paper}>
-              <Typography variant="h6" className={styles.paperTitle}>
-                Ventas por Método de Pago
-              </Typography>
-
-              {ventasPorMetodo.length === 0 ? (
-                <Alert severity="info" className={styles.alert}>
-                  Sin datos aún. La API llenará {`{ metodo, monto, color }`}.
-                </Alert>
-              ) : (
-                <div className={styles.chartWrap}>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={ventasPorMetodo}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="metodo" stroke="#666" />
-                      <YAxis stroke="#666" />
-                      <Tooltip
-                        formatter={(value) => formatMoneda(Number(value))}
-                      />
-                      <Bar dataKey="monto" radius={[8, 8, 0, 0]}>
-                        {ventasPorMetodo.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-            </Paper>
-          </Grid>
-        </Grid>
-
-        <Paper className={styles.paper}>
-          <Typography variant="h6" className={styles.paperTitle}>
-            Top 5 Productos Más Vendidos
-          </Typography>
-
-          {productosMasVendidos.length === 0 ? (
-            <Alert severity="info" className={styles.alert}>
-              Sin datos aún. La API llenará{" "}
-              {`{ id, nombre, cantidad, total, categoria }`}.
-            </Alert>
-          ) : (
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow className={styles.tableHeadRow}>
-                    <TableCell className={styles.th}>Producto</TableCell>
-                    <TableCell className={styles.th}>Categoría</TableCell>
-                    <TableCell className={styles.th} align="center">
-                      Cantidad
-                    </TableCell>
-                    <TableCell className={styles.th} align="right">
-                      Total Ventas
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {productosMasVendidos.map((p) => (
-                    <TableRow key={p.id} hover className={styles.tableRowHover}>
-                      <TableCell>{p.nombre}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={p.categoria}
-                          size="small"
-                          className={styles.pinkChip}
-                        />
-                      </TableCell>
-                      <TableCell align="center">
-                        <Typography fontWeight="bold">{p.cantidad}</Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography
-                          fontWeight="bold"
-                          className={styles.pinkText}
-                        >
-                          {formatMoneda(p.total)}
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-        </Paper>
-      </>
-    );
+  const exportarExcel = () => {
+    alert('Exportando reporte a Excel...');
   };
 
-  const renderReporteClientes = () => {
-    const clientesTop = datosReporte?.clientesTop ?? [];
-    return (
-      <Paper className={styles.paper}>
-        <Typography variant="h6" className={styles.paperTitle}>
-          Top 5 Mejores Clientes
-        </Typography>
+  const reportTypes = [
+    { value: 'ventas', label: 'Ventas', icon: TrendingUp },
+    { value: 'inventario', label: 'Inventario', icon: Package },
+    { value: 'clientes', label: 'Clientes', icon: Users },
+    { value: 'financiero', label: 'Financiero', icon: DollarSign }
+  ];
 
-        {clientesTop.length === 0 ? (
-          <Alert severity="info" className={styles.alert}>
-            Sin datos aún. La API llenará{" "}
-            {`{ id, nombre, compras, total, ultimaCompra }`}.
-          </Alert>
-        ) : (
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow className={styles.tableHeadRow}>
-                  <TableCell className={styles.th}>Cliente</TableCell>
-                  <TableCell className={styles.th} align="center">
-                    Compras
-                  </TableCell>
-                  <TableCell className={styles.th} align="right">
-                    Total Gastado
-                  </TableCell>
-                  <TableCell className={styles.th}>Última Compra</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {clientesTop.map((c) => (
-                  <TableRow key={c.id} hover className={styles.tableRowHover}>
-                    <TableCell>
-                      <Typography fontWeight="bold">{c.nombre}</Typography>
-                    </TableCell>
-                    <TableCell align="center">
-                      <Chip
-                        label={c.compras}
-                        size="small"
-                        className={styles.pinkChipBold}
-                      />
-                    </TableCell>
-                    <TableCell align="right">
-                      <Typography fontWeight="bold" className={styles.pinkText}>
-                        {formatMoneda(c.total)}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>{c.ultimaCompra}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
-      </Paper>
-    );
-  };
-
-  const renderReporteInventario = () => {
-    const ventasPorCategoria = datosReporte?.ventasPorCategoria ?? [];
-    return (
-      <Paper className={styles.paper}>
-        <Typography variant="h6" className={styles.paperTitle}>
-          Estado de Inventario por Categoría
-        </Typography>
-
-        {ventasPorCategoria.length === 0 ? (
-          <Alert severity="info" className={styles.alert}>
-            Sin datos aún. Puedes reutilizar la misma serie por categoría o
-            crear una nueva para inventario.
-          </Alert>
-        ) : (
-          <div className={styles.chartWrap}>
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={ventasPorCategoria}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="name" stroke="#666" />
-                <YAxis stroke="#666" />
-                <Tooltip />
-                <Legend />
-                <Bar
-                  dataKey="value"
-                  name="Porcentaje"
-                  fill="#E91E8C"
-                  radius={[8, 8, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-
-        <Alert
-          severity="info"
-          className={styles.alert}
-          style={{ marginTop: 12 }}
-        >
-          <Typography variant="body2">
-            <strong>Nota:</strong> Este reporte mostrará la distribución por
-            categoría según lo que tu API devuelva.
-          </Typography>
-        </Alert>
-      </Paper>
-    );
-  };
-
-  const renderReporteFinanciero = () => {
-    const ventasMensuales = datosReporte?.ventasMensuales ?? [];
-
-    return (
-      <>
-        <Paper className={styles.paper}>
-          <Typography variant="h6" className={styles.paperTitle}>
-            Estado Financiero Mensual
-          </Typography>
-
-          {ventasMensuales.length === 0 ? (
-            <Alert severity="info" className={styles.alert}>
-              Sin datos aún. La API llenará{" "}
-              {`{ mes, ventas, costos, ganancia }`}.
-            </Alert>
-          ) : (
-            <div className={styles.chartWrap}>
-              <ResponsiveContainer width="100%" height={350}>
-                <BarChart data={ventasMensuales}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="mes" stroke="#666" />
-                  <YAxis stroke="#666" />
-                  <Tooltip formatter={(value) => formatMoneda(Number(value))} />
-                  <Legend />
-                  <Bar
-                    dataKey="ventas"
-                    fill="#E91E8C"
-                    name="Ingresos"
-                    radius={[8, 8, 0, 0]}
-                  />
-                  <Bar
-                    dataKey="costos"
-                    fill="#F8BBD0"
-                    name="Costos"
-                    radius={[8, 8, 0, 0]}
-                  />
-                  <Bar
-                    dataKey="ganancia"
-                    fill="#4CAF50"
-                    name="Ganancia"
-                    radius={[8, 8, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </Paper>
-
-        <Grid container spacing={3} className={styles.section}>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <Card className={styles.kpiCard}>
-              <CardContent>
-                <Typography variant="h6" className={styles.kpiTitle}>
-                  Flujo de Efectivo
-                </Typography>
-
-                <Box className={styles.kpiRow}>
-                  <Typography>Ingresos Totales:</Typography>
-                  <Typography fontWeight="bold" className={styles.greenText}>
-                    {formatMoneda(totales.ventasTotal)}
-                  </Typography>
-                </Box>
-
-                <Box className={styles.kpiRow}>
-                  <Typography>Costos Totales:</Typography>
-                  <Typography fontWeight="bold" className={styles.redText}>
-                    {formatMoneda(totales.costosTotal)}
-                  </Typography>
-                </Box>
-
-                <Box className={styles.kpiRowStrong}>
-                  <Typography variant="h6" fontWeight="bold">
-                    Ganancia Neta:
-                  </Typography>
-                  <Typography
-                    variant="h6"
-                    fontWeight="bold"
-                    className={styles.pinkText}
-                  >
-                    {formatMoneda(totales.gananciaTotal)}
-                  </Typography>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid size={{ xs: 12, md: 6 }}>
-            <Card className={styles.kpiCard}>
-              <CardContent>
-                <Typography variant="h6" className={styles.kpiTitle}>
-                  Indicadores Clave
-                </Typography>
-
-                <Box className={styles.kpiRow}>
-                  <Typography>Margen de Ganancia:</Typography>
-                  <Typography fontWeight="bold" className={styles.greenText}>
-                    {totales.margen}%
-                  </Typography>
-                </Box>
-
-                <Box className={styles.kpiRow}>
-                  <Typography>Ticket Promedio:</Typography>
-                  <Typography fontWeight="bold">
-                    {formatMoneda(totales.ventasTotal / 156)}
-                  </Typography>
-                </Box>
-
-                <Box className={styles.kpiRow}>
-                  <Typography>ROI:</Typography>
-                  <Typography fontWeight="bold" className={styles.greenText}>
-                    {totales.costosTotal > 0
-                      ? (
-                          (totales.gananciaTotal / totales.costosTotal) *
-                          100
-                        ).toFixed(1)
-                      : "0.0"}
-                    %
-                  </Typography>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-      </>
-    );
-  };
-
-  const renderContenidoReporte = () => {
-    switch (tipoReporte) {
-      case "ventas":
-        return renderReporteVentas();
-      case "clientes":
-        return renderReporteClientes();
-      case "inventario":
-        return renderReporteInventario();
-      case "financiero":
-        return renderReporteFinanciero();
-      default:
-        return renderReporteVentas();
-    }
-  };
+  const periods = [
+    { value: 'hoy', label: 'Hoy' },
+    { value: 'semana', label: 'Esta Semana' },
+    { value: 'mes', label: 'Este Mes' },
+    { value: 'año', label: 'Este Año' }
+  ];
 
   return (
-    <Box className={styles.root}>
-      {/* Header */}
-      <Box className={styles.header}>
-        <Box>
-          <Typography variant="h4" className={styles.title}>
-            Reportes y Análisis
-          </Typography>
-          <Typography variant="body2" className={styles.subtitle}>
-            {loading ? "Cargando..." : "Listo para conectar API"}
-          </Typography>
-        </Box>
+      <div className={styles.reports}>
+        {/* Header */}
+        <div className={styles.header}>
+          <div>
+            <h1 className={styles.title}>Reportes y Análisis</h1>
+            <p className={styles.subtitle}>Análisis detallado del desempeño de tu negocio</p>
+          </div>
+        </div>
 
-        <Box className={styles.headerActions}>
-          <Button
-            variant="outlined"
-            startIcon={<Email />}
-            onClick={handleEnviarEmail}
-            className={styles.btnOutlined}
-          >
-            Enviar Email
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<Print />}
-            onClick={handleImprimir}
-            className={styles.btnOutlined}
-          >
-            Imprimir
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={
-              generandoPDF ? (
-                <CircularProgress size={20} color="inherit" />
-              ) : (
-                <PictureAsPdf />
-              )
-            }
-            onClick={handleGenerarPDF}
-            disabled={generandoPDF}
-            className={styles.btnPrimary}
-          >
-            {generandoPDF ? "Generando..." : "Exportar PDF"}
-          </Button>
-        </Box>
-      </Box>
-
-      {/* Error */}
-      {error && (
-        <Alert severity="error" className={styles.alert}>
-          {error}
-        </Alert>
-      )}
-
-      {/* Tipos de Reportes */}
-      <Grid container spacing={3} className={styles.section}>
-        {reportesDisponibles.map((reporte) => {
-          const selected = tipoReporte === reporte.id;
-          return (
-            <Grid size={{ xs: 12, sm: 6, md: 3 }} key={reporte.id}>
-              <Card
-                className={`${styles.reportCard} ${selected ? styles.reportCardSelected : ""}`}
-                onClick={() => setTipoReporte(reporte.id)}
-                role="button"
+        {/* Report Type Selector */}
+        <div className={styles.reportTypeSection}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>
+              <BarChart3 size={20} />
+              Tipo de Reporte
+            </h2>
+          </div>
+          <div className={styles.reportTypes}>
+            {reportTypes.map(type => (
+              <button
+                key={type.value}
+                className={`${styles.reportTypeBtn} ${reportType === type.value ? styles.reportTypeActive : ''}`}
+                onClick={() => setReportType(type.value as ReportType)}
               >
-                <CardContent className={styles.reportCardContent}>
-                  <Box
-                    className={`${styles.reportIcon} ${selected ? styles.reportIconSelected : ""}`}
-                  >
-                    {reporte.icon}
-                  </Box>
-                  <Box>
-                    <Typography className={styles.reportTitle}>
-                      {reporte.nombre}
-                    </Typography>
-                    <Typography variant="caption" className={styles.reportDesc}>
-                      {reporte.descripcion}
-                    </Typography>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          );
-        })}
-      </Grid>
+                <div className={styles.reportTypeIcon}>
+                  <type.icon size={24} />
+                </div>
+                <span className={styles.reportTypeLabel}>{type.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
 
-      {/* Filtros */}
-      <Paper className={styles.paper}>
-        <Typography variant="h6" className={styles.paperTitlePink}>
-          Filtros de Reporte
-        </Typography>
+        {/* Period Selector */}
+        <div className={styles.filtersCard}>
+          <div className={styles.filterGroup}>
+            <label className={styles.filterLabel}>
+              <Calendar size={18} />
+              Período
+            </label>
+            <div className={styles.periodButtons}>
+              {periods.map(p => (
+                <button
+                  key={p.value}
+                  className={`${styles.periodBtn} ${period === p.value ? styles.periodActive : ''}`}
+                  onClick={() => setPeriod(p.value as Period)}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
-        <Grid container spacing={3}>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <FormControl fullWidth>
-              <InputLabel>Período</InputLabel>
-              <Select
-                value={periodo}
-                label="Período"
-                onChange={(e) => setPeriodo(e.target.value as Periodo)}
-              >
-                <MenuItem value="semana">Esta Semana</MenuItem>
-                <MenuItem value="mes">Este Mes</MenuItem>
-                <MenuItem value="trimestre">Este Trimestre</MenuItem>
-                <MenuItem value="ano">Este Año</MenuItem>
-                <MenuItem value="personalizado">Personalizado</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
+          <div className={styles.exportButtons}>
+            <button className={styles.exportBtn} onClick={exportarPDF}>
+              <FileText size={18} />
+              Exportar PDF
+            </button>
+            <button className={styles.exportBtn} onClick={exportarExcel}>
+              <Download size={18} />
+              Exportar Excel
+            </button>
+          </div>
+        </div>
 
-          <Grid size={{ xs: 12, md: 4 }}>
-            <TextField
-              fullWidth
-              label="Fecha Inicio"
-              type="date"
-              value={fechaInicio}
-              onChange={(e) => setFechaInicio(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              disabled={periodo !== "personalizado"}
-            />
-          </Grid>
+        {/* Summary Cards */}
+        <div className={styles.summaryGrid}>
+          {loading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className={styles.summaryCard}>
+                <div className={styles.skeleton}></div>
+                <div className={styles.skeleton}></div>
+                <div className={styles.skeleton}></div>
+              </div>
+            ))
+          ) : (
+            summaryCards.map((card, i) => (
+              <div key={i} className={styles.summaryCard}>
+                <div className={styles.summaryIcon}>
+                  <card.icon size={24} />
+                </div>
+                <div className={styles.summaryContent}>
+                  <p className={styles.summaryLabel}>{card.label}</p>
+                  <h3 className={styles.summaryValue}>{card.value}</h3>
+                  <div className={`${styles.summaryChange} ${card.change >= 0 ? styles.changePositive : styles.changeNegative}`}>
+                    <TrendingUp size={16} />
+                    <span>{Math.abs(card.change)}%</span>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
 
-          <Grid size={{ xs: 12, md: 4 }}>
-            <TextField
-              fullWidth
-              label="Fecha Fin"
-              type="date"
-              value={fechaFin}
-              onChange={(e) => setFechaFin(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              disabled={periodo !== "personalizado"}
-            />
-          </Grid>
-        </Grid>
-      </Paper>
+        {/* Chart Placeholder */}
+        <div className={styles.chartCard}>
+          <div className={styles.chartHeader}>
+            <h2 className={styles.chartTitle}>
+              <PieChart size={20} />
+              Tendencia de Ventas
+            </h2>
+            <div className={styles.chartLegend}>
+              <div className={styles.legendItem}>
+                <span className={styles.legendDot}></span>
+                <span>Ventas</span>
+              </div>
+            </div>
+          </div>
+          {loading ? (
+            <div className={styles.chartSkeleton}></div>
+          ) : (
+            <div className={styles.chartPlaceholder}>
+              <BarChart3 size={64} />
+              <p>Gráfico de tendencias</p>
+              <span className={styles.chartHint}>Conecta con backend para visualizar datos reales</span>
+            </div>
+          )}
+        </div>
 
-      {/* Resumen */}
-      <Paper className={`${styles.paper} ${styles.summaryPaper}`}>
-        <Typography variant="h6" className={styles.paperTitlePink}>
-          Resumen del Período Seleccionado
-        </Typography>
+        {/* Tables Grid */}
+        <div className={styles.tablesGrid}>
+          {/* Top Products */}
+          <div className={styles.tableCard}>
+            <div className={styles.tableHeader}>
+              <h3 className={styles.tableTitle}>
+                <Package size={20} />
+                Productos Más Vendidos
+              </h3>
+            </div>
+            <div className={styles.tableWrapper}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Producto</th>
+                    <th>Ventas</th>
+                    <th>Ingresos</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    Array.from({ length: 5 }).map((_, i) => (
+                      <tr key={i}>
+                        <td><div className={styles.skeletonSmall}></div></td>
+                        <td><div className={styles.skeleton}></div></td>
+                        <td><div className={styles.skeletonSmall}></div></td>
+                        <td><div className={styles.skeleton}></div></td>
+                      </tr>
+                    ))
+                  ) : (
+                    topProducts.map((product, index) => (
+                      <tr key={product.id}>
+                        <td className={styles.rankCell}>
+                          <div className={`${styles.rankBadge} ${index < 3 ? styles.rankTop : ''}`}>
+                            {index + 1}
+                          </div>
+                        </td>
+                        <td className={styles.productCell}>{product.nombre}</td>
+                        <td className={styles.numberCell}>{product.ventas}</td>
+                        <td className={styles.moneyCell}>{formatMoneda(product.ingresos)}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
 
-        <Grid container spacing={3}>
-          <Grid size={{ xs: 12, md: 3 }}>
-            <Typography variant="body2" className={styles.muted}>
-              Ventas Totales
-            </Typography>
-            <Typography variant="h5" className={styles.pinkTextStrong}>
-              {formatMoneda(totales.ventasTotal)}
-            </Typography>
-          </Grid>
-
-          <Grid size={{ xs: 12, md: 3 }}>
-            <Typography variant="body2" className={styles.muted}>
-              Ganancia Neta
-            </Typography>
-            <Typography variant="h5" className={styles.greenTextStrong}>
-              {formatMoneda(totales.gananciaTotal)}
-            </Typography>
-          </Grid>
-
-          <Grid size={{ xs: 12, md: 3 }}>
-            <Typography variant="body2" className={styles.muted}>
-              Margen de Ganancia
-            </Typography>
-            <Typography variant="h5" className={styles.pinkTextStrong}>
-              {totales.margen}%
-            </Typography>
-          </Grid>
-
-          <Grid size={{ xs: 12, md: 3 }}>
-            <Typography variant="body2" className={styles.muted}>
-              Crecimiento
-            </Typography>
-            <Typography variant="h5" className={styles.greenTextStrong}>
-              +0.0%
-            </Typography>
-          </Grid>
-        </Grid>
-      </Paper>
-
-      {/* Contenido */}
-      {loading ? (
-        <Paper className={styles.paper}>
-          <Box className={styles.loadingBox}>
-            <CircularProgress />
-            <Typography className={styles.loadingText}>
-              Cargando reporte…
-            </Typography>
-          </Box>
-        </Paper>
-      ) : (
-        renderContenidoReporte()
-      )}
-    </Box>
+          {/* Top Customers */}
+          <div className={styles.tableCard}>
+            <div className={styles.tableHeader}>
+              <h3 className={styles.tableTitle}>
+                <Users size={20} />
+                Mejores Clientes
+              </h3>
+            </div>
+            <div className={styles.tableWrapper}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Cliente</th>
+                    <th>Compras</th>
+                    <th>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    Array.from({ length: 5 }).map((_, i) => (
+                      <tr key={i}>
+                        <td><div className={styles.skeletonSmall}></div></td>
+                        <td><div className={styles.skeleton}></div></td>
+                        <td><div className={styles.skeletonSmall}></div></td>
+                        <td><div className={styles.skeleton}></div></td>
+                      </tr>
+                    ))
+                  ) : (
+                    topCustomers.map((customer, index) => (
+                      <tr key={customer.id}>
+                        <td className={styles.rankCell}>
+                          <div className={`${styles.rankBadge} ${index < 3 ? styles.rankTop : ''}`}>
+                            {index + 1}
+                          </div>
+                        </td>
+                        <td className={styles.productCell}>{customer.nombre}</td>
+                        <td className={styles.numberCell}>{customer.compras}</td>
+                        <td className={styles.moneyCell}>{formatMoneda(customer.total)}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
   );
 };
-
-export default AdminReports;

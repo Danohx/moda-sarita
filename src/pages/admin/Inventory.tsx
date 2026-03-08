@@ -1,513 +1,418 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+// src/pages/admin/Inventory.tsx
+import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  TextField,
-  InputAdornment,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
-  Card,
-  CardContent,
-  Tabs,
-  Tab,
-  Skeleton,
-} from "@mui/material";
-import Grid from "@mui/material/Grid";
-import {
-  Add,
-  Search,
-  Warning,
-  TrendingDown,
+  Package,
+  AlertTriangle,
   TrendingUp,
-  Inventory2,
-  Error as ErrorIcon,
+  TrendingDown,
+  Search,
+  Plus,
+  DollarSign,
+  Archive,
   CheckCircle,
-} from "@mui/icons-material";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import styles from "../../styles/Inventory.module.css";
+  XCircle
+} from 'lucide-react';
+import { AdminLayout } from '../../components/layout/AdminLayout';
+import styles from '../../styles/Inventory.module.css';
 
-type InventarioStats = {
+interface InventarioStats {
   totalProductos: number;
   stockBajo: number;
   agotados: number;
   valorInventario: number;
-};
+}
 
-type ProductoStockBajo = {
+interface ProductoStockBajo {
   id: number;
   nombre: string;
   stock: number;
   minimo: number;
   categoria: string;
-};
+}
 
-type MovimientoTipo = "Entrada" | "Venta" | "Ajuste" | "Otro";
+type MovimientoTipo = 'Entrada' | 'Venta' | 'Ajuste' | 'Otro';
 
-type Movimiento = {
+interface Movimiento {
   id: number;
-  fecha: string; // ideal ISO (YYYY-MM-DD)
+  fecha: string;
   tipo: MovimientoTipo;
   producto: string;
-  cantidad: number; // + entrada, - salida
+  cantidad: number;
   usuario: string;
-};
+}
 
-type InventarioCategoria = {
+interface InventarioCategoria {
   categoria: string;
   cantidad: number;
-};
-
-type InventarioData = {
-  estadisticas: InventarioStats;
-  productosStockBajo: ProductoStockBajo[];
-  movimientos: Movimiento[];
-  inventarioPorCategoria: InventarioCategoria[];
-};
-
-function formatMoneda(valor: number) {
-  return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(valor);
 }
 
-/**
- * Placeholder API:
- * - GET /api/admin/inventario/dashboard
- */
-async function fetchInventarioData(signal?: AbortSignal): Promise<InventarioData> {
-  // Cuando conectes backend:
-  // const res = await fetch("/api/admin/inventario/dashboard", { signal });
-  // return await res.json();
-
-  void signal; // ✅ evita warning no-unused-vars
-
-  return {
-    estadisticas: { totalProductos: 0, stockBajo: 0, agotados: 0, valorInventario: 0 },
-    productosStockBajo: [],
-    movimientos: [],
-    inventarioPorCategoria: [],
-  };
-}
-
-function a11yProps(index: number) {
-  return {
-    id: `inventory-tab-${index}`,
-    "aria-controls": `inventory-tabpanel-${index}`,
-  };
-}
-
-type TabPanelProps = {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-};
-
-function TabPanel({ children, value, index }: TabPanelProps) {
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`inventory-tabpanel-${index}`}
-      aria-labelledby={`inventory-tab-${index}`}
-    >
-      {value === index ? <Box className={styles.tabPanel}>{children}</Box> : null}
-    </div>
-  );
-}
-
-function getMovimientoChipClass(tipo: MovimientoTipo) {
-  switch (tipo) {
-    case "Entrada":
-      return styles.chipEntrada;
-    case "Venta":
-      return styles.chipVenta;
-    case "Ajuste":
-      return styles.chipAjuste;
-    default:
-      return styles.chipOtro;
-  }
-}
-
-const InventarioPage: React.FC = () => {
-  const [tabValue, setTabValue] = useState(0);
-  const [buscar, setBuscar] = useState("");
+export const Inventory: React.FC = () => {
+  const [activeTab, setActiveTab] = useState(0);
+  const [busqueda, setBusqueda] = useState('');
   const [loading, setLoading] = useState(true);
 
-  const [estadisticas, setEstadisticas] = useState<InventarioStats>({
-    totalProductos: 0,
-    stockBajo: 0,
-    agotados: 0,
-    valorInventario: 0,
+  // Datos de ejemplo (luego vienen del backend)
+  const [estadisticas] = useState<InventarioStats>({
+    totalProductos: 245,
+    stockBajo: 18,
+    agotados: 5,
+    valorInventario: 125450
   });
 
-  const [productosStockBajo, setProductosStockBajo] = useState<ProductoStockBajo[]>([]);
-  const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
-  const [inventarioPorCategoria, setInventarioPorCategoria] = useState<InventarioCategoria[]>([]);
-
-  const load = useCallback(async () => {
-    const controller = new AbortController();
-    try {
-      setLoading(true);
-      const resp = await fetchInventarioData(controller.signal);
-      setEstadisticas(resp.estadisticas);
-      setProductosStockBajo(resp.productosStockBajo);
-      setMovimientos(resp.movimientos);
-      setInventarioPorCategoria(resp.inventarioPorCategoria);
-    } catch {
-      setEstadisticas({ totalProductos: 0, stockBajo: 0, agotados: 0, valorInventario: 0 });
-      setProductosStockBajo([]);
-      setMovimientos([]);
-      setInventarioPorCategoria([]);
-    } finally {
-      setLoading(false);
+  const [productosStockBajo] = useState<ProductoStockBajo[]>([
+    {
+      id: 1,
+      nombre: 'Blusa Floral Rosa',
+      stock: 3,
+      minimo: 10,
+      categoria: 'Blusas'
+    },
+    {
+      id: 2,
+      nombre: 'Pantalón Mezclilla',
+      stock: 5,
+      minimo: 15,
+      categoria: 'Pantalones'
+    },
+    {
+      id: 3,
+      nombre: 'Vestido Estampado',
+      stock: 2,
+      minimo: 8,
+      categoria: 'Vestidos'
     }
-    return () => controller.abort();
-  }, []);
+  ]);
+
+  const [movimientos] = useState<Movimiento[]>([
+    {
+      id: 1,
+      fecha: '2025-03-07',
+      tipo: 'Entrada',
+      producto: 'Blusa Floral Rosa',
+      cantidad: 20,
+      usuario: 'Admin'
+    },
+    {
+      id: 2,
+      fecha: '2025-03-07',
+      tipo: 'Venta',
+      producto: 'Pantalón Mezclilla',
+      cantidad: -3,
+      usuario: 'Vendedor 1'
+    },
+    {
+      id: 3,
+      fecha: '2025-03-06',
+      tipo: 'Ajuste',
+      producto: 'Vestido Estampado',
+      cantidad: -2,
+      usuario: 'Admin'
+    },
+    {
+      id: 4,
+      fecha: '2025-03-06',
+      tipo: 'Entrada',
+      producto: 'Falda Plisada',
+      cantidad: 15,
+      usuario: 'Admin'
+    }
+  ]);
+
+  const [categorias] = useState<InventarioCategoria[]>([
+    { categoria: 'Blusas', cantidad: 45 },
+    { categoria: 'Pantalones', cantidad: 32 },
+    { categoria: 'Vestidos', cantidad: 28 },
+    { categoria: 'Faldas', cantidad: 35 },
+    { categoria: 'Accesorios', cantidad: 50 }
+  ]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    setTimeout(() => setLoading(false), 800);
+  }, []);
 
   const movimientosFiltrados = useMemo(() => {
-    const q = buscar.trim().toLowerCase();
+    const q = busqueda.toLowerCase().trim();
     if (!q) return movimientos;
-    return movimientos.filter((m) => {
-      return (
-        m.fecha.toLowerCase().includes(q) ||
-        m.tipo.toLowerCase().includes(q) ||
-        m.producto.toLowerCase().includes(q) ||
-        m.usuario.toLowerCase().includes(q)
-      );
-    });
-  }, [buscar, movimientos]);
+    return movimientos.filter(m =>
+      m.fecha.includes(q) ||
+      m.tipo.toLowerCase().includes(q) ||
+      m.producto.toLowerCase().includes(q) ||
+      m.usuario.toLowerCase().includes(q)
+    );
+  }, [busqueda, movimientos]);
 
-  const handleAjusteManual = () => {
-    // Placeholder: abrir modal / navegar a ajuste manual
+  const formatMoneda = (valor: number) => {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN'
+    }).format(valor);
   };
 
-  const skeletonCards = useMemo(() => Array.from({ length: 4 }), []);
-  const skeletonRows = useMemo(() => Array.from({ length: 4 }), []);
+  const getMovimientoClass = (tipo: MovimientoTipo) => {
+    switch (tipo) {
+      case 'Entrada': return styles.chipEntrada;
+      case 'Venta': return styles.chipVenta;
+      case 'Ajuste': return styles.chipAjuste;
+      default: return styles.chipOtro;
+    }
+  };
+
+  const maxCantidad = Math.max(...categorias.map(c => c.cantidad));
 
   return (
-    <Box className={styles.root}>
-      {/* Header */}
-      <Box className={styles.header}>
-        <Typography variant="h4" className={styles.title}>
-          Gestión de Inventario
-        </Typography>
+      <div className={styles.inventory}>
+        {/* Header */}
+        <div className={styles.header}>
+          <h1 className={styles.title}>Gestión de Inventario</h1>
+          <button className={styles.addBtn}>
+            <Plus size={20} />
+            Ajuste Manual
+          </button>
+        </div>
 
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          className={styles.primaryButton}
-          onClick={handleAjusteManual}
-        >
-          Ajuste Manual
-        </Button>
-      </Box>
+        {/* Stats Grid */}
+        <div className={styles.statsGrid}>
+          <div className={`${styles.statCard} ${styles.statPink}`}>
+            <div className={styles.statContent}>
+              <p className={styles.statLabel}>Total en Stock</p>
+              <h3 className={styles.statValue}>{estadisticas.totalProductos}</h3>
+            </div>
+            <div className={styles.statIcon}>
+              <Package size={48} />
+            </div>
+          </div>
 
-      {/* Estadísticas */}
-      <Grid container spacing={3} className={styles.statsGrid}>
-        {loading
-          ? skeletonCards.map((_, idx) => (
-              <Grid size={{ xs: 12, sm: 6, md: 3 }} key={idx}>
-                <Card className={styles.statCard}>
-                  <CardContent>
-                    <Skeleton width="60%" />
-                    <Skeleton height={42} />
-                    <Skeleton width="30%" />
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))
-          : (
+          <div className={`${styles.statCard} ${styles.statOrange}`}>
+            <div className={styles.statContent}>
+              <p className={styles.statLabel}>Stock Bajo</p>
+              <h3 className={styles.statValue}>{estadisticas.stockBajo}</h3>
+            </div>
+            <div className={styles.statIcon}>
+              <AlertTriangle size={48} />
+            </div>
+          </div>
+
+          <div className={`${styles.statCard} ${styles.statRed}`}>
+            <div className={styles.statContent}>
+              <p className={styles.statLabel}>Agotados</p>
+              <h3 className={styles.statValue}>{estadisticas.agotados}</h3>
+            </div>
+            <div className={styles.statIcon}>
+              <XCircle size={48} />
+            </div>
+          </div>
+
+          <div className={`${styles.statCard} ${styles.statLight}`}>
+            <div className={styles.statContent}>
+              <p className={styles.statLabelDark}>Valor Total</p>
+              <h3 className={styles.statValuePink}>{formatMoneda(estadisticas.valorInventario)}</h3>
+            </div>
+            <div className={styles.statIconPink}>
+              <DollarSign size={48} />
+            </div>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className={styles.tabs}>
+          <button
+            className={`${styles.tab} ${activeTab === 0 ? styles.tabActive : ''}`}
+            onClick={() => setActiveTab(0)}
+          >
+            <AlertTriangle size={20} />
+            Alertas de Stock
+          </button>
+          <button
+            className={`${styles.tab} ${activeTab === 1 ? styles.tabActive : ''}`}
+            onClick={() => setActiveTab(1)}
+          >
+            <Archive size={20} />
+            Movimientos
+          </button>
+          <button
+            className={`${styles.tab} ${activeTab === 2 ? styles.tabActive : ''}`}
+            onClick={() => setActiveTab(2)}
+          >
+            <CheckCircle size={20} />
+            Por Categoría
+          </button>
+        </div>
+
+        {/* Tab Content */}
+        <div className={styles.tabContent}>
+          {/* Tab 0: Alertas de Stock */}
+          {activeTab === 0 && (
+            <div className={styles.tableCard}>
+              <div className={styles.tableWrapper}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Producto</th>
+                      <th>Categoría</th>
+                      <th>Stock Actual</th>
+                      <th>Stock Mínimo</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loading ? (
+                      Array.from({ length: 3 }).map((_, i) => (
+                        <tr key={i}>
+                          <td><div className={styles.skeleton}></div></td>
+                          <td><div className={styles.skeleton}></div></td>
+                          <td><div className={styles.skeleton}></div></td>
+                          <td><div className={styles.skeleton}></div></td>
+                          <td><div className={styles.skeleton}></div></td>
+                          <td><div className={styles.skeleton}></div></td>
+                        </tr>
+                      ))
+                    ) : productosStockBajo.length > 0 ? (
+                      productosStockBajo.map(producto => (
+                        <tr key={producto.id}>
+                          <td className={styles.productName}>{producto.nombre}</td>
+                          <td>
+                            <span className={styles.categoryChip}>
+                              {producto.categoria}
+                            </span>
+                          </td>
+                          <td className={styles.stockCritical}>{producto.stock}</td>
+                          <td>{producto.minimo}</td>
+                          <td>
+                            <span className={styles.criticalChip}>
+                              <AlertTriangle size={14} />
+                              Crítico
+                            </span>
+                          </td>
+                          <td>
+                            <button className={styles.reabastecerBtn}>
+                              Reabastecer
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={6} className={styles.emptyRow}>
+                          <AlertTriangle size={20} />
+                          <span>Sin alertas de stock</span>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Tab 1: Movimientos */}
+          {activeTab === 1 && (
             <>
-              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                <Card className={`${styles.statCard} ${styles.statCardPink}`}>
-                  <CardContent className={styles.statCardContent}>
-                    <Box>
-                      <Typography variant="body2" className={styles.statLabel}>
-                        Total en Stock
-                      </Typography>
-                      <Typography variant="h4" className={styles.statValueWhite}>
-                        {estadisticas.totalProductos}
-                      </Typography>
-                    </Box>
-                    <Inventory2 className={styles.statIconWhite} />
-                  </CardContent>
-                </Card>
-              </Grid>
+              <div className={styles.searchBox}>
+                <Search size={20} />
+                <input
+                  type="text"
+                  placeholder="Buscar movimientos..."
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  className={styles.searchInput}
+                />
+              </div>
 
-              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                <Card className={`${styles.statCard} ${styles.statCardSoftPink}`}>
-                  <CardContent className={styles.statCardContent}>
-                    <Box>
-                      <Typography variant="body2" className={styles.statLabel}>
-                        Stock Bajo
-                      </Typography>
-                      <Typography variant="h4" className={styles.statValueWhite}>
-                        {estadisticas.stockBajo}
-                      </Typography>
-                    </Box>
-                    <Warning className={styles.statIconWhite} />
-                  </CardContent>
-                </Card>
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                <Card className={`${styles.statCard} ${styles.statCardOrange}`}>
-                  <CardContent className={styles.statCardContent}>
-                    <Box>
-                      <Typography variant="body2" className={styles.statLabel}>
-                        Agotados
-                      </Typography>
-                      <Typography variant="h4" className={styles.statValueWhite}>
-                        {estadisticas.agotados}
-                      </Typography>
-                    </Box>
-                    <ErrorIcon className={styles.statIconWhite} />
-                  </CardContent>
-                </Card>
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                <Card className={`${styles.statCard} ${styles.statCardLight}`}>
-                  <CardContent className={styles.statCardContent}>
-                    <Box>
-                      <Typography variant="body2" className={styles.statLabelDark}>
-                        Valor Total
-                      </Typography>
-                      <Typography variant="h5" className={styles.statValuePink}>
-                        {formatMoneda(estadisticas.valorInventario)}
-                      </Typography>
-                    </Box>
-                    <CheckCircle className={styles.statIconPink} />
-                  </CardContent>
-                </Card>
-              </Grid>
+              <div className={styles.tableCard}>
+                <div className={styles.tableWrapper}>
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th>Usuario</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {loading ? (
+                        Array.from({ length: 4 }).map((_, i) => (
+                          <tr key={i}>
+                            <td><div className={styles.skeleton}></div></td>
+                            <td><div className={styles.skeleton}></div></td>
+                            <td><div className={styles.skeleton}></div></td>
+                            <td><div className={styles.skeleton}></div></td>
+                            <td><div className={styles.skeleton}></div></td>
+                          </tr>
+                        ))
+                      ) : movimientosFiltrados.length > 0 ? (
+                        movimientosFiltrados.map(mov => (
+                          <tr key={mov.id}>
+                            <td>{mov.fecha}</td>
+                            <td>
+                              <span className={`${styles.movChip} ${getMovimientoClass(mov.tipo)}`}>
+                                {mov.tipo}
+                              </span>
+                            </td>
+                            <td>{mov.producto}</td>
+                            <td>
+                              <div className={styles.cantidadCell}>
+                                {mov.cantidad > 0 ? (
+                                  <TrendingUp className={styles.trendUp} size={18} />
+                                ) : (
+                                  <TrendingDown className={styles.trendDown} size={18} />
+                                )}
+                                <span className={mov.cantidad > 0 ? styles.qtyUp : styles.qtyDown}>
+                                  {Math.abs(mov.cantidad)}
+                                </span>
+                              </div>
+                            </td>
+                            <td>{mov.usuario}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={5} className={styles.emptyRow}>
+                            <AlertTriangle size={20} />
+                            <span>Sin movimientos</span>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </>
           )}
-      </Grid>
 
-      {/* Tabs */}
-      <Paper className={styles.tabsPaper}>
-        <Tabs value={tabValue} onChange={(_, v: number) => setTabValue(v)} className={styles.tabs}>
-          <Tab label="Alertas de Stock" className={styles.tab} {...a11yProps(0)} />
-          <Tab label="Movimientos" className={styles.tab} {...a11yProps(1)} />
-          <Tab label="Por Categoría" className={styles.tab} {...a11yProps(2)} />
-        </Tabs>
-      </Paper>
-
-      {/* Tab 1: Alertas de Stock */}
-      <TabPanel value={tabValue} index={0}>
-        <Paper className={styles.tablePaper}>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow className={styles.tableHeadRow}>
-                  <TableCell className={styles.headCell}>Producto</TableCell>
-                  <TableCell className={styles.headCell}>Categoría</TableCell>
-                  <TableCell className={styles.headCell} align="center">
-                    Stock Actual
-                  </TableCell>
-                  <TableCell className={styles.headCell} align="center">
-                    Stock Mínimo
-                  </TableCell>
-                  <TableCell className={styles.headCell} align="center">
-                    Estado
-                  </TableCell>
-                  <TableCell className={styles.headCell} align="center">
-                    Acciones
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-
-              <TableBody>
-                {loading ? (
-                  skeletonRows.map((_, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell><Skeleton /></TableCell>
-                      <TableCell><Skeleton width={90} /></TableCell>
-                      <TableCell align="center"><Skeleton width={40} /></TableCell>
-                      <TableCell align="center"><Skeleton width={40} /></TableCell>
-                      <TableCell align="center"><Skeleton width={90} /></TableCell>
-                      <TableCell align="center"><Skeleton width={110} height={34} /></TableCell>
-                    </TableRow>
-                  ))
-                ) : productosStockBajo.length > 0 ? (
-                  productosStockBajo.map((producto) => (
-                    <TableRow key={producto.id} hover className={styles.tableRowHover}>
-                      <TableCell className={styles.cellText}>{producto.nombre}</TableCell>
-                      <TableCell>
-                        <Chip label={producto.categoria} size="small" className={styles.categoryChip} />
-                      </TableCell>
-                      <TableCell align="center">
-                        <Typography className={styles.stockCritical}>{producto.stock}</Typography>
-                      </TableCell>
-                      <TableCell align="center" className={styles.cellText}>
-                        {producto.minimo}
-                      </TableCell>
-                      <TableCell align="center">
-                        <Chip icon={<Warning />} label="Crítico" size="small" className={styles.criticalChip} />
-                      </TableCell>
-                      <TableCell align="center">
-                        <Button size="small" variant="contained" className={styles.smallPrimaryButton}>
-                          Reabastecer
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={6}>
-                      <Box className={styles.emptyInline}>
-                        <Warning fontSize="small" />
-                        <Typography className={styles.emptyText}>
-                          Sin alertas de stock (pendiente de API).
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Paper>
-      </TabPanel>
-
-      {/* Tab 2: Movimientos */}
-      <TabPanel value={tabValue} index={1}>
-        <Paper className={styles.searchPaper}>
-          <TextField
-            fullWidth
-            placeholder="Buscar movimientos..."
-            value={buscar}
-            onChange={(e) => setBuscar(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search className={styles.searchIcon} />
-                </InputAdornment>
-              ),
-            }}
-            className={styles.searchInput}
-          />
-        </Paper>
-
-        <Paper className={styles.tablePaper}>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow className={styles.tableHeadRow}>
-                  <TableCell className={styles.headCell}>Fecha</TableCell>
-                  <TableCell className={styles.headCell}>Tipo</TableCell>
-                  <TableCell className={styles.headCell}>Producto</TableCell>
-                  <TableCell className={styles.headCell} align="center">
-                    Cantidad
-                  </TableCell>
-                  <TableCell className={styles.headCell}>Usuario</TableCell>
-                </TableRow>
-              </TableHead>
-
-              <TableBody>
-                {loading ? (
-                  skeletonRows.map((_, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell><Skeleton width={90} /></TableCell>
-                      <TableCell><Skeleton width={80} /></TableCell>
-                      <TableCell><Skeleton /></TableCell>
-                      <TableCell align="center"><Skeleton width={70} /></TableCell>
-                      <TableCell><Skeleton width={120} /></TableCell>
-                    </TableRow>
-                  ))
-                ) : movimientosFiltrados.length > 0 ? (
-                  movimientosFiltrados.map((mov) => {
-                    const isEntrada = mov.cantidad > 0;
-                    return (
-                      <TableRow key={mov.id} hover className={styles.tableRowHover}>
-                        <TableCell className={styles.cellText}>{mov.fecha}</TableCell>
-                        <TableCell>
-                          <Chip label={mov.tipo} size="small" className={`${styles.movChip} ${getMovimientoChipClass(mov.tipo)}`} />
-                        </TableCell>
-                        <TableCell className={styles.cellText}>{mov.producto}</TableCell>
-                        <TableCell align="center">
-                          <Box className={styles.qtyCell}>
-                            {isEntrada ? (
-                              <TrendingUp className={styles.trendUp} />
-                            ) : (
-                              <TrendingDown className={styles.trendDown} />
-                            )}
-                            <Typography className={isEntrada ? styles.qtyUp : styles.qtyDown}>
-                              {Math.abs(mov.cantidad)}
-                            </Typography>
-                          </Box>
-                        </TableCell>
-                        <TableCell className={styles.cellText}>{mov.usuario}</TableCell>
-                      </TableRow>
-                    );
-                  })
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5}>
-                      <Box className={styles.emptyInline}>
-                        <Warning fontSize="small" />
-                        <Typography className={styles.emptyText}>
-                          Sin movimientos (pendiente de API).
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Paper>
-      </TabPanel>
-
-      {/* Tab 3: Por Categoría */}
-      <TabPanel value={tabValue} index={2}>
-        <Paper className={styles.chartPaper}>
-          <Typography variant="h6" className={styles.chartTitle}>
-            Inventario por Categoría
-          </Typography>
-
-          {loading ? (
-            <Skeleton height={320} />
-          ) : inventarioPorCategoria.length > 0 ? (
-            <ResponsiveContainer width="100%" height={320}>
-              <BarChart data={inventarioPorCategoria}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="categoria" stroke="#666" />
-                <YAxis stroke="#666" />
-                <Tooltip />
-                <Bar dataKey="cantidad" fill="#E91E8C" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <Box className={styles.emptyChart}>
-              <Warning fontSize="small" />
-              <Typography className={styles.emptyText}>
-                Sin datos por categoría (pendiente de API).
-              </Typography>
-            </Box>
+          {/* Tab 2: Por Categoría */}
+          {activeTab === 2 && (
+            <div className={styles.chartCard}>
+              <h2 className={styles.chartTitle}>Inventario por Categoría</h2>
+              {loading ? (
+                <div className={styles.chartSkeleton}></div>
+              ) : categorias.length > 0 ? (
+                <div className={styles.chartBars}>
+                  {categorias.map((cat, i) => (
+                    <div key={i} className={styles.barItem}>
+                      <div className={styles.barLabel}>{cat.categoria}</div>
+                      <div className={styles.barContainer}>
+                        <div
+                          className={styles.barFill}
+                          style={{ width: `${(cat.cantidad / maxCantidad) * 100}%` }}
+                        >
+                          <span className={styles.barValue}>{cat.cantidad}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className={styles.emptyChart}>
+                  <AlertTriangle size={48} />
+                  <p>Sin datos por categoría</p>
+                </div>
+              )}
+            </div>
           )}
-        </Paper>
-      </TabPanel>
-    </Box>
+        </div>
+      </div>
   );
 };
-
-export default InventarioPage;
