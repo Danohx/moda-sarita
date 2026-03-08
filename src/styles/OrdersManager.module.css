@@ -1,0 +1,359 @@
+.root {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.title {
+  font-weight: 900 !important;
+  color: #221019;
+}
+
+/* Tabs */
+.tabsPaper {
+  margin-bottom: 12px;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  overflow: hidden;
+}
+
+.tabs :global(.MuiTab-root) {
+  text-transform: none;
+  font-weight: 900;
+}
+
+.tabs :global(.Mui-selected) {
+  color: #e91e8c !important;
+}
+
+.tabs :global(.MuiTabs-indicator) {
+  background: #e91e8c !important;
+}
+
+.tab {
+  padding: 14px 18px !important;
+}
+
+/* Panels */
+.tabPanel {
+  padding: 14px 0;
+}
+
+/* Empty state */
+.emptyPaper {
+  padding: 16px;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.emptyRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(34, 16, 25, 0.85);
+}
+
+.emptyText {
+  color: rgba(34, 16, 25, 0.75);
+  font-weight: 800;
+}
+
+.emptyHint {
+  color: rgba(34, 16, 25, 0.55);
+  margin-top: 6px;
+  font-size: 13px;
+}
+
+/* Orders (web) */
+.orderCard {
+  border-radius: 16px !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+}
+
+.orderRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+}
+
+.orderLeft {
+  flex: 1;
+  min-width: 0;
+}
+
+.orderTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.orderTitle {
+  font-weight: 900 !important;
+  color: #e91e8c;
+  margin-right: 6px;
+}
+
+.statusChip {
+  font-weight: 900 !important;
+}
+
+.statusPending {
+  background: #fff3e0 !important;
+  color: #ef6c00 !important;
+}
+
+.statusProcessing {
+  background: #e3f2fd !important;
+  color: #1976d2 !important;
+}
+
+.statusDone {
+  background: #e8f5e9 !important;
+  color: #2e7d32 !important;
+}
+
+.statusDefault {
+  background: #f5f5f5 !important;
+  color: #757575 !important;
+}
+
+.orderCustomerRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+  min-width: 0;
+}
+
+.customerAvatar {
+  background: #fde8f4 !important;
+  color: #e91e8c !important;
+  width: 24px !important;
+  height: 24px !important;
+}
+
+.customerAvatarIcon {
+  font-size: 16px !important;
+}
+
+.orderCustomerText {
+  color: rgba(34, 16, 25, 0.9);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.orderTime {
+  color: rgba(34, 16, 25, 0.65);
+}
+
+.orderRight {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+}
+
+.orderRightTop {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.orderAmount {
+  font-weight: 900 !important;
+  color: #e91e8c;
+  line-height: 1.1;
+}
+
+.viewBtn {
+  margin-top: 8px !important;
+  border-color: #e91e8c !important;
+  color: #e91e8c !important;
+  border-radius: 20px !important;
+  text-transform: none !important;
+  font-weight: 900 !important;
+}
+
+.viewBtn:hover {
+  border-color: #c2185b !important;
+  background: #fff5fa !important;
+}
+
+.orderActions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.actionPink {
+  color: #e91e8c !important;
+}
+
+.actionBlue {
+  color: #1976d2 !important;
+}
+
+/* Apartados cards */
+.apartadoCard {
+  border-radius: 16px !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.apartadoCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(233, 30, 140, 0.2) !important;
+}
+
+.apartadoHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.apartadoHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.apartadoAvatar {
+  background: #e91e8c !important;
+}
+
+.apartadoHeaderText {
+  min-width: 0;
+}
+
+.apartadoCustomer {
+  font-weight: 900 !important;
+  color: #221019;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.apartadoId {
+  color: rgba(34, 16, 25, 0.65);
+}
+
+.deadlineChip {
+  background: #fff3e0 !important;
+  color: #ef6c00 !important;
+  font-weight: 900 !important;
+}
+
+/* Stats box */
+.apartadoStatsBox {
+  background: #fde8f4;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.statLabel {
+  color: rgba(34, 16, 25, 0.65) !important;
+}
+
+.statValue {
+  font-weight: 900 !important;
+  color: #221019;
+}
+
+.statGreen {
+  color: #4caf50 !important;
+}
+
+.statRed {
+  color: #f44336 !important;
+}
+
+/* Progress */
+.progressWrap {
+  margin-bottom: 12px;
+}
+
+.progressTopRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.progressLabel {
+  color: rgba(34, 16, 25, 0.65) !important;
+}
+
+.progressPercent {
+  font-weight: 900 !important;
+  color: #e91e8c !important;
+}
+
+.progress {
+  height: 8px !important;
+  border-radius: 6px !important;
+  background: #f0f0f0 !important;
+}
+
+.progress :global(.MuiLinearProgress-bar) {
+  background: #e91e8c !important;
+  border-radius: 6px !important;
+}
+
+/* Buttons */
+.apartadoBtns {
+  display: flex;
+  gap: 10px;
+}
+
+.primaryButton {
+  background: #e91e8c !important;
+  border-radius: 20px !important;
+  text-transform: none !important;
+  font-weight: 900 !important;
+}
+
+.primaryButton:hover {
+  background: #c2185b !important;
+}
+
+.dangerButton {
+  border-color: #f44336 !important;
+  color: #f44336 !important;
+  border-radius: 20px !important;
+  text-transform: none !important;
+  font-weight: 900 !important;
+}
+
+.dangerButton:hover {
+  border-color: #d32f2f !important;
+  background: #ffebee !important;
+}
+
+/* Responsive tweak */
+@media (max-width: 900px) {
+  .orderRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .orderRight {
+    justify-content: space-between;
+  }
+
+  .orderRightTop {
+    align-items: flex-start;
+  }
+
+  .orderActions {
+    flex-direction: row;
+  }
+}

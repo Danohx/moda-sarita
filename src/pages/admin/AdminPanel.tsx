@@ -27,7 +27,6 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Divider,
   Avatar,
   LinearProgress
 } from '@mui/material';
@@ -43,7 +42,6 @@ import {
   AttachMoney,
   History
 } from '@mui/icons-material';
-import { AdminLayout } from '../../components/layout/AdminLayout';
 
 interface Cliente {
   id: string;
@@ -151,7 +149,6 @@ const AdminCustomers: React.FC = () => {
   };
 
   return (
-    <AdminLayout role="admin">
       <Box>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
           <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#333' }}>
@@ -769,7 +766,6 @@ const AdminCustomers: React.FC = () => {
           </DialogActions>
         </Dialog>
       </Box>
-    </AdminLayout>
   );
 };
 

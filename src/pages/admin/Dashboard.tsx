@@ -1,9 +1,6 @@
-// src/pages/admin/Dashboard.tsx
-
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Box,
-  Grid,
   Card,
   CardContent,
   Typography,
@@ -17,8 +14,10 @@ import {
   ListItem,
   ListItemText,
   ListItemAvatar,
-  Divider
-} from '@mui/material';
+  Divider,
+  Skeleton,
+} from "@mui/material";
+import Grid from "@mui/material/Grid";
 import {
   TrendingUp,
   ShoppingCart,
@@ -27,18 +26,14 @@ import {
   Refresh,
   TrendingDown,
   Warning,
-  CheckCircle,
   Schedule,
   Inventory,
   Receipt,
-  LocalShipping,
-  ArrowForward
-} from '@mui/icons-material';
+  ArrowForward,
+} from "@mui/icons-material";
 import {
   BarChart,
   Bar,
-  LineChart,
-  Line,
   PieChart,
   Pie,
   Cell,
@@ -49,552 +44,692 @@ import {
   Legend,
   ResponsiveContainer,
   Area,
-  AreaChart
-} from 'recharts';
-import { useNavigate } from 'react-router-dom';
-import { AdminLayout } from "../../components/layout/AdminLayout";
+  AreaChart,
+} from "recharts";
+import { useNavigate } from "react-router-dom";
+import styles from "../../styles/Dashboard.module.css";
 
-const Dashboard: React.FC = () => {
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [tiempoReal, setTiempoReal] = useState(new Date());
+// ─── Tipos ────────────────────────────────────────────────────────────────────
 
-  // Actualizar reloj en tiempo real
+type TrendType = "up" | "down";
+type AlertaTipo = "warning" | "info" | "error" | "success";
+
+type StatCardProps = {
+  title: string;
+  value: string | number;
+  icon: React.ReactNode;
+  gradient: string;
+  trend?: TrendType;
+  trendValue?: string | number;
+  loading?: boolean;
+};
+
+type Alerta = {
+  tipo: AlertaTipo;
+  mensaje: string;
+  icono: React.ReactNode;
+  accion: string;
+};
+
+type DashboardStats = {
+  ventasHoy: number;
+  ventasMes: number;
+  productosVendidos: number;
+  clientesActivos: number;
+  pedidosPendientes: number;
+  stockBajo: number;
+  apartadosActivos: number;
+  corteCajaPendiente: boolean;
+};
+
+type VentaSemanal = { dia: string; ventas: number; meta: number };
+type VentaHora = { hora: string; ventas: number };
+type ProductoTop = { nombre: string; ventas: number; stock: number; color?: string };
+type VentasCategoria = { name: string; value: number; color?: string };
+type UltimaVenta = { id: string; cliente: string; monto: number; tiempo: string };
+
+type DashboardData = {
+  estadisticas: DashboardStats;
+  ventasSemanales: VentaSemanal[];
+  ventasHoraHora: VentaHora[];
+  productosMasVendidos: ProductoTop[];
+  ventasPorCategoria: VentasCategoria[];
+  ultimasVentas: UltimaVenta[];
+  alertas: Alerta[];
+};
+
+// ─── Constantes (fuera del componente, sin presión en GC) ─────────────────────
+
+const SKELETON_ROWS = Array.from({ length: 4 });
+
+const PRODUCTO_PALETTE = ["#E91E8C", "#F06292", "#F8BBD0", "#FCE4EC"];
+const CATEGORIA_PALETTE = ["#E91E8C", "#F06292", "#F8BBD0", "#FCE4EC"];
+
+const emptyData: DashboardData = {
+  estadisticas: {
+    ventasHoy: 0,
+    ventasMes: 0,
+    productosVendidos: 0,
+    clientesActivos: 0,
+    pedidosPendientes: 0,
+    stockBajo: 0,
+    apartadosActivos: 0,
+    corteCajaPendiente: false,
+  },
+  ventasSemanales: [],
+  ventasHoraHora: [],
+  productosMasVendidos: [],
+  ventasPorCategoria: [],
+  ultimasVentas: [],
+  alertas: [],
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatMoneda(valor: number) {
+  return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(valor);
+}
+
+function calcularCrecimiento(actual: number, anterior: number) {
+  if (!anterior) return "0.0";
+  return (((actual - anterior) / anterior) * 100).toFixed(1);
+}
+
+/**
+ * Placeholder API. Cuando tengas el endpoint real, cambia esto por fetch/axios.
+ */
+async function fetchDashboard(signal?: AbortSignal): Promise<DashboardData> {
+  void signal;
+  return emptyData;
+}
+
+// ─── Sub-componentes memoizados ───────────────────────────────────────────────
+
+/**
+ * Reloj en vivo aislado para que su tick de 1s
+ * NO provoque re-render del dashboard completo.
+ */
+const LiveClock = React.memo(() => {
+  const [time, setTime] = useState(new Date());
+
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTiempoReal(new Date());
-    }, 1000);
+    const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  const estadisticas = {
-    ventasHoy: 12580,
-    ventasMes: 156700,
-    productosVendidos: 342,
-    clientesActivos: 89,
-    pedidosPendientes: 23,
-    stockBajo: 18,
-    apartadosActivos: 15,
-    corteCajaPendiente: true
-  };
+  return (
+    <Typography variant="body2" className={styles.headerSubtitle}>
+      {time.toLocaleDateString("es-MX", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })}{" "}
+      —{" "}
+      {time.toLocaleTimeString("es-MX")}
+    </Typography>
+  );
+});
 
-  const ventasSemanales = [
-    { dia: 'Lun', ventas: 12000, meta: 15000 },
-    { dia: 'Mar', ventas: 19000, meta: 15000 },
-    { dia: 'Mie', ventas: 15000, meta: 15000 },
-    { dia: 'Jue', ventas: 22000, meta: 15000 },
-    { dia: 'Vie', ventas: 28000, meta: 15000 },
-    { dia: 'Sab', ventas: 35000, meta: 15000 },
-    { dia: 'Dom', ventas: 25000, meta: 15000 },
-  ];
+LiveClock.displayName = "LiveClock";
 
-  const ventasHoraHora = [
-    { hora: '09:00', ventas: 850 },
-    { hora: '10:00', ventas: 1200 },
-    { hora: '11:00', ventas: 1500 },
-    { hora: '12:00', ventas: 2100 },
-    { hora: '13:00', ventas: 1800 },
-    { hora: '14:00', ventas: 1600 },
-    { hora: '15:00', ventas: 1900 },
-    { hora: '16:00', ventas: 2300 },
-  ];
-
-  const productosMasVendidos = [
-    { nombre: 'Blusa Elegante', ventas: 45, stock: 12, color: '#E91E8C' },
-    { nombre: 'Vestido Casual', ventas: 38, stock: 8, color: '#F06292' },
-    { nombre: 'Pantalón Mezclilla', ventas: 32, stock: 15, color: '#F8BBD0' },
-    { nombre: 'Collar de Moda', ventas: 28, stock: 25, color: '#FCE4EC' },
-  ];
-
-  const ventasPorCategoria = [
-    { name: 'Blusas', value: 35, color: '#E91E8C' },
-    { name: 'Vestidos', value: 28, color: '#F06292' },
-    { name: 'Pantalones', value: 22, color: '#F8BBD0' },
-    { name: 'Accesorios', value: 15, color: '#FCE4EC' },
-  ];
-
-  const ultimasVentas = [
-    { id: 'V-001', cliente: 'María González', monto: 1450, tiempo: 'Hace 5 min' },
-    { id: 'V-002', cliente: 'Ana Martínez', monto: 2340, tiempo: 'Hace 12 min' },
-    { id: 'V-003', cliente: 'Laura Rodríguez', monto: 890, tiempo: 'Hace 18 min' },
-    { id: 'V-004', cliente: 'Carmen López', monto: 1680, tiempo: 'Hace 25 min' },
-  ];
-
-  const alertas = [
-    { tipo: 'warning', mensaje: 'Corte de caja pendiente', icono: <Receipt />, accion: '/admin/corte-caja' },
-    { tipo: 'info', mensaje: '23 pedidos por procesar', icono: <LocalShipping />, accion: '/admin/orders' },
-    { tipo: 'error', mensaje: '18 productos con stock bajo', icono: <Warning />, accion: '/admin/inventory' },
-    { tipo: 'success', mensaje: '15 apartados activos', icono: <Schedule />, accion: '/admin/settings' },
-  ];
-
-  const formatMoneda = (valor: number) => {
-    return new Intl.NumberFormat('es-MX', {
-      style: 'currency',
-      currency: 'MXN'
-    }).format(valor);
-  };
-
-  const calcularCrecimiento = (actual: number, anterior: number) => {
-    const crecimiento = ((actual - anterior) / anterior) * 100;
-    return crecimiento.toFixed(1);
-  };
-
-  const handleRefresh = () => {
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      console.log('Datos actualizados');
-    }, 1500);
-  };
-
-  const StatCard = ({ title, value, icon, gradient, trend, trendValue }: any) => (
-    <Card sx={{ 
-      height: '100%', 
-      background: gradient,
-      color: 'white',
-      boxShadow: '0 4px 12px rgba(233, 30, 140, 0.15)',
-      position: 'relative',
-      overflow: 'hidden',
-      cursor: 'pointer',
-      transition: 'transform 0.2s',
-      '&:hover': {
-        transform: 'translateY(-4px)',
-        boxShadow: '0 8px 16px rgba(233, 30, 140, 0.25)'
-      }
-    }}>
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box sx={{ zIndex: 1 }}>
-            <Typography variant="body2" sx={{ opacity: 0.9, mb: 1 }}>
+/** Stat card memoizado: solo re-renderiza si sus props cambian. */
+const StatCard = React.memo<StatCardProps>(
+  ({ title, value, icon, gradient, trend, trendValue, loading }) => (
+    <Card className={styles.statCard} style={{ background: gradient }}>
+      <CardContent className={styles.statCardContent}>
+        <Box className={styles.statCardHeader}>
+          <Box className={styles.statCardLeft}>
+            <Typography variant="body2" className={styles.statCardTitle}>
               {title}
             </Typography>
-            <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
-              {value}
-            </Typography>
+
+            {loading ? (
+              <Skeleton width={130} height={44} sx={{ bgcolor: "rgba(255,255,255,0.25)" }} />
+            ) : (
+              <Typography variant="h4" className={styles.statCardValue}>
+                {value}
+              </Typography>
+            )}
+
             {trend && (
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                {trend === 'up' ? (
-                  <TrendingUp sx={{ fontSize: 16, mr: 0.5 }} />
+              <Box className={styles.statCardTrend}>
+                {trend === "up" ? (
+                  <TrendingUp className={styles.trendIcon} />
                 ) : (
-                  <TrendingDown sx={{ fontSize: 16, mr: 0.5 }} />
+                  <TrendingDown className={styles.trendIcon} />
                 )}
-                <Typography variant="caption">
-                  {trendValue}% vs mes anterior
-                </Typography>
+                {loading ? (
+                  <Skeleton width={150} sx={{ bgcolor: "rgba(255,255,255,0.25)" }} />
+                ) : (
+                  <Typography variant="caption" className={styles.trendText}>
+                    {trendValue}% vs mes anterior
+                  </Typography>
+                )}
               </Box>
             )}
           </Box>
-          <Box sx={{ opacity: 0.5 }}>
-            {icon}
-          </Box>
+
+          <Box className={styles.statCardRight}>{icon}</Box>
         </Box>
       </CardContent>
-      {loading && (
-        <LinearProgress 
-          sx={{ 
-            position: 'absolute', 
-            bottom: 0, 
-            left: 0, 
-            right: 0,
-            bgcolor: 'rgba(255,255,255,0.3)',
-            '& .MuiLinearProgress-bar': { bgcolor: 'white' }
-          }} 
-        />
-      )}
+
+      {loading && <LinearProgress className={styles.statCardProgress} />}
     </Card>
+  )
+);
+
+StatCard.displayName = "StatCard";
+
+// ─── Helpers de clase de alerta (fuera del componente) ────────────────────────
+
+function alertaCardClass(tipo: AlertaTipo) {
+  switch (tipo) {
+    case "error":   return styles.alertCardError;
+    case "warning": return styles.alertCardWarning;
+    case "success": return styles.alertCardSuccess;
+    default:        return styles.alertCardInfo;
+  }
+}
+
+function alertaAvatarClass(tipo: AlertaTipo) {
+  switch (tipo) {
+    case "error":   return styles.alertAvatarError;
+    case "warning": return styles.alertAvatarWarning;
+    case "success": return styles.alertAvatarSuccess;
+    default:        return styles.alertAvatarInfo;
+  }
+}
+
+// ─── Dashboard principal ──────────────────────────────────────────────────────
+
+export default function Dashboard() {
+  const navigate = useNavigate();
+  const [loading, setLoading]     = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [data, setData]           = useState<DashboardData>(emptyData);
+
+  // Callbacks de navegación memoizados (evitan re-crear lambdas en cada render)
+  const goToPOS       = useCallback(() => navigate("/admin/pos"), [navigate]);
+  const goToCorteCaja = useCallback(() => navigate("/admin/corte-caja"), [navigate]);
+  const goToInventory = useCallback(() => navigate("/admin/inventory"), [navigate]);
+  const goToReports   = useCallback(() => navigate("/admin/reports"), [navigate]);
+
+  const load = useCallback(async (mode: "initial" | "refresh") => {
+    const controller = new AbortController();
+    try {
+      if (mode === "initial") setLoading(true);
+      else setRefreshing(true);
+
+      const resp = await fetchDashboard(controller.signal);
+      setData(resp);
+    } catch {
+      setData(emptyData);
+    } finally {
+      if (mode === "initial") setLoading(false);
+      else setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load("initial");
+  }, [load]);
+
+  const busy = loading || refreshing;
+
+  const handleRefresh = useCallback(async () => {
+    await load("refresh");
+  }, [load]);
+
+  // Colores por defecto si la API no los trae
+  const productosTop = useMemo(
+    () =>
+      (data.productosMasVendidos ?? []).map((p, idx) => ({
+        ...p,
+        color: p.color || PRODUCTO_PALETTE[idx % PRODUCTO_PALETTE.length],
+      })),
+    [data.productosMasVendidos]
   );
 
+  const categorias = useMemo(
+    () =>
+      (data.ventasPorCategoria ?? []).map((c, idx) => ({
+        ...c,
+        color: c.color || CATEGORIA_PALETTE[idx % CATEGORIA_PALETTE.length],
+      })),
+    [data.ventasPorCategoria]
+  );
+
+  const { estadisticas } = data;
+
+  const noData =
+    !busy &&
+    data.alertas.length === 0 &&
+    data.ventasSemanales.length === 0 &&
+    data.ventasHoraHora.length === 0 &&
+    data.ultimasVentas.length === 0;
+
   return (
-    <AdminLayout role="admin">
-      <Box>
-        {/* Header con hora en tiempo real */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-          <Box>
-            <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#333' }}>
-              Dashboard
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {tiempoReal.toLocaleDateString('es-MX', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              })} - {tiempoReal.toLocaleTimeString('es-MX')}
-            </Typography>
-          </Box>
-          <IconButton 
-            onClick={handleRefresh}
-            disabled={loading}
-            sx={{ 
-              color: '#E91E8C',
-              animation: loading ? 'spin 1s linear infinite' : 'none',
-              '@keyframes spin': {
-                '0%': { transform: 'rotate(0deg)' },
-                '100%': { transform: 'rotate(360deg)' }
-              }
-            }}
-          >
-            <Refresh />
-          </IconButton>
+    <Box className={styles.root}>
+
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      <Box className={styles.header}>
+        <Box>
+          <Typography variant="h4" className={styles.headerTitle}>
+            Dashboard
+          </Typography>
+          <LiveClock />
         </Box>
 
-        {/* Estadísticas Principales */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <StatCard
-              title="Ventas Hoy"
-              value={formatMoneda(estadisticas.ventasHoy)}
-              icon={<AttachMoney sx={{ fontSize: 50 }} />}
-              gradient="linear-gradient(135deg, #E91E8C 0%, #C2185B 100%)"
-              trend="up"
-              trendValue={calcularCrecimiento(12580, 10200)}
-            />
-          </Grid>
+        <IconButton
+          onClick={handleRefresh}
+          disabled={busy}
+          className={`${styles.refreshButton} ${busy ? styles.refreshSpinning : ""}`}
+          aria-label="Actualizar dashboard"
+        >
+          <Refresh />
+        </IconButton>
+      </Box>
 
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <StatCard
-              title="Ventas del Mes"
-              value={formatMoneda(estadisticas.ventasMes)}
-              icon={<TrendingUp sx={{ fontSize: 50 }} />}
-              gradient="linear-gradient(135deg, #F06292 0%, #E91E8C 100%)"
-              trend="up"
-              trendValue={calcularCrecimiento(156700, 142000)}
-            />
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <StatCard
-              title="Productos Vendidos"
-              value={estadisticas.productosVendidos}
-              icon={<ShoppingCart sx={{ fontSize: 50 }} />}
-              gradient="linear-gradient(135deg, #F8BBD0 0%, #F06292 100%)"
-              trend="up"
-              trendValue="8.5"
-            />
-          </Grid>
-
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <StatCard
-              title="Clientes Activos"
-              value={estadisticas.clientesActivos}
-              icon={<People sx={{ fontSize: 50 }} />}
-              gradient="linear-gradient(135deg, #FCE4EC 0%, #F8BBD0 100%)"
-              trend="up"
-              trendValue="12.3"
-            />
-          </Grid>
+      {/* ── Estadísticas ────────────────────────────────────────────────────── */}
+      <Grid container spacing={3} className={styles.section}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <StatCard
+            title="Ventas Hoy"
+            value={formatMoneda(estadisticas.ventasHoy)}
+            icon={<AttachMoney className={styles.bigIcon} />}
+            gradient="linear-gradient(135deg, #E91E8C 0%, #C2185B 100%)"
+            trend="up"
+            trendValue={calcularCrecimiento(estadisticas.ventasHoy, Math.max(1, estadisticas.ventasHoy - 1))}
+            loading={busy}
+          />
         </Grid>
 
-        {/* Alertas y Acciones Rápidas */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid size={{ xs: 12, md: 8 }}>
-            <Card sx={{ bgcolor: '#FFF', border: '1px solid #FDE8F4', height: '100%' }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom sx={{ color: '#E91E8C', fontWeight: 'bold', mb: 3 }}>
-                  ⚠️ Alertas del Sistema
-                </Typography>
-                <Grid container spacing={2}>
-                  {alertas.map((alerta, index) => (
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <StatCard
+            title="Ventas del Mes"
+            value={formatMoneda(estadisticas.ventasMes)}
+            icon={<TrendingUp className={styles.bigIcon} />}
+            gradient="linear-gradient(135deg, #F06292 0%, #E91E8C 100%)"
+            trend="up"
+            trendValue={calcularCrecimiento(estadisticas.ventasMes, Math.max(1, estadisticas.ventasMes - 1))}
+            loading={busy}
+          />
+        </Grid>
+
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <StatCard
+            title="Productos Vendidos"
+            value={estadisticas.productosVendidos}
+            icon={<ShoppingCart className={styles.bigIcon} />}
+            gradient="linear-gradient(135deg, #F8BBD0 0%, #F06292 100%)"
+            trend="up"
+            trendValue="0.0"
+            loading={busy}
+          />
+        </Grid>
+
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <StatCard
+            title="Clientes Activos"
+            value={estadisticas.clientesActivos}
+            icon={<People className={styles.bigIcon} />}
+            gradient="linear-gradient(135deg, #FCE4EC 0%, #F8BBD0 100%)"
+            trend="up"
+            trendValue="0.0"
+            loading={busy}
+          />
+        </Grid>
+      </Grid>
+
+      {/* ── Alertas + Acciones rápidas ──────────────────────────────────────── */}
+      <Grid container spacing={3} className={styles.section}>
+        <Grid size={{ xs: 12, md: 8 }}>
+          <Card className={styles.alertsContainer}>
+            <CardContent>
+              <Typography variant="h6" className={styles.alertsTitle}>
+                ⚠️ Alertas del Sistema
+              </Typography>
+
+              <Grid container spacing={2}>
+                {busy ? (
+                  SKELETON_ROWS.map((_, index) => (
                     <Grid size={{ xs: 12, sm: 6 }} key={index}>
-                      <Card 
-                        sx={{ 
-                          bgcolor: alerta.tipo === 'error' ? '#FFEBEE' : 
-                                  alerta.tipo === 'warning' ? '#FFF3E0' :
-                                  alerta.tipo === 'success' ? '#E8F5E9' : '#E3F2FD',
-                          cursor: 'pointer',
-                          transition: 'transform 0.2s',
-                          '&:hover': {
-                            transform: 'scale(1.02)',
-                            boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
-                          }
-                        }}
-                        onClick={() => navigate(alerta.accion)}
-                      >
-                        <CardContent sx={{ display: 'flex', alignItems: 'center', p: 2 }}>
-                          <Avatar 
-                            sx={{ 
-                              bgcolor: alerta.tipo === 'error' ? '#F44336' : 
-                                      alerta.tipo === 'warning' ? '#FF9800' :
-                                      alerta.tipo === 'success' ? '#4CAF50' : '#2196F3',
-                              mr: 2
-                            }}
-                          >
-                            {alerta.icono}
-                          </Avatar>
-                          <Box sx={{ flexGrow: 1 }}>
-                            <Typography variant="body2" fontWeight="bold">
-                              {alerta.mensaje}
-                            </Typography>
+                      <Card className={styles.alertCard}>
+                        <CardContent className={styles.alertCardContent}>
+                          <Skeleton variant="circular" width={40} height={40} />
+                          <Box className={styles.alertTextWrap}>
+                            <Skeleton width="80%" />
                           </Box>
-                          <ArrowForward sx={{ color: '#666' }} />
+                          <Skeleton variant="rounded" width={18} height={18} />
                         </CardContent>
                       </Card>
                     </Grid>
+                  ))
+                ) : data.alertas.length > 0 ? (
+                  data.alertas.map((alerta, index) => (
+                    <Grid size={{ xs: 12, sm: 6 }} key={index}>
+                      <Card
+                        className={`${styles.alertCard} ${alertaCardClass(alerta.tipo)}`}
+                        onClick={() => navigate(alerta.accion)}
+                        role="button"
+                      >
+                        <CardContent className={styles.alertCardContent}>
+                          <Avatar className={`${styles.alertAvatar} ${alertaAvatarClass(alerta.tipo)}`}>
+                            {alerta.icono}
+                          </Avatar>
+
+                          <Box className={styles.alertTextWrap}>
+                            <Typography variant="body2" className={styles.alertText}>
+                              {alerta.mensaje}
+                            </Typography>
+                          </Box>
+
+                          <ArrowForward className={styles.alertArrow} />
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  ))
+                ) : (
+                  <Grid size={{ xs: 12 }}>
+                    <Typography className={styles.emptyState}>Sin alertas (pendiente de API)</Typography>
+                  </Grid>
+                )}
+              </Grid>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Card className={styles.quickActionsCard}>
+            <CardContent>
+              <Typography variant="h6" className={styles.quickActionsTitle}>
+                🎯 Acciones Rápidas
+              </Typography>
+
+              <Box className={styles.quickActionsList}>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  startIcon={<ShoppingCart />}
+                  onClick={goToPOS}
+                  className={styles.primaryButton}
+                >
+                  Nueva Venta (POS)
+                </Button>
+
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  startIcon={<Schedule />}
+                  onClick={goToPOS}
+                  className={styles.outlinedButton}
+                >
+                  Registrar Apartado
+                </Button>
+
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  startIcon={<Receipt />}
+                  onClick={goToCorteCaja}
+                  className={styles.outlinedButton}
+                >
+                  Corte de Caja
+                </Button>
+
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  startIcon={<Inventory />}
+                  onClick={goToInventory}
+                  className={styles.outlinedButton}
+                >
+                  Ver Inventario
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* ── Gráficas principales ─────────────────────────────────────────────── */}
+      <Grid container spacing={3} className={styles.section}>
+        <Grid size={{ xs: 12, md: 8 }}>
+          <Paper className={styles.paper}>
+            <Typography variant="h6" className={styles.paperTitle}>
+              Ventas de la Semana
+            </Typography>
+
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={data.ventasSemanales}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="dia" stroke="#666" />
+                <YAxis stroke="#666" />
+                <Tooltip formatter={(value) => formatMoneda(Number(value))} />
+                <Legend />
+                <Bar dataKey="ventas" fill="#E91E8C" radius={[8, 8, 0, 0]} name="Ventas" />
+                <Bar dataKey="meta"   fill="#F8BBD0" radius={[8, 8, 0, 0]} name="Meta" />
+              </BarChart>
+            </ResponsiveContainer>
+
+            {!busy && data.ventasSemanales.length === 0 && (
+              <Typography className={styles.emptyState}>Sin datos (pendiente de API)</Typography>
+            )}
+          </Paper>
+        </Grid>
+
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Paper className={styles.paper}>
+            <Typography variant="h6" className={styles.paperTitle}>
+              Ventas por Categoría
+            </Typography>
+
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={categorias}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={(entry) => `${entry.value}%`}
+                  outerRadius={80}
+                  dataKey="value"
+                >
+                  {categorias.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color || "#E91E8C"} />
                   ))}
-                </Grid>
-              </CardContent>
-            </Card>
-          </Grid>
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
 
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Card sx={{ bgcolor: '#FDE8F4', height: '100%' }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom sx={{ color: '#E91E8C', fontWeight: 'bold', mb: 3 }}>
-                  🎯 Acciones Rápidas
-                </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    startIcon={<ShoppingCart />}
-                    onClick={() => navigate('/admin/pos')}
-                    sx={{
-                      bgcolor: '#E91E8C',
-                      '&:hover': { bgcolor: '#C2185B' },
-                      borderRadius: '12px',
-                      textTransform: 'none',
-                      justifyContent: 'flex-start',
-                      py: 1.5
-                    }}
-                  >
-                    Nueva Venta (POS)
-                  </Button>
-                  <Button
-                    fullWidth
-                    variant="outlined"
-                    startIcon={<Schedule />}
-                    onClick={() => navigate('/admin/pos')}
-                    sx={{
-                      borderColor: '#E91E8C',
-                      color: '#E91E8C',
-                      '&:hover': { borderColor: '#C2185B', bgcolor: '#FFF5FA' },
-                      borderRadius: '12px',
-                      textTransform: 'none',
-                      justifyContent: 'flex-start',
-                      py: 1.5
-                    }}
-                  >
-                    Registrar Apartado
-                  </Button>
-                  <Button
-                    fullWidth
-                    variant="outlined"
-                    startIcon={<Receipt />}
-                    onClick={() => navigate('/admin/corte-caja')}
-                    sx={{
-                      borderColor: '#E91E8C',
-                      color: '#E91E8C',
-                      '&:hover': { borderColor: '#C2185B', bgcolor: '#FFF5FA' },
-                      borderRadius: '12px',
-                      textTransform: 'none',
-                      justifyContent: 'flex-start',
-                      py: 1.5
-                    }}
-                  >
-                    Corte de Caja
-                  </Button>
-                  <Button
-                    fullWidth
-                    variant="outlined"
-                    startIcon={<Inventory />}
-                    onClick={() => navigate('/admin/inventory')}
-                    sx={{
-                      borderColor: '#E91E8C',
-                      color: '#E91E8C',
-                      '&:hover': { borderColor: '#C2185B', bgcolor: '#FFF5FA' },
-                      borderRadius: '12px',
-                      textTransform: 'none',
-                      justifyContent: 'flex-start',
-                      py: 1.5
-                    }}
-                  >
-                    Ver Inventario
-                  </Button>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
+            {!busy && categorias.length === 0 && (
+              <Typography className={styles.emptyState}>Sin datos (pendiente de API)</Typography>
+            )}
+          </Paper>
+        </Grid>
+      </Grid>
+
+      {/* ── Hora por hora + Top productos ───────────────────────────────────── */}
+      <Grid container spacing={3} className={styles.section}>
+        <Grid size={{ xs: 12, md: 8 }}>
+          <Paper className={styles.paper}>
+            <Typography variant="h6" className={styles.paperTitle}>
+              Ventas de Hoy (Hora por Hora)
+            </Typography>
+
+            <ResponsiveContainer width="100%" height={250}>
+              <AreaChart data={data.ventasHoraHora}>
+                <defs>
+                  <linearGradient id="colorVentas" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%"  stopColor="#E91E8C" stopOpacity={0.8} />
+                    <stop offset="95%" stopColor="#E91E8C" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="hora" stroke="#666" />
+                <YAxis stroke="#666" />
+                <Tooltip formatter={(value) => formatMoneda(Number(value))} />
+                <Area
+                  type="monotone"
+                  dataKey="ventas"
+                  stroke="#E91E8C"
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#colorVentas)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+
+            {!busy && data.ventasHoraHora.length === 0 && (
+              <Typography className={styles.emptyState}>Sin datos (pendiente de API)</Typography>
+            )}
+          </Paper>
         </Grid>
 
-        {/* Gráficas de Ventas */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid size={{ xs: 12, md: 8 }}>
-            <Paper sx={{ p: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-              <Typography variant="h6" gutterBottom sx={{ color: '#333', fontWeight: 'bold', mb: 2 }}>
-                Ventas de la Semana
-              </Typography>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={ventasSemanales}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="dia" stroke="#666" />
-                  <YAxis stroke="#666" />
-                  <Tooltip formatter={(value) => formatMoneda(Number(value))} />
-                  <Legend />
-                  <Bar dataKey="ventas" fill="#E91E8C" radius={[8, 8, 0, 0]} name="Ventas" />
-                  <Bar dataKey="meta" fill="#F8BBD0" radius={[8, 8, 0, 0]} name="Meta" />
-                </BarChart>
-              </ResponsiveContainer>
-            </Paper>
-          </Grid>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Paper className={`${styles.paper} ${styles.paperFullHeight}`}>
+            <Typography variant="h6" className={styles.paperTitle}>
+              Productos Top
+            </Typography>
 
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Paper sx={{ p: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-              <Typography variant="h6" gutterBottom sx={{ color: '#333', fontWeight: 'bold', mb: 2 }}>
-                Ventas por Categoría
-              </Typography>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={ventasPorCategoria}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={(entry) => `${entry.value}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {ventasPorCategoria.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </Paper>
-          </Grid>
-        </Grid>
-
-        {/* Ventas Hora por Hora */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid size={{ xs: 12, md: 8 }}>
-            <Paper sx={{ p: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-              <Typography variant="h6" gutterBottom sx={{ color: '#333', fontWeight: 'bold', mb: 2 }}>
-                Ventas de Hoy (Hora por Hora)
-              </Typography>
-              <ResponsiveContainer width="100%" height={250}>
-                <AreaChart data={ventasHoraHora}>
-                  <defs>
-                    <linearGradient id="colorVentas" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#E91E8C" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#E91E8C" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="hora" stroke="#666" />
-                  <YAxis stroke="#666" />
-                  <Tooltip formatter={(value) => formatMoneda(Number(value))} />
-                  <Area 
-                    type="monotone" 
-                    dataKey="ventas" 
-                    stroke="#E91E8C" 
-                    strokeWidth={2}
-                    fillOpacity={1} 
-                    fill="url(#colorVentas)" 
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </Paper>
-          </Grid>
-
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Paper sx={{ p: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', height: '100%' }}>
-              <Typography variant="h6" gutterBottom sx={{ color: '#333', fontWeight: 'bold', mb: 2 }}>
-                Productos Top
-              </Typography>
-              <List>
-                {productosMasVendidos.map((producto, index) => (
+            <List>
+              {busy ? (
+                SKELETON_ROWS.map((_, index) => (
                   <React.Fragment key={index}>
-                    <ListItem sx={{ px: 0 }}>
+                    <ListItem className={styles.listItemNoXPadding}>
                       <ListItemAvatar>
-                        <Avatar sx={{ bgcolor: producto.color }}>
+                        <Skeleton variant="circular" width={40} height={40} />
+                      </ListItemAvatar>
+                      <ListItemText
+                        primary={<Skeleton width="70%" />}
+                        secondary={<Skeleton width="90%" />}
+                      />
+                    </ListItem>
+                    {index < SKELETON_ROWS.length - 1 && <Divider />}
+                  </React.Fragment>
+                ))
+              ) : productosTop.length > 0 ? (
+                productosTop.map((producto, index) => (
+                  <React.Fragment key={index}>
+                    <ListItem className={styles.listItemNoXPadding}>
+                      <ListItemAvatar>
+                        <Avatar style={{ backgroundColor: producto.color || "#E91E8C" }}>
                           {index + 1}
                         </Avatar>
                       </ListItemAvatar>
+
                       <ListItemText
                         primary={
-                          <Typography variant="body2" fontWeight="bold">
+                          <Typography variant="body2" className={styles.productName}>
                             {producto.nombre}
                           </Typography>
                         }
                         secondary={
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                            <Chip 
-                              label={`${producto.ventas} vendidos`} 
+                          <Box className={styles.productChipsRow}>
+                            <Chip
+                              label={`${producto.ventas} vendidos`}
                               size="small"
-                              sx={{ bgcolor: '#FDE8F4', color: '#E91E8C', fontSize: '0.7rem' }}
+                              className={styles.pinkChip}
                             />
-                            <Chip 
-                              label={`Stock: ${producto.stock}`} 
+                            <Chip
+                              label={`Stock: ${producto.stock}`}
                               size="small"
-                              sx={{ 
-                                bgcolor: producto.stock < 10 ? '#FFEBEE' : '#E8F5E9',
-                                color: producto.stock < 10 ? '#C62828' : '#2E7D32',
-                                fontSize: '0.7rem'
-                              }}
+                              className={producto.stock < 10 ? styles.stockChipLow : styles.stockChipOk}
                             />
                           </Box>
                         }
                       />
                     </ListItem>
-                    {index < productosMasVendidos.length - 1 && <Divider />}
+                    {index < productosTop.length - 1 && <Divider />}
                   </React.Fragment>
-                ))}
-              </List>
-            </Paper>
-          </Grid>
+                ))
+              ) : (
+                <Typography className={styles.emptyState}>Sin datos (pendiente de API)</Typography>
+              )}
+            </List>
+          </Paper>
         </Grid>
+      </Grid>
 
-        {/* Últimas Ventas */}
-        <Paper sx={{ p: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h6" sx={{ color: '#333', fontWeight: 'bold' }}>
-              Últimas Ventas
-            </Typography>
-            <Button
-              size="small"
-              onClick={() => navigate('/admin/reports')}
-              sx={{ color: '#E91E8C', textTransform: 'none' }}
-            >
-              Ver todas →
-            </Button>
-          </Box>
-          <List>
-            {ultimasVentas.map((venta, index) => (
-              <React.Fragment key={venta.id}>
-                <ListItem sx={{ px: 0 }}>
+      {/* ── Últimas ventas ──────────────────────────────────────────────────── */}
+      <Paper className={styles.paper}>
+        <Box className={styles.lastSalesHeader}>
+          <Typography variant="h6" className={styles.paperTitle}>
+            Últimas Ventas
+          </Typography>
+
+          <Button size="small" onClick={goToReports} className={styles.linkButton}>
+            Ver todas →
+          </Button>
+        </Box>
+
+        <List>
+          {busy ? (
+            SKELETON_ROWS.map((_, index) => (
+              <React.Fragment key={index}>
+                <ListItem className={styles.listItemNoXPadding}>
                   <ListItemAvatar>
-                    <Avatar sx={{ bgcolor: '#FDE8F4', color: '#E91E8C' }}>
+                    <Skeleton variant="circular" width={40} height={40} />
+                  </ListItemAvatar>
+                  <ListItemText
+                    primary={<Skeleton width="70%" />}
+                    secondary={<Skeleton width="40%" />}
+                  />
+                </ListItem>
+                {index < SKELETON_ROWS.length - 1 && <Divider />}
+              </React.Fragment>
+            ))
+          ) : data.ultimasVentas.length > 0 ? (
+            data.ultimasVentas.map((venta, index) => (
+              <React.Fragment key={venta.id}>
+                <ListItem className={styles.listItemNoXPadding}>
+                  <ListItemAvatar>
+                    <Avatar className={styles.saleAvatar}>
                       <Receipt />
                     </Avatar>
                   </ListItemAvatar>
+
                   <ListItemText
                     primary={
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Typography variant="body2" fontWeight="bold">
-                          {venta.id} - {venta.cliente}
+                      <Box className={styles.saleRow}>
+                        <Typography variant="body2" className={styles.saleTitle}>
+                          {venta.id} — {venta.cliente}
                         </Typography>
-                        <Typography variant="body1" fontWeight="bold" sx={{ color: '#E91E8C' }}>
+                        <Typography variant="body1" className={styles.saleAmount}>
                           {formatMoneda(venta.monto)}
                         </Typography>
                       </Box>
                     }
                     secondary={
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography variant="caption" className={styles.saleTime}>
                         {venta.tiempo}
                       </Typography>
                     }
                   />
                 </ListItem>
-                {index < ultimasVentas.length - 1 && <Divider />}
+                {index < data.ultimasVentas.length - 1 && <Divider />}
               </React.Fragment>
-            ))}
-          </List>
-        </Paper>
-      </Box>
-    </AdminLayout>
-  );
-};
+            ))
+          ) : (
+            <Typography className={styles.emptyState}>Sin datos (pendiente de API)</Typography>
+          )}
+        </List>
+      </Paper>
 
-export default Dashboard;
+      {/* ── Estado sin API ───────────────────────────────────────────────────── */}
+      {noData && (
+        <Paper className={styles.paper}>
+          <Box display="flex" alignItems="center" gap={1}>
+            <Warning fontSize="small" color="disabled" />
+            <Typography variant="body2" className={styles.emptyState}>
+              Dashboard listo para conectar API (sin datos estáticos).
+            </Typography>
+          </Box>
+        </Paper>
+      )}
+    </Box>
+  );
+}

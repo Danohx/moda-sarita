@@ -1,12 +1,9 @@
-// src/pages/admin/AdminReports.tsx
-
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Box,
   Paper,
   Typography,
   Button,
-  Grid,
   Card,
   CardContent,
   FormControl,
@@ -22,8 +19,9 @@ import {
   TableRow,
   Chip,
   Alert,
-  CircularProgress
-} from '@mui/material';
+  CircularProgress,
+} from "@mui/material";
+import Grid from "@mui/material/Grid";
 import {
   TrendingUp,
   Assessment,
@@ -31,8 +29,8 @@ import {
   BarChart as BarChartIcon,
   Print,
   Email,
-  PictureAsPdf
-} from '@mui/icons-material';
+  PictureAsPdf,
+} from "@mui/icons-material";
 import {
   LineChart,
   Line,
@@ -46,425 +44,659 @@ import {
   ResponsiveContainer,
   PieChart,
   Pie,
-  Cell
-} from 'recharts';
-import { AdminLayout } from "../../components/layout/AdminLayout";
+  Cell,
+} from "recharts";
+import styles from "../../styles/AdminReports.module.css";
 
-interface ReporteData {
-  ventas: any[];
-  productos: any[];
-  clientes: any[];
-  estadisticas: any;
+type TipoReporte = "ventas" | "inventario" | "clientes" | "financiero";
+type Periodo = "semana" | "mes" | "trimestre" | "ano" | "personalizado";
+
+type VentaMensual = {
+  mes: string;
+  ventas: number;
+  costos: number;
+  ganancia: number;
+};
+type VentaCategoria = {
+  name: string;
+  value: number;
+  ventas: number;
+  color: string;
+};
+type ProductoTop = {
+  id: number;
+  nombre: string;
+  cantidad: number;
+  total: number;
+  categoria: string;
+};
+type ClienteTop = {
+  id: number;
+  nombre: string;
+  compras: number;
+  total: number;
+  ultimaCompra: string;
+};
+type VentaMetodo = {
+  metodo: string;
+  value: number;
+  monto: number;
+  color: string;
+};
+
+type Totales = {
+  ventasTotal: number;
+  costosTotal: number;
+  gananciaTotal: number;
+  margen: string;
+};
+
+type ReporteData = {
+  ventasMensuales: VentaMensual[];
+  ventasPorCategoria: VentaCategoria[];
+  ventasPorMetodo: VentaMetodo[];
+  productosMasVendidos: ProductoTop[];
+  clientesTop: ClienteTop[];
+};
+
+function formatMoneda(valor: number) {
+  return new Intl.NumberFormat("es-MX", {
+    style: "currency",
+    currency: "MXN",
+  }).format(valor);
+}
+
+/**
+ * ✅ Placeholder para API
+ * Cambias esta función por tu llamada real (axios/fetch).
+ */
+async function fetchReportData(params: {
+  tipo: TipoReporte;
+  periodo: Periodo;
+  fechaInicio: string;
+  fechaFin: string;
+  signal: AbortSignal;
+}): Promise<ReporteData> {
+  const { signal } = params;
+
+  await new Promise<void>((resolve, reject) => {
+    const id = window.setTimeout(() => resolve(), 350);
+    signal.addEventListener("abort", () => {
+      window.clearTimeout(id);
+      reject(new DOMException("Aborted", "AbortError"));
+    });
+  });
+
+  return {
+    ventasMensuales: [],
+    ventasPorCategoria: [],
+    ventasPorMetodo: [],
+    productosMasVendidos: [],
+    clientesTop: [],
+  };
 }
 
 const AdminReports: React.FC = () => {
-  const [tipoReporte, setTipoReporte] = useState('ventas');
-  const [periodo, setPeriodo] = useState('mes');
-  const [fechaInicio, setFechaInicio] = useState('2025-02-01');
-  const [fechaFin, setFechaFin] = useState('2025-02-28');
+  const [tipoReporte, setTipoReporte] = useState<TipoReporte>("ventas");
+  const [periodo, setPeriodo] = useState<Periodo>("mes");
+  const [fechaInicio, setFechaInicio] = useState("2025-02-01");
+  const [fechaFin, setFechaFin] = useState("2025-02-28");
+
   const [loading, setLoading] = useState(false);
   const [generandoPDF, setGenerandoPDF] = useState(false);
   const [datosReporte, setDatosReporte] = useState<ReporteData | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Datos de ejemplo más completos
-  const ventasMensuales = [
-    { mes: 'Ago', ventas: 45000, costos: 28000, ganancia: 17000 },
-    { mes: 'Sep', ventas: 52000, costos: 31000, ganancia: 21000 },
-    { mes: 'Oct', ventas: 48000, costos: 29000, ganancia: 19000 },
-    { mes: 'Nov', ventas: 61000, costos: 35000, ganancia: 26000 },
-    { mes: 'Dic', ventas: 78000, costos: 42000, ganancia: 36000 },
-    { mes: 'Ene', ventas: 55000, costos: 33000, ganancia: 22000 },
-    { mes: 'Feb', ventas: 67000, costos: 38000, ganancia: 29000 },
-  ];
+  const reportesDisponibles = useMemo(
+    () => [
+      {
+        id: "ventas" as const,
+        nombre: "Reporte de Ventas",
+        icon: <TrendingUp />,
+        descripcion: "Análisis detallado de ventas",
+      },
+      {
+        id: "inventario" as const,
+        nombre: "Reporte de Inventario",
+        icon: <Assessment />,
+        descripcion: "Estado del inventario",
+      },
+      {
+        id: "clientes" as const,
+        nombre: "Reporte de Clientes",
+        icon: <Description />,
+        descripcion: "Análisis de clientes",
+      },
+      {
+        id: "financiero" as const,
+        nombre: "Reporte Financiero",
+        icon: <BarChartIcon />,
+        descripcion: "Estado financiero",
+      },
+    ],
+    [],
+  );
 
-  const ventasSemanales = [
-    { semana: 'Sem 1', lunes: 1200, martes: 1500, miercoles: 1800, jueves: 2100, viernes: 2800, sabado: 3500, domingo: 2200 },
-    { semana: 'Sem 2', lunes: 1400, martes: 1700, miercoles: 2000, jueves: 2300, viernes: 3000, sabado: 3800, domingo: 2400 },
-    { semana: 'Sem 3', lunes: 1300, martes: 1600, miercoles: 1900, jueves: 2200, viernes: 2900, sabado: 3600, domingo: 2300 },
-    { semana: 'Sem 4', lunes: 1500, martes: 1800, miercoles: 2100, jueves: 2400, viernes: 3100, sabado: 3900, domingo: 2500 },
-  ];
+  const calcularTotales = useCallback(
+    (ventasMensuales: VentaMensual[]): Totales => {
+      const ventasTotal = ventasMensuales.reduce(
+        (sum, item) => sum + item.ventas,
+        0,
+      );
+      const costosTotal = ventasMensuales.reduce(
+        (sum, item) => sum + item.costos,
+        0,
+      );
+      const gananciaTotal = ventasTotal - costosTotal;
+      const margen =
+        ventasTotal > 0
+          ? ((gananciaTotal / ventasTotal) * 100).toFixed(1)
+          : "0.0";
+      return { ventasTotal, costosTotal, gananciaTotal, margen };
+    },
+    [],
+  );
 
-  const ventasPorCategoria = [
-    { name: 'Blusas', value: 35, ventas: 23450, color: '#E91E8C' },
-    { name: 'Vestidos', value: 28, ventas: 18760, color: '#F06292' },
-    { name: 'Pantalones', value: 22, ventas: 14740, color: '#F8BBD0' },
-    { name: 'Accesorios', value: 15, ventas: 10050, color: '#FCE4EC' },
-  ];
+  const totales = useMemo(() => {
+    return calcularTotales(datosReporte?.ventasMensuales ?? []);
+  }, [calcularTotales, datosReporte]);
 
-  const productosMasVendidos = [
-    { id: 1, nombre: 'Blusa Elegante Rosa', cantidad: 45, total: 20250, categoria: 'Blusas' },
-    { id: 2, nombre: 'Vestido Negro Casual', cantidad: 38, total: 25840, categoria: 'Vestidos' },
-    { id: 3, nombre: 'Pantalón Mezclilla Azul', cantidad: 32, total: 17600, categoria: 'Pantalones' },
-    { id: 4, nombre: 'Collar Dorado', cantidad: 28, total: 5040, categoria: 'Accesorios' },
-    { id: 5, nombre: 'Blusa Blanca Básica', cantidad: 25, total: 8750, categoria: 'Blusas' },
-  ];
+  const load = useCallback(
+    async (signal: AbortSignal) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const resp = await fetchReportData({
+          tipo: tipoReporte,
+          periodo,
+          fechaInicio,
+          fechaFin,
+          signal,
+        });
+        setDatosReporte(resp);
+      } catch (e) {
+        if (e instanceof DOMException && e.name === "AbortError") return;
+        setDatosReporte(null);
+        setError("No se pudieron cargar los reportes (placeholder).");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [tipoReporte, periodo, fechaInicio, fechaFin],
+  );
 
-  const clientesTop = [
-    { id: 1, nombre: 'María González', compras: 12, total: 15680, ultimaCompra: '2025-02-20' },
-    { id: 2, nombre: 'Ana Martínez', compras: 10, total: 13450, ultimaCompra: '2025-02-19' },
-    { id: 3, nombre: 'Laura Rodríguez', compras: 8, total: 11230, ultimaCompra: '2025-02-18' },
-    { id: 4, nombre: 'Carmen López', compras: 7, total: 9870, ultimaCompra: '2025-02-17' },
-    { id: 5, nombre: 'Sofia Torres', compras: 6, total: 8560, ultimaCompra: '2025-02-16' },
-  ];
-
-  const ventasPorMetodo = [
-    { metodo: 'Efectivo', value: 45, monto: 30150, color: '#E91E8C' },
-    { metodo: 'Tarjeta', value: 35, monto: 23450, color: '#F06292' },
-    { metodo: 'Transferencia', value: 20, monto: 13400, color: '#F8BBD0' },
-  ];
-
-  const formatMoneda = (valor: number) => {
-    return new Intl.NumberFormat('es-MX', {
-      style: 'currency',
-      currency: 'MXN'
-    }).format(valor);
-  };
-
-  const reportesDisponibles = [
-    { id: 'ventas', nombre: 'Reporte de Ventas', icon: <TrendingUp />, descripcion: 'Análisis detallado de ventas' },
-    { id: 'inventario', nombre: 'Reporte de Inventario', icon: <Assessment />, descripcion: 'Estado del inventario' },
-    { id: 'clientes', nombre: 'Reporte de Clientes', icon: <Description />, descripcion: 'Análisis de clientes' },
-    { id: 'financiero', nombre: 'Reporte Financiero', icon: <BarChartIcon />, descripcion: 'Estado financiero' },
-  ];
+  useEffect(() => {
+    const controller = new AbortController();
+    void load(controller.signal);
+    return () => controller.abort();
+  }, [load]);
 
   const handleGenerarPDF = async () => {
     setGenerandoPDF(true);
-    // Simular generación de PDF
-    setTimeout(() => {
-      console.log('PDF generado:', {
-        tipo: tipoReporte,
-        periodo,
-        fechaInicio,
-        fechaFin
-      });
-      alert('PDF generado exitosamente');
+    try {
+      await new Promise((r) => setTimeout(r, 800));
+      alert("PDF generado (placeholder). Conecta backend luego.");
+    } finally {
       setGenerandoPDF(false);
-    }, 2000);
+    }
   };
 
   const handleEnviarEmail = () => {
-    console.log('Enviando reporte por email...');
-    alert('Reporte enviado por email');
+    alert("Reporte enviado por email (placeholder).");
   };
 
-  const handleImprimir = () => {
-    window.print();
+  const handleImprimir = () => window.print();
+
+  const renderReporteVentas = () => {
+    const ventasMensuales = datosReporte?.ventasMensuales ?? [];
+    const ventasPorCategoria = datosReporte?.ventasPorCategoria ?? [];
+    const ventasPorMetodo = datosReporte?.ventasPorMetodo ?? [];
+    const productosMasVendidos = datosReporte?.productosMasVendidos ?? [];
+
+    return (
+      <>
+        <Grid container spacing={3} className={styles.section}>
+          <Grid size={{ xs: 12 }}>
+            <Paper className={styles.paper}>
+              <Typography variant="h6" className={styles.paperTitle}>
+                Ventas vs Costos - Últimos 7 Meses
+              </Typography>
+
+              {ventasMensuales.length === 0 ? (
+                <Alert severity="info" className={styles.alert}>
+                  Sin datos aún. Aquí se renderizará la serie mensual cuando
+                  conectes la API.
+                </Alert>
+              ) : (
+                <div className={styles.chartWrap}>
+                  <ResponsiveContainer width="100%" height={350}>
+                    <LineChart data={ventasMensuales}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis dataKey="mes" stroke="#666" />
+                      <YAxis stroke="#666" />
+                      <Tooltip
+                        formatter={(value) => formatMoneda(Number(value))}
+                      />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="ventas"
+                        stroke="#E91E8C"
+                        strokeWidth={3}
+                        name="Ventas"
+                        dot={{ r: 4 }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="costos"
+                        stroke="#F8BBD0"
+                        strokeWidth={3}
+                        name="Costos"
+                        dot={{ r: 4 }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="ganancia"
+                        stroke="#4CAF50"
+                        strokeWidth={3}
+                        name="Ganancia"
+                        dot={{ r: 4 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </Paper>
+          </Grid>
+        </Grid>
+
+        <Grid container spacing={3} className={styles.section}>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Paper className={styles.paper}>
+              <Typography variant="h6" className={styles.paperTitle}>
+                Ventas por Categoría
+              </Typography>
+
+              {ventasPorCategoria.length === 0 ? (
+                <Alert severity="info" className={styles.alert}>
+                  Sin datos aún. La API llenará{" "}
+                  {`{ name, value, ventas, color }`}.
+                </Alert>
+              ) : (
+                <div className={styles.chartWrap}>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={ventasPorCategoria}
+                        cx="50%"
+                        cy="50%"
+                        labelLine
+                        label={(p) => {
+                          const payload = p.payload as
+                            | VentaCategoria
+                            | undefined;
+                          if (!payload) return "";
+                          return `${payload.name}: ${payload.value}%`;
+                        }}
+                        outerRadius={100}
+                        dataKey="value"
+                      >
+                        {ventasPorCategoria.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(
+                          value: unknown,
+                          name: unknown,
+                          props: unknown,
+                        ) => {
+                          const p = props as { payload?: VentaCategoria };
+                          const ventas = p.payload?.ventas ?? 0;
+                          return [
+                            `${String(value)}% (${formatMoneda(ventas)})`,
+                            String(name),
+                          ];
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </Paper>
+          </Grid>
+
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Paper className={styles.paper}>
+              <Typography variant="h6" className={styles.paperTitle}>
+                Ventas por Método de Pago
+              </Typography>
+
+              {ventasPorMetodo.length === 0 ? (
+                <Alert severity="info" className={styles.alert}>
+                  Sin datos aún. La API llenará {`{ metodo, monto, color }`}.
+                </Alert>
+              ) : (
+                <div className={styles.chartWrap}>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={ventasPorMetodo}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis dataKey="metodo" stroke="#666" />
+                      <YAxis stroke="#666" />
+                      <Tooltip
+                        formatter={(value) => formatMoneda(Number(value))}
+                      />
+                      <Bar dataKey="monto" radius={[8, 8, 0, 0]}>
+                        {ventasPorMetodo.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </Paper>
+          </Grid>
+        </Grid>
+
+        <Paper className={styles.paper}>
+          <Typography variant="h6" className={styles.paperTitle}>
+            Top 5 Productos Más Vendidos
+          </Typography>
+
+          {productosMasVendidos.length === 0 ? (
+            <Alert severity="info" className={styles.alert}>
+              Sin datos aún. La API llenará{" "}
+              {`{ id, nombre, cantidad, total, categoria }`}.
+            </Alert>
+          ) : (
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow className={styles.tableHeadRow}>
+                    <TableCell className={styles.th}>Producto</TableCell>
+                    <TableCell className={styles.th}>Categoría</TableCell>
+                    <TableCell className={styles.th} align="center">
+                      Cantidad
+                    </TableCell>
+                    <TableCell className={styles.th} align="right">
+                      Total Ventas
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {productosMasVendidos.map((p) => (
+                    <TableRow key={p.id} hover className={styles.tableRowHover}>
+                      <TableCell>{p.nombre}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={p.categoria}
+                          size="small"
+                          className={styles.pinkChip}
+                        />
+                      </TableCell>
+                      <TableCell align="center">
+                        <Typography fontWeight="bold">{p.cantidad}</Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        <Typography
+                          fontWeight="bold"
+                          className={styles.pinkText}
+                        >
+                          {formatMoneda(p.total)}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </Paper>
+      </>
+    );
   };
 
-  const calcularTotales = () => {
-    const ventasTotal = ventasMensuales.reduce((sum, item) => sum + item.ventas, 0);
-    const costosTotal = ventasMensuales.reduce((sum, item) => sum + item.costos, 0);
-    const gananciaTotal = ventasTotal - costosTotal;
-    const margen = ((gananciaTotal / ventasTotal) * 100).toFixed(1);
-    
-    return { ventasTotal, costosTotal, gananciaTotal, margen };
+  const renderReporteClientes = () => {
+    const clientesTop = datosReporte?.clientesTop ?? [];
+    return (
+      <Paper className={styles.paper}>
+        <Typography variant="h6" className={styles.paperTitle}>
+          Top 5 Mejores Clientes
+        </Typography>
+
+        {clientesTop.length === 0 ? (
+          <Alert severity="info" className={styles.alert}>
+            Sin datos aún. La API llenará{" "}
+            {`{ id, nombre, compras, total, ultimaCompra }`}.
+          </Alert>
+        ) : (
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow className={styles.tableHeadRow}>
+                  <TableCell className={styles.th}>Cliente</TableCell>
+                  <TableCell className={styles.th} align="center">
+                    Compras
+                  </TableCell>
+                  <TableCell className={styles.th} align="right">
+                    Total Gastado
+                  </TableCell>
+                  <TableCell className={styles.th}>Última Compra</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {clientesTop.map((c) => (
+                  <TableRow key={c.id} hover className={styles.tableRowHover}>
+                    <TableCell>
+                      <Typography fontWeight="bold">{c.nombre}</Typography>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Chip
+                        label={c.compras}
+                        size="small"
+                        className={styles.pinkChipBold}
+                      />
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography fontWeight="bold" className={styles.pinkText}>
+                        {formatMoneda(c.total)}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>{c.ultimaCompra}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+      </Paper>
+    );
   };
 
-  const totales = calcularTotales();
+  const renderReporteInventario = () => {
+    const ventasPorCategoria = datosReporte?.ventasPorCategoria ?? [];
+    return (
+      <Paper className={styles.paper}>
+        <Typography variant="h6" className={styles.paperTitle}>
+          Estado de Inventario por Categoría
+        </Typography>
 
-  const renderReporteVentas = () => (
-    <>
-      {/* Gráfica de Ventas Mensuales */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12 }}>
-          <Paper sx={{ p: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-            <Typography variant="h6" gutterBottom sx={{ color: '#333', fontWeight: 'bold' }}>
-              Ventas vs Costos - Últimos 7 Meses
-            </Typography>
-            <ResponsiveContainer width="100%" height={350}>
-              <LineChart data={ventasMensuales}>
+        {ventasPorCategoria.length === 0 ? (
+          <Alert severity="info" className={styles.alert}>
+            Sin datos aún. Puedes reutilizar la misma serie por categoría o
+            crear una nueva para inventario.
+          </Alert>
+        ) : (
+          <div className={styles.chartWrap}>
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart data={ventasPorCategoria}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="mes" stroke="#666" />
+                <XAxis dataKey="name" stroke="#666" />
                 <YAxis stroke="#666" />
-                <Tooltip formatter={(value) => formatMoneda(Number(value))} />
+                <Tooltip />
                 <Legend />
-                <Line 
-                  type="monotone" 
-                  dataKey="ventas" 
-                  stroke="#E91E8C" 
-                  strokeWidth={3}
-                  name="Ventas"
-                  dot={{ fill: '#E91E8C', r: 5 }}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="costos" 
-                  stroke="#F8BBD0" 
-                  strokeWidth={3}
-                  name="Costos"
-                  dot={{ fill: '#F8BBD0', r: 5 }}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="ganancia" 
-                  stroke="#4CAF50" 
-                  strokeWidth={3}
-                  name="Ganancia"
-                  dot={{ fill: '#4CAF50', r: 5 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Grid>
-      </Grid>
-
-      {/* Gráficas de Categorías y Métodos de Pago */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Paper sx={{ p: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-            <Typography variant="h6" gutterBottom sx={{ color: '#333', fontWeight: 'bold' }}>
-              Ventas por Categoría
-            </Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={ventasPorCategoria}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={true}
-                  label={(entry) => `${entry.name}: ${entry.value}%`}
-                  outerRadius={100}
-                  fill="#8884d8"
+                <Bar
                   dataKey="value"
-                >
-                  {ventasPorCategoria.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value, name, props) => [
-                  `${value}% (${formatMoneda(props.payload.ventas)})`,
-                  name
-                ]} />
-              </PieChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Grid>
-
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Paper sx={{ p: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-            <Typography variant="h6" gutterBottom sx={{ color: '#333', fontWeight: 'bold' }}>
-              Ventas por Método de Pago
-            </Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={ventasPorMetodo}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="metodo" stroke="#666" />
-                <YAxis stroke="#666" />
-                <Tooltip formatter={(value) => formatMoneda(Number(value))} />
-                <Bar dataKey="monto" fill="#E91E8C" radius={[8, 8, 0, 0]}>
-                  {ventasPorMetodo.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Bar>
+                  name="Porcentaje"
+                  fill="#E91E8C"
+                  radius={[8, 8, 0, 0]}
+                />
               </BarChart>
             </ResponsiveContainer>
-          </Paper>
-        </Grid>
-      </Grid>
+          </div>
+        )}
 
-      {/* Productos Más Vendidos */}
-      <Paper sx={{ p: 3, mb: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-        <Typography variant="h6" gutterBottom sx={{ color: '#333', fontWeight: 'bold', mb: 2 }}>
-          Top 5 Productos Más Vendidos
-        </Typography>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow sx={{ bgcolor: '#FDE8F4' }}>
-                <TableCell><strong style={{ color: '#E91E8C' }}>Producto</strong></TableCell>
-                <TableCell><strong style={{ color: '#E91E8C' }}>Categoría</strong></TableCell>
-                <TableCell align="center"><strong style={{ color: '#E91E8C' }}>Cantidad</strong></TableCell>
-                <TableCell align="right"><strong style={{ color: '#E91E8C' }}>Total Ventas</strong></TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {productosMasVendidos.map((producto) => (
-                <TableRow key={producto.id} hover sx={{ '&:hover': { bgcolor: '#FFF5FA' } }}>
-                  <TableCell>{producto.nombre}</TableCell>
-                  <TableCell>
-                    <Chip 
-                      label={producto.categoria} 
-                      size="small"
-                      sx={{ bgcolor: '#FDE8F4', color: '#E91E8C' }}
-                    />
-                  </TableCell>
-                  <TableCell align="center">
-                    <Typography fontWeight="bold">{producto.cantidad}</Typography>
-                  </TableCell>
-                  <TableCell align="right">
-                    <Typography fontWeight="bold" sx={{ color: '#E91E8C' }}>
-                      {formatMoneda(producto.total)}
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <Alert
+          severity="info"
+          className={styles.alert}
+          style={{ marginTop: 12 }}
+        >
+          <Typography variant="body2">
+            <strong>Nota:</strong> Este reporte mostrará la distribución por
+            categoría según lo que tu API devuelva.
+          </Typography>
+        </Alert>
       </Paper>
-    </>
-  );
+    );
+  };
 
-  const renderReporteClientes = () => (
-    <Paper sx={{ p: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-      <Typography variant="h6" gutterBottom sx={{ color: '#333', fontWeight: 'bold', mb: 2 }}>
-        Top 5 Mejores Clientes
-      </Typography>
-      <TableContainer>
-        <Table>
-          <TableHead>
-            <TableRow sx={{ bgcolor: '#FDE8F4' }}>
-              <TableCell><strong style={{ color: '#E91E8C' }}>Cliente</strong></TableCell>
-              <TableCell align="center"><strong style={{ color: '#E91E8C' }}>Compras</strong></TableCell>
-              <TableCell align="right"><strong style={{ color: '#E91E8C' }}>Total Gastado</strong></TableCell>
-              <TableCell><strong style={{ color: '#E91E8C' }}>Última Compra</strong></TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {clientesTop.map((cliente) => (
-              <TableRow key={cliente.id} hover sx={{ '&:hover': { bgcolor: '#FFF5FA' } }}>
-                <TableCell>
-                  <Typography fontWeight="bold">{cliente.nombre}</Typography>
-                </TableCell>
-                <TableCell align="center">
-                  <Chip 
-                    label={cliente.compras} 
-                    size="small"
-                    sx={{ bgcolor: '#FDE8F4', color: '#E91E8C', fontWeight: 'bold' }}
+  const renderReporteFinanciero = () => {
+    const ventasMensuales = datosReporte?.ventasMensuales ?? [];
+
+    return (
+      <>
+        <Paper className={styles.paper}>
+          <Typography variant="h6" className={styles.paperTitle}>
+            Estado Financiero Mensual
+          </Typography>
+
+          {ventasMensuales.length === 0 ? (
+            <Alert severity="info" className={styles.alert}>
+              Sin datos aún. La API llenará{" "}
+              {`{ mes, ventas, costos, ganancia }`}.
+            </Alert>
+          ) : (
+            <div className={styles.chartWrap}>
+              <ResponsiveContainer width="100%" height={350}>
+                <BarChart data={ventasMensuales}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="mes" stroke="#666" />
+                  <YAxis stroke="#666" />
+                  <Tooltip formatter={(value) => formatMoneda(Number(value))} />
+                  <Legend />
+                  <Bar
+                    dataKey="ventas"
+                    fill="#E91E8C"
+                    name="Ingresos"
+                    radius={[8, 8, 0, 0]}
                   />
-                </TableCell>
-                <TableCell align="right">
-                  <Typography fontWeight="bold" sx={{ color: '#E91E8C' }}>
-                    {formatMoneda(cliente.total)}
-                  </Typography>
-                </TableCell>
-                <TableCell>{cliente.ultimaCompra}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Paper>
-  );
+                  <Bar
+                    dataKey="costos"
+                    fill="#F8BBD0"
+                    name="Costos"
+                    radius={[8, 8, 0, 0]}
+                  />
+                  <Bar
+                    dataKey="ganancia"
+                    fill="#4CAF50"
+                    name="Ganancia"
+                    radius={[8, 8, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </Paper>
 
-  const renderReporteInventario = () => (
-    <Paper sx={{ p: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-      <Typography variant="h6" gutterBottom sx={{ color: '#333', fontWeight: 'bold', mb: 3 }}>
-        Estado de Inventario por Categoría
-      </Typography>
-      <ResponsiveContainer width="100%" height={400}>
-        <BarChart data={ventasPorCategoria}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-          <XAxis dataKey="name" stroke="#666" />
-          <YAxis stroke="#666" />
-          <Tooltip />
-          <Legend />
-          <Bar dataKey="value" name="Porcentaje de Stock" fill="#E91E8C" radius={[8, 8, 0, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
+        <Grid container spacing={3} className={styles.section}>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Card className={styles.kpiCard}>
+              <CardContent>
+                <Typography variant="h6" className={styles.kpiTitle}>
+                  Flujo de Efectivo
+                </Typography>
 
-      <Alert severity="info" sx={{ mt: 3 }}>
-        <Typography variant="body2">
-          <strong>Nota:</strong> Este reporte muestra la distribución actual del inventario por categoría. 
-          Para un análisis más detallado, consulte el módulo de Inventario.
-        </Typography>
-      </Alert>
-    </Paper>
-  );
-
-  const renderReporteFinanciero = () => (
-    <>
-      <Paper sx={{ p: 3, mb: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-        <Typography variant="h6" gutterBottom sx={{ color: '#333', fontWeight: 'bold', mb: 3 }}>
-          Estado Financiero Mensual
-        </Typography>
-        <ResponsiveContainer width="100%" height={350}>
-          <BarChart data={ventasMensuales}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis dataKey="mes" stroke="#666" />
-            <YAxis stroke="#666" />
-            <Tooltip formatter={(value) => formatMoneda(Number(value))} />
-            <Legend />
-            <Bar dataKey="ventas" fill="#E91E8C" name="Ingresos" radius={[8, 8, 0, 0]} />
-            <Bar dataKey="costos" fill="#F8BBD0" name="Costos" radius={[8, 8, 0, 0]} />
-            <Bar dataKey="ganancia" fill="#4CAF50" name="Ganancia" radius={[8, 8, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </Paper>
-
-      <Grid container spacing={3}>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Card sx={{ bgcolor: '#FDE8F4' }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ color: '#E91E8C', fontWeight: 'bold' }}>
-                Flujo de Efectivo
-              </Typography>
-              <Box sx={{ mt: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                <Box className={styles.kpiRow}>
                   <Typography>Ingresos Totales:</Typography>
-                  <Typography fontWeight="bold" sx={{ color: '#4CAF50' }}>
+                  <Typography fontWeight="bold" className={styles.greenText}>
                     {formatMoneda(totales.ventasTotal)}
                   </Typography>
                 </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+
+                <Box className={styles.kpiRow}>
                   <Typography>Costos Totales:</Typography>
-                  <Typography fontWeight="bold" sx={{ color: '#f44336' }}>
+                  <Typography fontWeight="bold" className={styles.redText}>
                     {formatMoneda(totales.costosTotal)}
                   </Typography>
                 </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 2, borderTop: '2px solid #E91E8C' }}>
-                  <Typography variant="h6" fontWeight="bold">Ganancia Neta:</Typography>
-                  <Typography variant="h6" fontWeight="bold" sx={{ color: '#E91E8C' }}>
+
+                <Box className={styles.kpiRowStrong}>
+                  <Typography variant="h6" fontWeight="bold">
+                    Ganancia Neta:
+                  </Typography>
+                  <Typography
+                    variant="h6"
+                    fontWeight="bold"
+                    className={styles.pinkText}
+                  >
                     {formatMoneda(totales.gananciaTotal)}
                   </Typography>
                 </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+              </CardContent>
+            </Card>
+          </Grid>
 
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Card sx={{ bgcolor: '#FDE8F4' }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ color: '#E91E8C', fontWeight: 'bold' }}>
-                Indicadores Clave
-              </Typography>
-              <Box sx={{ mt: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Card className={styles.kpiCard}>
+              <CardContent>
+                <Typography variant="h6" className={styles.kpiTitle}>
+                  Indicadores Clave
+                </Typography>
+
+                <Box className={styles.kpiRow}>
                   <Typography>Margen de Ganancia:</Typography>
-                  <Typography fontWeight="bold" sx={{ color: '#4CAF50' }}>
+                  <Typography fontWeight="bold" className={styles.greenText}>
                     {totales.margen}%
                   </Typography>
                 </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+
+                <Box className={styles.kpiRow}>
                   <Typography>Ticket Promedio:</Typography>
                   <Typography fontWeight="bold">
-                    {formatMoneda(totales.ventasTotal / 156)} {/* 156 es el ejemplo de transacciones */}
+                    {formatMoneda(totales.ventasTotal / 156)}
                   </Typography>
                 </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+
+                <Box className={styles.kpiRow}>
                   <Typography>ROI:</Typography>
-                  <Typography fontWeight="bold" sx={{ color: '#4CAF50' }}>
-                    {((totales.gananciaTotal / totales.costosTotal) * 100).toFixed(1)}%
+                  <Typography fontWeight="bold" className={styles.greenText}>
+                    {totales.costosTotal > 0
+                      ? (
+                          (totales.gananciaTotal / totales.costosTotal) *
+                          100
+                        ).toFixed(1)
+                      : "0.0"}
+                    %
                   </Typography>
                 </Box>
-              </Box>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Grid>
         </Grid>
-      </Grid>
-    </>
-  );
+      </>
+    );
+  };
 
   const renderContenidoReporte = () => {
-    switch(tipoReporte) {
-      case 'ventas':
+    switch (tipoReporte) {
+      case "ventas":
         return renderReporteVentas();
-      case 'clientes':
+      case "clientes":
         return renderReporteClientes();
-      case 'inventario':
+      case "inventario":
         return renderReporteInventario();
-      case 'financiero':
+      case "financiero":
         return renderReporteFinanciero();
       default:
         return renderReporteVentas();
@@ -472,211 +704,201 @@ const AdminReports: React.FC = () => {
   };
 
   return (
-    <AdminLayout role="admin">
-      <Box>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-          <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#333' }}>
+    <Box className={styles.root}>
+      {/* Header */}
+      <Box className={styles.header}>
+        <Box>
+          <Typography variant="h4" className={styles.title}>
             Reportes y Análisis
           </Typography>
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            <Button
-              variant="outlined"
-              startIcon={<Email />}
-              onClick={handleEnviarEmail}
-              sx={{ 
-                borderColor: '#E91E8C',
-                color: '#E91E8C',
-                '&:hover': { borderColor: '#C2185B', bgcolor: '#FFF5FA' },
-                borderRadius: '20px',
-                textTransform: 'none'
-              }}
-            >
-              Enviar Email
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<Print />}
-              onClick={handleImprimir}
-              sx={{ 
-                borderColor: '#E91E8C',
-                color: '#E91E8C',
-                '&:hover': { borderColor: '#C2185B', bgcolor: '#FFF5FA' },
-                borderRadius: '20px',
-                textTransform: 'none'
-              }}
-            >
-              Imprimir
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={generandoPDF ? <CircularProgress size={20} color="inherit" /> : <PictureAsPdf />}
-              onClick={handleGenerarPDF}
-              disabled={generandoPDF}
-              sx={{ 
-                bgcolor: '#E91E8C',
-                '&:hover': { bgcolor: '#C2185B' },
-                borderRadius: '25px',
-                px: 3,
-                textTransform: 'none',
-                fontWeight: 'bold'
-              }}
-            >
-              {generandoPDF ? 'Generando...' : 'Exportar PDF'}
-            </Button>
-          </Box>
+          <Typography variant="body2" className={styles.subtitle}>
+            {loading ? "Cargando..." : "Listo para conectar API"}
+          </Typography>
         </Box>
 
-        {/* Tipos de Reportes */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          {reportesDisponibles.map((reporte) => (
+        <Box className={styles.headerActions}>
+          <Button
+            variant="outlined"
+            startIcon={<Email />}
+            onClick={handleEnviarEmail}
+            className={styles.btnOutlined}
+          >
+            Enviar Email
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<Print />}
+            onClick={handleImprimir}
+            className={styles.btnOutlined}
+          >
+            Imprimir
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={
+              generandoPDF ? (
+                <CircularProgress size={20} color="inherit" />
+              ) : (
+                <PictureAsPdf />
+              )
+            }
+            onClick={handleGenerarPDF}
+            disabled={generandoPDF}
+            className={styles.btnPrimary}
+          >
+            {generandoPDF ? "Generando..." : "Exportar PDF"}
+          </Button>
+        </Box>
+      </Box>
+
+      {/* Error */}
+      {error && (
+        <Alert severity="error" className={styles.alert}>
+          {error}
+        </Alert>
+      )}
+
+      {/* Tipos de Reportes */}
+      <Grid container spacing={3} className={styles.section}>
+        {reportesDisponibles.map((reporte) => {
+          const selected = tipoReporte === reporte.id;
+          return (
             <Grid size={{ xs: 12, sm: 6, md: 3 }} key={reporte.id}>
-              <Card 
-                sx={{ 
-                  cursor: 'pointer',
-                  bgcolor: tipoReporte === reporte.id ? '#FDE8F4' : 'white',
-                  border: tipoReporte === reporte.id ? '2px solid #E91E8C' : '1px solid #f0f0f0',
-                  transition: 'all 0.2s',
-                  '&:hover': { 
-                    transform: 'scale(1.02)',
-                    boxShadow: '0 4px 12px rgba(233, 30, 140, 0.2)'
-                  }
-                }}
+              <Card
+                className={`${styles.reportCard} ${selected ? styles.reportCardSelected : ""}`}
                 onClick={() => setTipoReporte(reporte.id)}
+                role="button"
               >
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                    <Box sx={{ 
-                      bgcolor: tipoReporte === reporte.id ? '#E91E8C' : '#f5f5f5', 
-                      color: tipoReporte === reporte.id ? 'white' : '#666', 
-                      p: 1.5, 
-                      borderRadius: 2,
-                      mr: 2,
-                      transition: 'all 0.2s'
-                    }}>
-                      {reporte.icon}
-                    </Box>
-                    <Box>
-                      <Typography fontWeight="bold" sx={{ color: '#333' }}>
-                        {reporte.nombre}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {reporte.descripcion}
-                      </Typography>
-                    </Box>
+                <CardContent className={styles.reportCardContent}>
+                  <Box
+                    className={`${styles.reportIcon} ${selected ? styles.reportIconSelected : ""}`}
+                  >
+                    {reporte.icon}
+                  </Box>
+                  <Box>
+                    <Typography className={styles.reportTitle}>
+                      {reporte.nombre}
+                    </Typography>
+                    <Typography variant="caption" className={styles.reportDesc}>
+                      {reporte.descripcion}
+                    </Typography>
                   </Box>
                 </CardContent>
               </Card>
             </Grid>
-          ))}
+          );
+        })}
+      </Grid>
+
+      {/* Filtros */}
+      <Paper className={styles.paper}>
+        <Typography variant="h6" className={styles.paperTitlePink}>
+          Filtros de Reporte
+        </Typography>
+
+        <Grid container spacing={3}>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <FormControl fullWidth>
+              <InputLabel>Período</InputLabel>
+              <Select
+                value={periodo}
+                label="Período"
+                onChange={(e) => setPeriodo(e.target.value as Periodo)}
+              >
+                <MenuItem value="semana">Esta Semana</MenuItem>
+                <MenuItem value="mes">Este Mes</MenuItem>
+                <MenuItem value="trimestre">Este Trimestre</MenuItem>
+                <MenuItem value="ano">Este Año</MenuItem>
+                <MenuItem value="personalizado">Personalizado</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid size={{ xs: 12, md: 4 }}>
+            <TextField
+              fullWidth
+              label="Fecha Inicio"
+              type="date"
+              value={fechaInicio}
+              onChange={(e) => setFechaInicio(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              disabled={periodo !== "personalizado"}
+            />
+          </Grid>
+
+          <Grid size={{ xs: 12, md: 4 }}>
+            <TextField
+              fullWidth
+              label="Fecha Fin"
+              type="date"
+              value={fechaFin}
+              onChange={(e) => setFechaFin(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              disabled={periodo !== "personalizado"}
+            />
+          </Grid>
         </Grid>
+      </Paper>
 
-        {/* Filtros */}
-        <Paper sx={{ p: 3, mb: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-          <Typography variant="h6" gutterBottom sx={{ color: '#E91E8C', fontWeight: 'bold', mb: 2 }}>
-            Filtros de Reporte
-          </Typography>
-          <Grid container spacing={3}>
-            <Grid size={{ xs: 12, md:4 }}>
-              <FormControl fullWidth>
-                <InputLabel>Período</InputLabel>
-                <Select
-                  value={periodo}
-                  label="Período"
-                  onChange={(e) => setPeriodo(e.target.value)}
-                  sx={{
-                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#E91E8C' }
-                  }}
-                >
-                  <MenuItem value="semana">Esta Semana</MenuItem>
-                  <MenuItem value="mes">Este Mes</MenuItem>
-                  <MenuItem value="trimestre">Este Trimestre</MenuItem>
-                  <MenuItem value="ano">Este Año</MenuItem>
-                  <MenuItem value="personalizado">Personalizado</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid size={{ xs: 12, md:4 }}>
-              <TextField
-                fullWidth
-                label="Fecha Inicio"
-                type="date"
-                value={fechaInicio}
-                onChange={(e) => setFechaInicio(e.target.value)}
-                InputLabelProps={{ shrink: true }}
-                disabled={periodo !== 'personalizado'}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    '&.Mui-focused fieldset': { borderColor: '#E91E8C' }
-                  },
-                  '& .MuiInputLabel-root.Mui-focused': { color: '#E91E8C' }
-                }}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md:4 }}>
-              <TextField
-                fullWidth
-                label="Fecha Fin"
-                type="date"
-                value={fechaFin}
-                onChange={(e) => setFechaFin(e.target.value)}
-                InputLabelProps={{ shrink: true }}
-                disabled={periodo !== 'personalizado'}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    '&.Mui-focused fieldset': { borderColor: '#E91E8C' }
-                  },
-                  '& .MuiInputLabel-root.Mui-focused': { color: '#E91E8C' }
-                }}
-              />
-            </Grid>
+      {/* Resumen */}
+      <Paper className={`${styles.paper} ${styles.summaryPaper}`}>
+        <Typography variant="h6" className={styles.paperTitlePink}>
+          Resumen del Período Seleccionado
+        </Typography>
+
+        <Grid container spacing={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
+            <Typography variant="body2" className={styles.muted}>
+              Ventas Totales
+            </Typography>
+            <Typography variant="h5" className={styles.pinkTextStrong}>
+              {formatMoneda(totales.ventasTotal)}
+            </Typography>
           </Grid>
-        </Paper>
 
-        {/* Resumen Estadístico */}
-        <Paper sx={{ p: 3, mb: 4, bgcolor: '#FDE8F4', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-          <Typography variant="h6" gutterBottom sx={{ color: '#E91E8C', fontWeight: 'bold', mb: 3 }}>
-            Resumen del Período Seleccionado
-          </Typography>
-          <Grid container spacing={3}>
-            <Grid size={{ xs: 12, md:3 }}>
-              <Box>
-                <Typography variant="body2" color="text.secondary">Ventas Totales</Typography>
-                <Typography variant="h5" sx={{ color: '#E91E8C', fontWeight: 'bold' }}>
-                  {formatMoneda(totales.ventasTotal)}
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid size={{ xs: 12, md:3 }}>
-              <Box>
-                <Typography variant="body2" color="text.secondary">Ganancia Neta</Typography>
-                <Typography variant="h5" sx={{ color: '#4CAF50', fontWeight: 'bold' }}>
-                  {formatMoneda(totales.gananciaTotal)}
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid size={{ xs: 12, md:3 }}>
-              <Box>
-                <Typography variant="body2" color="text.secondary">Margen de Ganancia</Typography>
-                <Typography variant="h5" sx={{ color: '#E91E8C', fontWeight: 'bold' }}>
-                  {totales.margen}%
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid size={{ xs: 12, md:3 }}>
-              <Box>
-                <Typography variant="body2" color="text.secondary">Crecimiento</Typography>
-                <Typography variant="h5" sx={{ color: '#4CAF50', fontWeight: 'bold' }}>
-                  +12.8%
-                </Typography>
-              </Box>
-            </Grid>
+          <Grid size={{ xs: 12, md: 3 }}>
+            <Typography variant="body2" className={styles.muted}>
+              Ganancia Neta
+            </Typography>
+            <Typography variant="h5" className={styles.greenTextStrong}>
+              {formatMoneda(totales.gananciaTotal)}
+            </Typography>
           </Grid>
-        </Paper>
 
-        {/* Contenido del Reporte */}
-        {renderContenidoReporte()}
-      </Box>
-    </AdminLayout>
+          <Grid size={{ xs: 12, md: 3 }}>
+            <Typography variant="body2" className={styles.muted}>
+              Margen de Ganancia
+            </Typography>
+            <Typography variant="h5" className={styles.pinkTextStrong}>
+              {totales.margen}%
+            </Typography>
+          </Grid>
+
+          <Grid size={{ xs: 12, md: 3 }}>
+            <Typography variant="body2" className={styles.muted}>
+              Crecimiento
+            </Typography>
+            <Typography variant="h5" className={styles.greenTextStrong}>
+              +0.0%
+            </Typography>
+          </Grid>
+        </Grid>
+      </Paper>
+
+      {/* Contenido */}
+      {loading ? (
+        <Paper className={styles.paper}>
+          <Box className={styles.loadingBox}>
+            <CircularProgress />
+            <Typography className={styles.loadingText}>
+              Cargando reporte…
+            </Typography>
+          </Box>
+        </Paper>
+      ) : (
+        renderContenidoReporte()
+      )}
+    </Box>
   );
 };
 

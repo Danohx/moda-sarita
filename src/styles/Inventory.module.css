@@ -1,0 +1,285 @@
+.root {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.title {
+  font-weight: 900 !important;
+  color: #221019;
+}
+
+.primaryButton {
+  background: #e91e8c !important;
+  border-radius: 25px !important;
+  padding-left: 18px !important;
+  padding-right: 18px !important;
+  text-transform: none !important;
+  font-weight: 900 !important;
+}
+
+.primaryButton:hover {
+  background: #c2185b !important;
+}
+
+/* Stats */
+.statsGrid {
+  margin-bottom: 6px;
+}
+
+.statCard {
+  border-radius: 16px !important;
+  overflow: hidden;
+}
+
+.statCardContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.statLabel {
+  opacity: 0.9;
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 800;
+}
+
+.statLabelDark {
+  opacity: 0.9;
+  color: rgba(34, 16, 25, 0.75);
+  font-weight: 800;
+}
+
+.statValueWhite {
+  font-weight: 900 !important;
+  margin-top: 6px !important;
+  color: #fff;
+}
+
+.statValuePink {
+  font-weight: 900 !important;
+  margin-top: 6px !important;
+  color: #e91e8c;
+}
+
+.statIconWhite {
+  font-size: 50px !important;
+  opacity: 0.5;
+  color: #fff;
+}
+
+.statIconPink {
+  font-size: 50px !important;
+  opacity: 0.5;
+  color: #e91e8c;
+}
+
+.statCardPink {
+  background: linear-gradient(135deg, #e91e8c 0%, #c2185b 100%);
+  color: #fff;
+}
+
+.statCardSoftPink {
+  background: linear-gradient(135deg, #f8bbd0 0%, #f06292 100%);
+  color: #fff;
+}
+
+.statCardOrange {
+  background: linear-gradient(135deg, #ff6b9d 0%, #ffa07a 100%);
+  color: #fff;
+}
+
+.statCardLight {
+  background: linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%);
+  color: #e91e8c;
+}
+
+/* Tabs */
+.tabsPaper {
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.tabs :global(.MuiTab-root) {
+  text-transform: none;
+  font-weight: 900;
+}
+
+.tabs :global(.Mui-selected) {
+  color: #e91e8c !important;
+}
+
+.tabs :global(.MuiTabs-indicator) {
+  background: #e91e8c !important;
+}
+
+.tab {
+  padding: 14px 18px !important;
+}
+
+.tabPanel {
+  padding: 14px 0;
+}
+
+/* Search */
+.searchPaper {
+  padding: 16px;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  margin-bottom: 12px;
+}
+
+.searchIcon {
+  color: #e91e8c;
+}
+
+.searchInput :global(.MuiOutlinedInput-root:hover fieldset) {
+  border-color: #e91e8c;
+}
+
+.searchInput :global(.MuiOutlinedInput-root.Mui-focused fieldset) {
+  border-color: #e91e8c;
+}
+
+/* Tables */
+.tablePaper {
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  overflow: hidden;
+}
+
+.tableHeadRow {
+  background: #fde8f4;
+}
+
+.headCell {
+  color: #e91e8c !important;
+  font-weight: 900 !important;
+}
+
+.cellText {
+  color: rgba(34, 16, 25, 0.92);
+}
+
+.tableRowHover:hover {
+  background: #fff5fa !important;
+}
+
+.categoryChip {
+  background: #fde8f4 !important;
+  color: #e91e8c !important;
+  font-weight: 800 !important;
+}
+
+.stockCritical {
+  font-weight: 900 !important;
+  color: #d32f2f !important;
+}
+
+.criticalChip {
+  background: #fff3e0 !important;
+  color: #ef6c00 !important;
+  font-weight: 900 !important;
+}
+
+.smallPrimaryButton {
+  background: #e91e8c !important;
+  border-radius: 20px !important;
+  text-transform: none !important;
+  font-weight: 900 !important;
+}
+
+.smallPrimaryButton:hover {
+  background: #c2185b !important;
+}
+
+/* Movimientos chip */
+.movChip {
+  font-weight: 900 !important;
+}
+
+.chipEntrada {
+  background: #e8f5e9 !important;
+  color: #2e7d32 !important;
+}
+
+.chipVenta {
+  background: #fde8f4 !important;
+  color: #e91e8c !important;
+}
+
+.chipAjuste {
+  background: #fff3e0 !important;
+  color: #ef6c00 !important;
+}
+
+.chipOtro {
+  background: #f5f5f5 !important;
+  color: #757575 !important;
+}
+
+/* Cantidad cell */
+.qtyCell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+}
+
+.trendUp {
+  color: #2e7d32 !important;
+}
+
+.trendDown {
+  color: #c62828 !important;
+}
+
+.qtyUp {
+  font-weight: 900;
+  color: #2e7d32;
+}
+
+.qtyDown {
+  font-weight: 900;
+  color: #c62828;
+}
+
+/* Chart */
+.chartPaper {
+  padding: 16px;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.chartTitle {
+  color: rgba(34, 16, 25, 0.92);
+  font-weight: 900 !important;
+  margin-bottom: 12px !important;
+}
+
+.emptyChart {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(34, 16, 25, 0.03);
+}
+
+.emptyInline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 8px;
+}

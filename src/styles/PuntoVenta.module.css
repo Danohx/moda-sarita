@@ -1,0 +1,273 @@
+.root {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.title {
+  font-weight: 900 !important;
+  color: #221019;
+}
+
+/* Search */
+.searchPaper {
+  padding: 16px;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  margin-bottom: 12px;
+}
+
+.searchIcon {
+  color: #e91e8c;
+}
+
+.searchInput :global(.MuiOutlinedInput-root:hover fieldset) {
+  border-color: #e91e8c;
+}
+
+.searchInput :global(.MuiOutlinedInput-root.Mui-focused fieldset) {
+  border-color: #e91e8c;
+}
+
+/* Empty */
+.emptyPaper {
+  padding: 16px;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.emptyRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(34, 16, 25, 0.85);
+}
+
+.emptyText {
+  color: rgba(34, 16, 25, 0.75);
+  font-weight: 800;
+}
+
+.emptyHint {
+  color: rgba(34, 16, 25, 0.55);
+  margin-top: 6px;
+  font-size: 13px;
+}
+
+/* Product cards */
+.productCard {
+  cursor: pointer;
+  border-radius: 16px !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.productCard:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(233, 30, 140, 0.2);
+}
+
+.productHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.productAvatar {
+  width: 60px !important;
+  height: 60px !important;
+  background: #fde8f4 !important;
+  color: #e91e8c !important;
+}
+
+.productMeta {
+  flex: 1;
+  min-width: 0;
+}
+
+.productName {
+  font-weight: 900 !important;
+  color: #221019;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.productPrice {
+  font-weight: 900 !important;
+  color: #e91e8c;
+}
+
+.productFooter {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.stockChip {
+  background: #fde8f4 !important;
+  color: #e91e8c !important;
+  font-weight: 800 !important;
+}
+
+.skuChip {
+  background: rgba(34, 16, 25, 0.06) !important;
+  color: rgba(34, 16, 25, 0.85) !important;
+  font-weight: 800 !important;
+}
+
+/* Right column: client */
+.clientPaper {
+  padding: 16px;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  margin-bottom: 12px;
+}
+
+.clientHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.clientIcon {
+  color: #e91e8c;
+}
+
+.clientTitle {
+  font-weight: 900 !important;
+  color: #221019;
+}
+
+.clientButton {
+  border-color: #e91e8c !important;
+  color: #e91e8c !important;
+  border-radius: 20px !important;
+  text-transform: none !important;
+  font-weight: 900 !important;
+}
+
+.clientButton:hover {
+  border-color: #c2185b !important;
+  background: #fff5fa !important;
+}
+
+/* Cart */
+.cartPaper {
+  padding: 16px;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.cartTitle {
+  font-weight: 900 !important;
+  color: #221019;
+  margin-bottom: 10px !important;
+}
+
+.cartEmpty {
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(34, 16, 25, 0.03);
+  margin-bottom: 14px;
+}
+
+/* Cart list */
+.cartList {
+  padding: 0 !important;
+}
+
+.cartItem {
+  background: #fff5fa;
+  border-radius: 12px;
+  margin-bottom: 10px;
+  border: 1px solid #fde8f4;
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+}
+
+.cartItemName {
+  font-weight: 900 !important;
+  color: #221019;
+}
+
+.cartActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.qtyBtn {
+  color: #e91e8c !important;
+}
+
+.qtyText {
+  min-width: 26px;
+  text-align: center;
+  font-weight: 900;
+  color: #221019;
+}
+
+.deleteBtn {
+  color: #c2185b !important;
+}
+
+.divider {
+  margin: 14px 0 !important;
+}
+
+/* Totals */
+.totals {
+  margin-bottom: 12px;
+}
+
+.totalRow {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  color: #221019;
+}
+
+.totalValue {
+  font-weight: 900;
+}
+
+.totalLabel {
+  font-weight: 900 !important;
+}
+
+.totalPink {
+  font-weight: 900 !important;
+  color: #e91e8c;
+}
+
+/* Buttons */
+.primaryButton {
+  background: #e91e8c !important;
+  border-radius: 25px !important;
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
+  text-transform: none !important;
+  font-weight: 900 !important;
+  font-size: 1.05rem !important;
+}
+
+.primaryButton:hover {
+  background: #c2185b !important;
+}
+
+.outlinedButton {
+  margin-top: 10px !important;
+  border-color: #e91e8c !important;
+  color: #e91e8c !important;
+  border-radius: 25px !important;
+  text-transform: none !important;
+  font-weight: 900 !important;
+}
+
+.outlinedButton:hover {
+  border-color: #c2185b !important;
+  background: #fff5fa !important;
+}
