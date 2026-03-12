@@ -362,3 +362,5 @@ export const POS: React.FC = () => {
       </div>
   );
 };
+
+export default POS;

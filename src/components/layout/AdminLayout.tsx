@@ -5,16 +5,17 @@ import styles from '../../styles/AdminLayout.module.css';
 
 interface AdminLayoutProps {
   role: 'admin' | 'empleado';
+  children?: React.ReactNode;
 }
 
-export const AdminLayout: React.FC<AdminLayoutProps> = ({ role }) => {
+export const AdminLayout: React.FC<AdminLayoutProps> = ({ role, children }) => {
   return (
     <div className={styles.layoutContainer}>
       
       <AdminSidebar role={role} />
 
       <main className={styles.mainContent}>
-        <Outlet /> 
+        {children || <Outlet />} 
       </main>
       
     </div>

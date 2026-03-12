@@ -1,55 +1,26 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+// src/pages/admin/AdminCustomers.tsx
+import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  TextField,
-  InputAdornment,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  IconButton,
-  Chip,
-  Card,
-  CardContent,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Avatar,
-  LinearProgress,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Checkbox,
-  FormControlLabel,
-  Skeleton,
-} from "@mui/material";
-import Grid from "@mui/material/Grid";
-import {
-  Add,
   Search,
+  Plus,
+  Eye,
   Edit,
-  Visibility,
   CreditCard,
-  FilterList,
-  Person,
+  User,
   ShoppingBag,
-  AttachMoney,
-  History,
-  Inventory,
-  Warning,
-} from "@mui/icons-material";
-import styles from "../../styles/AdminCustomers.module.css";
+  DollarSign,
+  Filter,
+  X,
+  Phone,
+  Mail,
+  MapPin
+} from 'lucide-react';
+import { AdminLayout } from '../../components/layout/AdminLayout';
+import styles from '../../styles/AdminCustomers.module.css';
 
-type CustomerStatus = "active" | "inactive";
+type CustomerStatus = 'active' | 'inactive';
 
-type Cliente = {
+interface Customer {
   id: string;
   name: string;
   email: string;
@@ -57,677 +28,485 @@ type Cliente = {
   creditLimit: number;
   currentBalance: number;
   status: CustomerStatus;
-  lastPurchase: string; // ideal ISO
-  joinDate: string; // ideal ISO
+  lastPurchase: string;
+  totalPurchases: number;
+  totalSpent: number;
   address?: string;
-  totalPurchases?: number;
-  totalLayaways?: number;
-  totalSpent?: number;
-};
-
-type CustomersData = {
-  customers: Cliente[];
-};
-
-function formatMoneda(valor: number) {
-  return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(valor);
 }
 
-/**
- * Placeholder API:
- * - GET /api/admin/clientes?search=&status=
- */
-async function fetchCustomersData(signal?: AbortSignal): Promise<CustomersData> {
-  void signal; // ✅ evita warning no-unused-vars
-  return { customers: [] }; // ✅ vacío para API
-}
-
-const AdminCustomers: React.FC = () => {
-  const [openCustomerModal, setOpenCustomerModal] = useState(false);
-  const [openCreditModal, setOpenCreditModal] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<Cliente | null>(null);
-
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | CustomerStatus>("all");
-
+export const AdminCustomers: React.FC = () => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | CustomerStatus>('all');
   const [loading, setLoading] = useState(true);
-  const [customers, setCustomers] = useState<Cliente[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showCreditModal, setShowCreditModal] = useState(false);
 
-  const load = useCallback(async () => {
-    const controller = new AbortController();
-    try {
-      setLoading(true);
-      const resp = await fetchCustomersData(controller.signal);
-      setCustomers(resp.customers);
-    } catch {
-      setCustomers([]);
-    } finally {
-      setLoading(false);
+  // Datos de ejemplo (luego vienen del backend)
+  const [customers] = useState<Customer[]>([
+    {
+      id: '1',
+      name: 'María González',
+      email: 'maria@email.com',
+      phone: '771-123-4567',
+      creditLimit: 5000,
+      currentBalance: 1200,
+      status: 'active',
+      lastPurchase: 'Hace 2 días',
+      totalPurchases: 15,
+      totalSpent: 12500,
+      address: 'Calle Principal #123, Huejutla'
+    },
+    {
+      id: '2',
+      name: 'Ana Martínez',
+      email: 'ana@email.com',
+      phone: '771-234-5678',
+      creditLimit: 3000,
+      currentBalance: 0,
+      status: 'active',
+      lastPurchase: 'Hace 1 semana',
+      totalPurchases: 8,
+      totalSpent: 8200,
+      address: 'Av. Juárez #456'
+    },
+    {
+      id: '3',
+      name: 'Carmen López',
+      email: 'carmen@email.com',
+      phone: '771-345-6789',
+      creditLimit: 0,
+      currentBalance: 0,
+      status: 'active',
+      lastPurchase: 'Hace 3 días',
+      totalPurchases: 12,
+      totalSpent: 9800
     }
-    return () => controller.abort();
-  }, []);
+  ]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    setTimeout(() => setLoading(false), 800);
+  }, []);
 
-  const customersFiltrados = useMemo(() => {
-    const q = searchTerm.trim().toLowerCase();
-    return customers.filter((c) => {
-      const matchQ =
-        !q ||
+  const filteredCustomers = useMemo(() => {
+    const q = searchTerm.toLowerCase().trim();
+    return customers.filter(c => {
+      const matchSearch = !q || 
         c.name.toLowerCase().includes(q) ||
-        c.phone.toLowerCase().includes(q) ||
+        c.phone.includes(q) ||
         c.email.toLowerCase().includes(q);
-
-      const matchStatus = statusFilter === "all" ? true : c.status === statusFilter;
-      return matchQ && matchStatus;
+      const matchStatus = statusFilter === 'all' || c.status === statusFilter;
+      return matchSearch && matchStatus;
     });
   }, [customers, searchTerm, statusFilter]);
 
-  const estadisticas = useMemo(() => {
-    const totalClientes = customers.length;
-    const clientesActivos = customers.filter((c) => c.status === "active").length;
-    const clientesConCredito = customers.filter((c) => c.creditLimit > 0).length;
-    const saldoTotal = customers.reduce((sum, c) => sum + c.currentBalance, 0);
-    return { totalClientes, clientesActivos, clientesConCredito, saldoTotal };
+  const stats = useMemo(() => {
+    return {
+      total: customers.length,
+      active: customers.filter(c => c.status === 'active').length,
+      withCredit: customers.filter(c => c.creditLimit > 0).length,
+      totalBalance: customers.reduce((sum, c) => sum + c.currentBalance, 0)
+    };
   }, [customers]);
 
-  const handleViewCustomer = (customer: Cliente) => {
+  const formatMoney = (amount: number) => {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN'
+    }).format(amount);
+  };
+
+  const openDetailsModal = (customer: Customer) => {
     setSelectedCustomer(customer);
-    setOpenCustomerModal(true);
+    setShowDetailsModal(true);
   };
 
-  const handleEditCustomer = (customer: Cliente) => {
+  const openCreditModal = (customer: Customer) => {
     setSelectedCustomer(customer);
-    setOpenCustomerModal(true);
+    setShowCreditModal(true);
   };
-
-  const handleEditCredit = (customer: Cliente) => {
-    setSelectedCustomer(customer);
-    setOpenCreditModal(true);
-  };
-
-  const handleCloseCustomerModal = () => {
-    setOpenCustomerModal(false);
-    setSelectedCustomer(null);
-  };
-
-  const handleCloseCreditModal = () => {
-    setOpenCreditModal(false);
-    setSelectedCustomer(null);
-  };
-
-  const handleNuevoCliente = () => {
-    setSelectedCustomer(null);
-    setOpenCustomerModal(true);
-  };
-
-  const skeletonStats = useMemo(() => Array.from({ length: 4 }), []);
-  const skeletonRows = useMemo(() => Array.from({ length: 4 }), []);
 
   return (
-    <Box className={styles.root}>
-      {/* Header */}
-      <Box className={styles.header}>
-        <Typography variant="h4" className={styles.title}>
-          Gestión de Clientes
-        </Typography>
+    <AdminLayout role="admin">
+      <div className={styles.customers}>
+        {/* Header */}
+        <div className={styles.header}>
+          <h1 className={styles.title}>Gestión de Clientes</h1>
+          <button className={styles.addBtn}>
+            <Plus size={20} />
+            Nuevo Cliente
+          </button>
+        </div>
 
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          className={styles.primaryButton}
-          onClick={handleNuevoCliente}
-        >
-          Nuevo Cliente
-        </Button>
-      </Box>
+        {/* Stats */}
+        <div className={styles.statsGrid}>
+          <div className={`${styles.statCard} ${styles.statPink}`}>
+            <div className={styles.statContent}>
+              <p className={styles.statLabel}>Total Clientes</p>
+              <h3 className={styles.statValue}>{stats.total}</h3>
+            </div>
+            <div className={styles.statIcon}>
+              <User size={48} />
+            </div>
+          </div>
 
-      {/* Estadísticas */}
-      <Grid container spacing={3} className={styles.statsGrid}>
-        {loading ? (
-          skeletonStats.map((_, idx) => (
-            <Grid size={{ xs: 12, sm: 6, md: 3 }} key={idx}>
-              <Card className={styles.statCard}>
-                <CardContent>
-                  <Skeleton width="60%" />
-                  <Skeleton height={42} />
-                  <Skeleton width="35%" />
-                </CardContent>
-              </Card>
-            </Grid>
-          ))
-        ) : (
-          <>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <Card className={`${styles.statCard} ${styles.statCardPink}`}>
-                <CardContent className={styles.statCardContent}>
-                  <Box>
-                    <Typography variant="body2" className={styles.statLabelWhite}>
-                      Total Clientes
-                    </Typography>
-                    <Typography variant="h4" className={styles.statValueWhite}>
-                      {estadisticas.totalClientes}
-                    </Typography>
-                  </Box>
-                  <Person className={styles.statIconWhite} />
-                </CardContent>
-              </Card>
-            </Grid>
+          <div className={`${styles.statCard} ${styles.statHotPink}`}>
+            <div className={styles.statContent}>
+              <p className={styles.statLabel}>Activos</p>
+              <h3 className={styles.statValue}>{stats.active}</h3>
+            </div>
+            <div className={styles.statIcon}>
+              <ShoppingBag size={48} />
+            </div>
+          </div>
 
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <Card className={`${styles.statCard} ${styles.statCardHotPink}`}>
-                <CardContent className={styles.statCardContent}>
-                  <Box>
-                    <Typography variant="body2" className={styles.statLabelWhite}>
-                      Activos
-                    </Typography>
-                    <Typography variant="h4" className={styles.statValueWhite}>
-                      {estadisticas.clientesActivos}
-                    </Typography>
-                  </Box>
-                  <ShoppingBag className={styles.statIconWhite} />
-                </CardContent>
-              </Card>
-            </Grid>
+          <div className={`${styles.statCard} ${styles.statSoftPink}`}>
+            <div className={styles.statContent}>
+              <p className={styles.statLabel}>Con Crédito</p>
+              <h3 className={styles.statValue}>{stats.withCredit}</h3>
+            </div>
+            <div className={styles.statIcon}>
+              <CreditCard size={48} />
+            </div>
+          </div>
 
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <Card className={`${styles.statCard} ${styles.statCardSoftPink}`}>
-                <CardContent className={styles.statCardContent}>
-                  <Box>
-                    <Typography variant="body2" className={styles.statLabelWhite}>
-                      Con Crédito
-                    </Typography>
-                    <Typography variant="h4" className={styles.statValueWhite}>
-                      {estadisticas.clientesConCredito}
-                    </Typography>
-                  </Box>
-                  <CreditCard className={styles.statIconWhite} />
-                </CardContent>
-              </Card>
-            </Grid>
+          <div className={`${styles.statCard} ${styles.statLight}`}>
+            <div className={styles.statContent}>
+              <p className={styles.statLabelDark}>Saldo Total</p>
+              <h3 className={styles.statValuePink}>{formatMoney(stats.totalBalance)}</h3>
+            </div>
+            <div className={styles.statIconPink}>
+              <DollarSign size={48} />
+            </div>
+          </div>
+        </div>
 
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <Card className={`${styles.statCard} ${styles.statCardLight}`}>
-                <CardContent className={styles.statCardContent}>
-                  <Box>
-                    <Typography variant="body2" className={styles.statLabelDark}>
-                      Saldo Total
-                    </Typography>
-                    <Typography variant="h5" className={styles.statValuePink}>
-                      {formatMoneda(estadisticas.saldoTotal)}
-                    </Typography>
-                  </Box>
-                  <AttachMoney className={styles.statIconPink} />
-                </CardContent>
-              </Card>
-            </Grid>
-          </>
-        )}
-      </Grid>
-
-      {/* Filtros */}
-      <Paper className={styles.filtersPaper}>
-        <Grid container spacing={2}>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <TextField
-              fullWidth
+        {/* Filters */}
+        <div className={styles.filtersCard}>
+          <div className={styles.searchBox}>
+            <Search size={20} />
+            <input
+              type="text"
               placeholder="Buscar por nombre, teléfono o email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search className={styles.searchIcon} />
-                  </InputAdornment>
-                ),
-              }}
               className={styles.searchInput}
             />
-          </Grid>
+          </div>
 
-          <Grid size={{ xs: 12, md: 3 }}>
-            <FormControl fullWidth>
-              <InputLabel>Estado</InputLabel>
-              <Select
-                value={statusFilter}
-                label="Estado"
-                onChange={(e) => setStatusFilter(e.target.value as "all" | CustomerStatus)}
-                className={styles.select}
-              >
-                <MenuItem value="all">Todos</MenuItem>
-                <MenuItem value="active">Activo</MenuItem>
-                <MenuItem value="inactive">Inactivo</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-
-          <Grid size={{ xs: 12, md: 3 }}>
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<FilterList />}
-              className={styles.moreFiltersBtn}
+          <div className={styles.filterGroup}>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as 'all' | CustomerStatus)}
+              className={styles.select}
             >
-              Más Filtros
-            </Button>
-          </Grid>
-        </Grid>
-      </Paper>
+              <option value="all">Todos</option>
+              <option value="active">Activos</option>
+              <option value="inactive">Inactivos</option>
+            </select>
+          </div>
 
-      {/* Tabla */}
-      <Paper className={styles.tablePaper}>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow className={styles.tableHeadRow}>
-                <TableCell className={styles.headCell}>Cliente</TableCell>
-                <TableCell className={styles.headCell}>Contacto</TableCell>
-                <TableCell className={styles.headCell} align="center">
-                  Límite Crédito
-                </TableCell>
-                <TableCell className={styles.headCell} align="center">
-                  Saldo Actual
-                </TableCell>
-                <TableCell className={styles.headCell} align="center">
-                  Estado
-                </TableCell>
-                <TableCell className={styles.headCell} align="center">
-                  Acciones
-                </TableCell>
-              </TableRow>
-            </TableHead>
+          <button className={styles.moreFiltersBtn}>
+            <Filter size={18} />
+            Más Filtros
+          </button>
+        </div>
 
-            <TableBody>
-              {loading ? (
-                skeletonRows.map((_, idx) => (
-                  <TableRow key={idx}>
-                    <TableCell>
-                      <Box className={styles.customerCell}>
-                        <Skeleton variant="circular" width={38} height={38} />
-                        <Skeleton width={180} />
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton width={120} />
-                      <Skeleton width={180} />
-                    </TableCell>
-                    <TableCell align="center">
-                      <Skeleton width={100} />
-                    </TableCell>
-                    <TableCell align="center">
-                      <Skeleton width={100} />
-                    </TableCell>
-                    <TableCell align="center">
-                      <Skeleton width={70} />
-                    </TableCell>
-                    <TableCell align="center">
-                      <Skeleton width={90} />
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : customersFiltrados.length > 0 ? (
-                customersFiltrados.map((customer) => (
-                  <TableRow key={customer.id} hover className={styles.tableRowHover}>
-                    <TableCell>
-                      <Box className={styles.customerCell}>
-                        <Avatar className={styles.customerAvatar}>
-                          {customer.name ? customer.name.charAt(0).toUpperCase() : "?"}
-                        </Avatar>
-                        <Typography className={styles.customerName}>{customer.name}</Typography>
-                      </Box>
-                    </TableCell>
+        {/* Table */}
+        <div className={styles.tableCard}>
+          <div className={styles.tableWrapper}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Contacto</th>
+                  <th>Límite Crédito</th>
+                  <th>Saldo Actual</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <tr key={i}>
+                      <td><div className={styles.skeleton}></div></td>
+                      <td><div className={styles.skeleton}></div></td>
+                      <td><div className={styles.skeleton}></div></td>
+                      <td><div className={styles.skeleton}></div></td>
+                      <td><div className={styles.skeleton}></div></td>
+                      <td><div className={styles.skeleton}></div></td>
+                    </tr>
+                  ))
+                ) : filteredCustomers.length > 0 ? (
+                  filteredCustomers.map(customer => (
+                    <tr key={customer.id}>
+                      <td>
+                        <div className={styles.customerCell}>
+                          <div className={styles.avatar}>
+                            {customer.name.charAt(0).toUpperCase()}
+                          </div>
+                          <span className={styles.customerName}>{customer.name}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className={styles.contactCell}>
+                          <span className={styles.phone}>{customer.phone}</span>
+                          <span className={styles.email}>{customer.email}</span>
+                        </div>
+                      </td>
+                      <td>
+                        {customer.creditLimit > 0 ? (
+                          <span className={styles.creditOk}>{formatMoney(customer.creditLimit)}</span>
+                        ) : (
+                          <span className={styles.noCredit}>Sin crédito</span>
+                        )}
+                      </td>
+                      <td>
+                        {customer.creditLimit > 0 ? (
+                          <span className={customer.currentBalance > 0 ? styles.balanceBad : styles.balanceGood}>
+                            {formatMoney(customer.currentBalance)}
+                          </span>
+                        ) : (
+                          <span className={styles.noCredit}>—</span>
+                        )}
+                      </td>
+                      <td>
+                        <span className={`${styles.statusBadge} ${customer.status === 'active' ? styles.statusActive : styles.statusInactive}`}>
+                          {customer.status === 'active' ? 'Activo' : 'Inactivo'}
+                        </span>
+                      </td>
+                      <td>
+                        <div className={styles.actions}>
+                          <button
+                            className={styles.actionBtn}
+                            onClick={() => openDetailsModal(customer)}
+                          >
+                            <Eye size={16} />
+                          </button>
+                          <button className={styles.actionBtn}>
+                            <Edit size={16} />
+                          </button>
+                          {customer.creditLimit > 0 && (
+                            <button
+                              className={styles.actionBtn}
+                              onClick={() => openCreditModal(customer)}
+                            >
+                              <CreditCard size={16} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className={styles.emptyRow}>
+                      <User size={20} />
+                      <span>No se encontraron clientes</span>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
 
-                    <TableCell>
-                      <Typography variant="body2" className={styles.cellText}>
-                        {customer.phone}
-                      </Typography>
-                      <Typography variant="caption" className={styles.cellMuted}>
-                        {customer.email}
-                      </Typography>
-                    </TableCell>
+        {/* Details Modal */}
+        {showDetailsModal && selectedCustomer && (
+          <div className={styles.modalOverlay} onClick={() => setShowDetailsModal(false)}>
+            <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.modalHeader}>
+                <h2>Detalles de {selectedCustomer.name}</h2>
+                <button className={styles.closeBtn} onClick={() => setShowDetailsModal(false)}>
+                  <X size={24} />
+                </button>
+              </div>
 
-                    <TableCell align="center">
-                      {customer.creditLimit > 0 ? (
-                        <Typography className={styles.creditOk}>
-                          {formatMoneda(customer.creditLimit)}
-                        </Typography>
-                      ) : (
-                        <Typography className={styles.noCredit}>Sin crédito</Typography>
+              <div className={styles.modalBody}>
+                <div className={styles.modalGrid}>
+                  {/* Left Column */}
+                  <div className={styles.modalColumn}>
+                    <h3 className={styles.sectionTitle}>Información Personal</h3>
+                    
+                    <div className={styles.infoGroup}>
+                      <div className={styles.infoItem}>
+                        <User size={18} />
+                        <div>
+                          <span className={styles.infoLabel}>Nombre completo</span>
+                          <span className={styles.infoValue}>{selectedCustomer.name}</span>
+                        </div>
+                      </div>
+
+                      <div className={styles.infoItem}>
+                        <Phone size={18} />
+                        <div>
+                          <span className={styles.infoLabel}>Teléfono</span>
+                          <span className={styles.infoValue}>{selectedCustomer.phone}</span>
+                        </div>
+                      </div>
+
+                      <div className={styles.infoItem}>
+                        <Mail size={18} />
+                        <div>
+                          <span className={styles.infoLabel}>Email</span>
+                          <span className={styles.infoValue}>{selectedCustomer.email}</span>
+                        </div>
+                      </div>
+
+                      {selectedCustomer.address && (
+                        <div className={styles.infoItem}>
+                          <MapPin size={18} />
+                          <div>
+                            <span className={styles.infoLabel}>Dirección</span>
+                            <span className={styles.infoValue}>{selectedCustomer.address}</span>
+                          </div>
+                        </div>
                       )}
-                    </TableCell>
+                    </div>
+                  </div>
 
-                    <TableCell align="center">
-                      {customer.creditLimit > 0 ? (
-                        <Typography
-                          className={customer.currentBalance > 0 ? styles.balanceBad : styles.balanceGood}
-                        >
-                          {formatMoneda(customer.currentBalance)}
-                        </Typography>
-                      ) : (
-                        <Typography className={styles.cellMuted}>—</Typography>
+                  {/* Right Column */}
+                  <div className={styles.modalColumn}>
+                    <h3 className={styles.sectionTitle}>Información de Crédito</h3>
+                    
+                    <div className={styles.creditInfo}>
+                      <div className={styles.creditRow}>
+                        <span>Límite de crédito</span>
+                        <span className={styles.creditValue}>{formatMoney(selectedCustomer.creditLimit)}</span>
+                      </div>
+                      <div className={styles.creditRow}>
+                        <span>Saldo actual</span>
+                        <span className={selectedCustomer.currentBalance > 0 ? styles.balanceBad : styles.balanceGood}>
+                          {formatMoney(selectedCustomer.currentBalance)}
+                        </span>
+                      </div>
+                      <div className={styles.creditRow}>
+                        <span>Crédito disponible</span>
+                        <span className={styles.balanceGood}>
+                          {formatMoney(selectedCustomer.creditLimit - selectedCustomer.currentBalance)}
+                        </span>
+                      </div>
+
+                      {selectedCustomer.creditLimit > 0 && (
+                        <div className={styles.progressSection}>
+                          <div className={styles.progressBar}>
+                            <div
+                              className={styles.progressFill}
+                              style={{
+                                width: `${(selectedCustomer.currentBalance / selectedCustomer.creditLimit) * 100}%`
+                              }}
+                            ></div>
+                          </div>
+                          <span className={styles.progressLabel}>
+                            {((selectedCustomer.currentBalance / selectedCustomer.creditLimit) * 100).toFixed(0)}% utilizado
+                          </span>
+                        </div>
                       )}
-                    </TableCell>
+                    </div>
 
-                    <TableCell align="center">
-                      <Chip
-                        label={customer.status === "active" ? "Activo" : "Inactivo"}
-                        size="small"
-                        className={`${styles.statusChip} ${
-                          customer.status === "active" ? styles.statusActive : styles.statusInactive
-                        }`}
-                      />
-                    </TableCell>
+                    <h3 className={styles.sectionTitle}>Resumen de Actividad</h3>
+                    <div className={styles.activityStats}>
+                      <div className={styles.activityItem}>
+                        <span className={styles.activityValue}>{selectedCustomer.totalPurchases}</span>
+                        <span className={styles.activityLabel}>Compras</span>
+                      </div>
+                      <div className={styles.activityItem}>
+                        <span className={styles.activityValue}>{formatMoney(selectedCustomer.totalSpent)}</span>
+                        <span className={styles.activityLabel}>Total</span>
+                      </div>
+                      <div className={styles.activityItem}>
+                        <span className={styles.activityValue}>{selectedCustomer.lastPurchase}</span>
+                        <span className={styles.activityLabel}>Última compra</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-                    <TableCell align="center">
-                      <IconButton size="small" className={styles.iconPink} onClick={() => handleViewCustomer(customer)}>
-                        <Visibility />
-                      </IconButton>
+              <div className={styles.modalFooter}>
+                <button className={styles.cancelBtn} onClick={() => setShowDetailsModal(false)}>
+                  Cerrar
+                </button>
+                <button className={styles.saveBtn}>
+                  <Edit size={18} />
+                  Editar Cliente
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
-                      <IconButton size="small" className={styles.iconPink} onClick={() => handleEditCustomer(customer)}>
-                        <Edit />
-                      </IconButton>
+        {/* Credit Modal */}
+        {showCreditModal && selectedCustomer && (
+          <div className={styles.modalOverlay} onClick={() => setShowCreditModal(false)}>
+            <div className={styles.modalSmall} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.modalHeader}>
+                <h2>Gestión de Crédito</h2>
+                <button className={styles.closeBtn} onClick={() => setShowCreditModal(false)}>
+                  <X size={24} />
+                </button>
+              </div>
 
-                      {customer.creditLimit > 0 ? (
-                        <IconButton size="small" className={styles.iconPink} onClick={() => handleEditCredit(customer)}>
-                          <CreditCard />
-                        </IconButton>
-                      ) : null}
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={6}>
-                    <Box className={styles.emptyInline}>
-                      <Warning fontSize="small" />
-                      <Typography className={styles.emptyText}>
-                        Sin clientes (pendiente de API).
-                      </Typography>
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+              <div className={styles.modalBody}>
+                <div className={styles.creditBanner}>
+                  <h3>Estado Actual del Crédito</h3>
+                  <div className={styles.bannerStats}>
+                    <div className={styles.bannerRow}>
+                      <span>Límite actual:</span>
+                      <span className={styles.bannerValue}>{formatMoney(selectedCustomer.creditLimit)}</span>
+                    </div>
+                    <div className={styles.bannerRow}>
+                      <span>Saldo utilizado:</span>
+                      <span className={styles.bannerValue}>{formatMoney(selectedCustomer.currentBalance)}</span>
+                    </div>
+                    <div className={styles.bannerRow}>
+                      <span>Crédito disponible:</span>
+                      <span className={styles.bannerValue}>
+                        {formatMoney(selectedCustomer.creditLimit - selectedCustomer.currentBalance)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
 
-      {/* MODAL: Detalles / Nuevo Cliente */}
-      <Dialog open={openCustomerModal} onClose={handleCloseCustomerModal} maxWidth="md" fullWidth>
-        <DialogTitle className={styles.dialogTitle}>
-          {selectedCustomer ? `Detalles de ${selectedCustomer.name}` : "Nuevo Cliente"}
-        </DialogTitle>
+                <div className={styles.formGroup}>
+                  <label>Nuevo Límite de Crédito</label>
+                  <input
+                    type="number"
+                    defaultValue={selectedCustomer.creditLimit}
+                    className={styles.input}
+                  />
+                </div>
 
-        <DialogContent className={styles.dialogContent}>
-          <Grid container spacing={3}>
-            {/* Izquierda */}
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Typography variant="h6" className={styles.sectionTitle}>
-                Información Personal
-              </Typography>
-
-              <Box className={styles.formCol}>
-                <TextField fullWidth label="Nombre completo" defaultValue={selectedCustomer?.name ?? ""} />
-                <Grid container spacing={2}>
-                  <Grid size={{ xs: 6 }}>
-                    <TextField fullWidth label="Teléfono" defaultValue={selectedCustomer?.phone ?? ""} />
-                  </Grid>
-                  <Grid size={{ xs: 6 }}>
-                    <TextField fullWidth label="Email" defaultValue={selectedCustomer?.email ?? ""} />
-                  </Grid>
-                </Grid>
-
-                <TextField
-                  fullWidth
-                  label="Dirección"
-                  multiline
-                  rows={3}
-                  defaultValue={selectedCustomer?.address ?? ""}
-                />
-
-                <Grid container spacing={2}>
-                  <Grid size={{ xs: 6 }}>
-                    <TextField
-                      fullWidth
-                      label="Fecha de registro"
-                      type="date"
-                      defaultValue={selectedCustomer?.joinDate ?? ""}
-                      InputLabelProps={{ shrink: true }}
-                      disabled={!!selectedCustomer}
+                <div className={styles.formGroup}>
+                  <label>Registrar Abono</label>
+                  <div className={styles.inputGroup}>
+                    <input
+                      type="number"
+                      placeholder="0.00"
+                      className={styles.input}
                     />
-                  </Grid>
+                    <button className={styles.payBtn}>
+                      <DollarSign size={18} />
+                      Abonar
+                    </button>
+                  </div>
+                </div>
+              </div>
 
-                  <Grid size={{ xs: 6 }}>
-                    <FormControl fullWidth>
-                      <InputLabel>Estado</InputLabel>
-                      <Select defaultValue={selectedCustomer?.status ?? "active"} label="Estado">
-                        <MenuItem value="active">Activo</MenuItem>
-                        <MenuItem value="inactive">Inactivo</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                </Grid>
-              </Box>
-            </Grid>
-
-            {/* Derecha */}
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Typography variant="h6" className={styles.sectionTitle}>
-                Información Adicional
-              </Typography>
-
-              <Card className={styles.creditCard}>
-                <CardContent>
-                  <Box className={styles.creditHeader}>
-                    <Typography className={styles.creditTitle}>Línea de Crédito</Typography>
-                    <Chip
-                      label={selectedCustomer?.creditLimit && selectedCustomer.creditLimit > 0 ? "Activa" : "Inactiva"}
-                      size="small"
-                      className={
-                        selectedCustomer?.creditLimit && selectedCustomer.creditLimit > 0
-                          ? styles.creditActive
-                          : styles.creditInactive
-                      }
-                    />
-                  </Box>
-
-                  {selectedCustomer?.creditLimit && selectedCustomer.creditLimit > 0 ? (
-                    <>
-                      <Box className={styles.creditRow}>
-                        <Typography variant="body2">Límite:</Typography>
-                        <Typography variant="body2" className={styles.bold}>
-                          {formatMoneda(selectedCustomer.creditLimit)}
-                        </Typography>
-                      </Box>
-
-                      <Box className={styles.creditRow}>
-                        <Typography variant="body2">Saldo actual:</Typography>
-                        <Typography
-                          variant="body2"
-                          className={`${styles.bold} ${
-                            selectedCustomer.currentBalance > 0 ? styles.balanceBad : styles.balanceGood
-                          }`}
-                        >
-                          {formatMoneda(selectedCustomer.currentBalance)}
-                        </Typography>
-                      </Box>
-
-                      <Box className={styles.creditRow}>
-                        <Typography variant="body2">Disponible:</Typography>
-                        <Typography variant="body2" className={`${styles.bold} ${styles.balanceGood}`}>
-                          {formatMoneda(selectedCustomer.creditLimit - selectedCustomer.currentBalance)}
-                        </Typography>
-                      </Box>
-
-                      <LinearProgress
-                        variant="determinate"
-                        value={(selectedCustomer.currentBalance / selectedCustomer.creditLimit) * 100}
-                        className={styles.creditProgress}
-                      />
-                    </>
-                  ) : (
-                    <Typography variant="body2" className={styles.muted}>
-                      Este cliente no tiene línea de crédito activa.
-                    </Typography>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card className={styles.activityCard}>
-                <CardContent>
-                  <Typography variant="subtitle2" className={styles.activityTitle}>
-                    Resumen de Actividad
-                  </Typography>
-
-                  <Grid container spacing={2} className={styles.activityGrid}>
-                    <Grid size={{ xs: 4 }} className={styles.center}>
-                      <Typography variant="h6" className={styles.activityValue}>
-                        {selectedCustomer?.totalPurchases ?? 0}
-                      </Typography>
-                      <Typography variant="caption" className={styles.muted}>
-                        Compras
-                      </Typography>
-                    </Grid>
-
-                    <Grid size={{ xs: 4 }} className={styles.center}>
-                      <Typography variant="h6" className={styles.activityValue}>
-                        {selectedCustomer?.totalLayaways ?? 0}
-                      </Typography>
-                      <Typography variant="caption" className={styles.muted}>
-                        Apartados
-                      </Typography>
-                    </Grid>
-
-                    <Grid size={{ xs: 4 }} className={styles.center}>
-                      <Typography variant="h6" className={styles.activityValue}>
-                        {formatMoneda(selectedCustomer?.totalSpent ?? 0)}
-                      </Typography>
-                      <Typography variant="caption" className={styles.muted}>
-                        Total
-                      </Typography>
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-
-              <Box>
-                <Typography variant="subtitle2" className={styles.quickTitle}>
-                  Acciones Rápidas
-                </Typography>
-
-                <Box className={styles.quickActions}>
-                  <Button size="small" variant="outlined" startIcon={<History />} className={styles.quickBtn}>
-                    Historial
-                  </Button>
-                  <Button size="small" variant="outlined" startIcon={<Inventory />} className={styles.quickBtn}>
-                    Apartados
-                  </Button>
-                  <Button size="small" variant="outlined" startIcon={<AttachMoney />} className={styles.quickBtn}>
-                    Abonar
-                  </Button>
-                </Box>
-              </Box>
-            </Grid>
-          </Grid>
-        </DialogContent>
-
-        <DialogActions className={styles.dialogActions}>
-          <Button onClick={handleCloseCustomerModal} className={styles.cancelBtn}>
-            Cancelar
-          </Button>
-          <Button variant="contained" className={styles.saveBtn}>
-            {selectedCustomer ? "Actualizar Cliente" : "Guardar Cliente"}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* MODAL: Gestión de Crédito */}
-      <Dialog open={openCreditModal} onClose={handleCloseCreditModal} maxWidth="sm" fullWidth>
-        <DialogTitle className={styles.dialogTitle}>
-          Gestión de Crédito - {selectedCustomer?.name ?? ""}
-        </DialogTitle>
-
-        <DialogContent className={styles.dialogContent}>
-          <Card className={styles.creditBanner}>
-            <CardContent>
-              <Typography variant="subtitle1" className={styles.bannerTitle}>
-                Estado Actual del Crédito
-              </Typography>
-
-              <Box className={styles.bannerRows}>
-                <Box className={styles.creditRow}>
-                  <Typography variant="body2">Límite actual:</Typography>
-                  <Typography variant="body2" className={styles.bold}>
-                    {formatMoneda(selectedCustomer?.creditLimit ?? 0)}
-                  </Typography>
-                </Box>
-
-                <Box className={styles.creditRow}>
-                  <Typography variant="body2">Saldo utilizado:</Typography>
-                  <Typography variant="body2" className={styles.bold}>
-                    {formatMoneda(selectedCustomer?.currentBalance ?? 0)}
-                  </Typography>
-                </Box>
-
-                <Box className={styles.creditRow}>
-                  <Typography variant="body2">Crédito disponible:</Typography>
-                  <Typography variant="body2" className={styles.bold}>
-                    {formatMoneda((selectedCustomer?.creditLimit ?? 0) - (selectedCustomer?.currentBalance ?? 0))}
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-
-          <Typography variant="subtitle1" className={styles.sectionTitlePink}>
-            Configuración de Crédito
-          </Typography>
-
-          <Box className={styles.creditConfig}>
-            <TextField fullWidth label="Nuevo Límite de Crédito" type="number" defaultValue={selectedCustomer?.creditLimit ?? 0} />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={!!(selectedCustomer?.creditLimit && selectedCustomer.creditLimit > 0)}
-                  onChange={() => {
-                    // placeholder
-                  }}
-                  className={styles.checkbox}
-                />
-              }
-              label="Habilitar línea de crédito para este cliente"
-            />
-          </Box>
-
-          <Typography variant="subtitle1" className={styles.sectionTitlePink}>
-            Registrar Abono
-          </Typography>
-
-          <Grid container spacing={2}>
-            <Grid size={{ xs: 8 }}>
-              <TextField fullWidth label="Monto a abonar" type="number" placeholder="0.00" />
-            </Grid>
-            <Grid size={{ xs: 4 }}>
-              <Button fullWidth variant="outlined" startIcon={<AttachMoney />} className={styles.abonarBtn}>
-                Abonar
-              </Button>
-            </Grid>
-          </Grid>
-        </DialogContent>
-
-        <DialogActions className={styles.dialogActions}>
-          <Button onClick={handleCloseCreditModal} className={styles.cancelBtn}>
-            Cancelar
-          </Button>
-          <Button variant="contained" className={styles.saveBtn}>
-            Guardar Cambios
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+              <div className={styles.modalFooter}>
+                <button className={styles.cancelBtn} onClick={() => setShowCreditModal(false)}>
+                  Cancelar
+                </button>
+                <button className={styles.saveBtn}>
+                  Guardar Cambios
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </AdminLayout>
   );
 };
-
 export default AdminCustomers;

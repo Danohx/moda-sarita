@@ -12,15 +12,16 @@ import ProductDetailPage from "../pages/general/ProductDetail";
 import AdminLayout from "../components/layout/AdminLayout";
 import PublicLayout from "../components/layout/PublicLayout";
 import AdminLogin from "../pages/admin/AdminLogin";
-import { Dashboard } from "../pages/admin/Dashboard";
-import { POS } from "../pages/admin/PuntoVenta";
-import { Inventory  } from "../pages/admin/Inventory";
+import Dashboard from "../pages/admin/Dashboard";
+import POS from "../pages/admin/PuntoVenta";
+import Inventory from "../pages/admin/Inventory";
 import OrdersManager from "../pages/admin/OrdersManager";
 import AdminUsers from "../pages/admin/AdminUsers";
 import AdminSettings from "../pages/admin/AdminSettings";
-import { AdminReports } from "../pages/admin/AdminReports";
+import AdminReports from "../pages/admin/AdminReports";
 import AdminMarketing from "../pages/admin/AdminMarketing";
 import AdminCustomers from "../pages/admin/AdminCustomers";
+import AdminBackups from "../pages/admin/AdminBackups";
 // import AdminPanel from "../pages/admin/AdminPanel";
 
 export const AppRouter = () => {
@@ -51,6 +52,7 @@ export const AppRouter = () => {
           <Route path="reports" element={<AdminReports />} />
           <Route path="marketing" element={<AdminMarketing />} />
           <Route path="customers" element={<AdminCustomers />} />
+          <Route path="backups" element={<AdminBackups />} />
           {/* <Route path="panel" element={<AdminPanel />} /> */}
         </Route>
 

@@ -66,6 +66,9 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ role }) => {
             <Link to="/admin/settings" className={getLinkClass('/admin/settings')}>
               <Settings size={20} className={styles.icon} /> Ajustes
             </Link>
+            <Link to="/admin/backups" className={getLinkClass('/admin/backups')}>
+              <Settings size={20} className={styles.icon} /> Respaldos
+            </Link>
             {/* <Link to="/admin/panel" className={getLinkClass('/admin/panel')}>
               <Package size={20} className={styles.icon} /> Panel
             </Link> */}

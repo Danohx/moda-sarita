@@ -1,36 +1,24 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  Tabs,
-  Tab,
-  Card,
-  CardContent,
-  Chip,
-  LinearProgress,
-  IconButton,
-  Avatar,
-  Skeleton,
-} from "@mui/material";
-import Grid from "@mui/material/Grid";
+// src/pages/admin/OrdersManager.tsx
+import React, { useState, useEffect } from 'react';
 import {
   ShoppingBag,
-  LocalShipping,
-  Schedule,
-  Visibility,
+  Clock,
+  Eye,
   Edit,
-  Cancel,
-  AttachMoney,
-  Person,
-  Warning,
-} from "@mui/icons-material";
-import styles from "../../styles/OrdersManager.module.css";
+  Truck,
+  User,
+  DollarSign,
+  XCircle,
+  CheckCircle,
+  AlertCircle,
+  Calendar
+} from 'lucide-react';
+import { AdminLayout } from '../../components/layout/AdminLayout';
+import styles from '../../styles/OrdersManager.module.css';
 
-type OrderStatus = "Por Enviar" | "En Proceso" | "Completado" | "Cancelado";
+type OrderStatus = 'Por Enviar' | 'En Proceso' | 'Completado' | 'Cancelado';
 
-type Order = {
+interface Order {
   id: number;
   orderId: string;
   customer: string;
@@ -38,420 +26,299 @@ type Order = {
   total: number;
   status: OrderStatus;
   time: string;
-};
+}
 
-type Apartado = {
+interface Apartado {
   id: number;
   customer: string;
   total: number;
   paid: number;
   remaining: number;
-  deadline: string; // ej "25 Nov" (lo ideal: ISO date)
-  progress: number; // 0..100
-};
-
-type OrdersData = {
-  orders: Order[];
-  apartados: Apartado[];
-};
-
-function formatMoneda(valor: number) {
-  return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(valor);
+  deadline: string;
+  progress: number;
 }
 
-/**
- * Placeholder API: cuando conectes backend lo sustituyes por axios/fetch.
- * - GET /api/admin/pedidos?tipo=web
- * - GET /api/admin/apartados
- */
-async function fetchOrdersData(signal?: AbortSignal): Promise<OrdersData> {
-  void signal;
-  return { orders: [], apartados: [] }; // ✅ vacío
-}
-
-function a11yProps(index: number) {
-  return {
-    id: `orders-tab-${index}`,
-    "aria-controls": `orders-tabpanel-${index}`,
-  };
-}
-
-type TabPanelProps = {
-  value: number;
-  index: number;
-  children?: React.ReactNode;
-};
-
-function TabPanel({ value, index, children }: TabPanelProps) {
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`orders-tabpanel-${index}`}
-      aria-labelledby={`orders-tab-${index}`}
-    >
-      {value === index ? <Box className={styles.tabPanel}>{children}</Box> : null}
-    </div>
-  );
-}
-
-function getStatusVariant(status: OrderStatus) {
-  switch (status) {
-    case "Por Enviar":
-      return styles.statusPending;
-    case "En Proceso":
-      return styles.statusProcessing;
-    case "Completado":
-      return styles.statusDone;
-    case "Cancelado":
-    default:
-      return styles.statusDefault;
-  }
-}
-
-const OrdersManager: React.FC = () => {
-  const [tabValue, setTabValue] = useState(0);
+export const OrdersManager: React.FC = () => {
+  const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [apartados, setApartados] = useState<Apartado[]>([]);
-
-  const load = useCallback(async () => {
-    const controller = new AbortController();
-    try {
-      setLoading(true);
-      const resp = await fetchOrdersData(controller.signal);
-      setOrders(resp.orders);
-      setApartados(resp.apartados);
-    } catch {
-      setOrders([]);
-      setApartados([]);
-    } finally {
-      setLoading(false);
+  // Datos de ejemplo (luego vienen del backend)
+  const [orders] = useState<Order[]>([
+    {
+      id: 1,
+      orderId: '#12345',
+      customer: 'María González',
+      items: 3,
+      total: 1250,
+      status: 'Por Enviar',
+      time: 'Hace 2 horas'
+    },
+    {
+      id: 2,
+      orderId: '#12344',
+      customer: 'Ana Martínez',
+      items: 2,
+      total: 890,
+      status: 'En Proceso',
+      time: 'Hace 5 horas'
+    },
+    {
+      id: 3,
+      orderId: '#12343',
+      customer: 'Carmen López',
+      items: 1,
+      total: 550,
+      status: 'Completado',
+      time: 'Hace 1 día'
     }
-    return () => controller.abort();
-  }, []);
+  ]);
+
+  const [apartados] = useState<Apartado[]>([
+    {
+      id: 1,
+      customer: 'Laura Hernández',
+      total: 2500,
+      paid: 1500,
+      remaining: 1000,
+      deadline: '15 Mar',
+      progress: 60
+    },
+    {
+      id: 2,
+      customer: 'Rosa Ramírez',
+      total: 1800,
+      paid: 600,
+      remaining: 1200,
+      deadline: '20 Mar',
+      progress: 33
+    },
+    {
+      id: 3,
+      customer: 'Patricia Silva',
+      total: 3200,
+      paid: 2400,
+      remaining: 800,
+      deadline: '25 Mar',
+      progress: 75
+    }
+  ]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    setTimeout(() => setLoading(false), 800);
+  }, []);
 
-  const skeletonRows = useMemo(() => Array.from({ length: 3 }), []);
-  const skeletonCards = useMemo(() => Array.from({ length: 6 }), []);
+  const formatMoneda = (valor: number) => {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN'
+    }).format(valor);
+  };
+
+  const getStatusIcon = (status: OrderStatus) => {
+    switch (status) {
+      case 'Por Enviar': return <AlertCircle size={16} />;
+      case 'En Proceso': return <Clock size={16} />;
+      case 'Completado': return <CheckCircle size={16} />;
+      case 'Cancelado': return <XCircle size={16} />;
+    }
+  };
+
+  const getStatusClass = (status: OrderStatus) => {
+    switch (status) {
+      case 'Por Enviar': return styles.statusPending;
+      case 'En Proceso': return styles.statusProcessing;
+      case 'Completado': return styles.statusCompleted;
+      case 'Cancelado': return styles.statusCancelled;
+    }
+  };
 
   return (
-    <Box className={styles.root}>
-      <Typography variant="h4" className={styles.title}>
-        Gestión de Pedidos
-      </Typography>
+    <AdminLayout role="admin">
+      <div className={styles.orders}>
+        {/* Header */}
+        <div className={styles.header}>
+          <h1 className={styles.title}>Gestión de Pedidos</h1>
+        </div>
 
-      {/* Tabs */}
-      <Paper className={styles.tabsPaper}>
-        <Tabs
-          value={tabValue}
-          onChange={(_, v: number) => setTabValue(v)}
-          className={styles.tabs}
-        >
-          <Tab
-            icon={<ShoppingBag />}
-            iconPosition="start"
-            label="Pedidos Web"
-            className={styles.tab}
-            {...a11yProps(0)}
-          />
-          <Tab
-            icon={<Schedule />}
-            iconPosition="start"
-            label="Apartados Físicos"
-            className={styles.tab}
-            {...a11yProps(1)}
-          />
-        </Tabs>
-      </Paper>
+        {/* Tabs */}
+        <div className={styles.tabs}>
+          <button
+            className={`${styles.tab} ${activeTab === 0 ? styles.tabActive : ''}`}
+            onClick={() => setActiveTab(0)}
+          >
+            <ShoppingBag size={20} />
+            Pedidos Web
+          </button>
+          <button
+            className={`${styles.tab} ${activeTab === 1 ? styles.tabActive : ''}`}
+            onClick={() => setActiveTab(1)}
+          >
+            <Clock size={20} />
+            Apartados Físicos
+          </button>
+        </div>
 
-      {/* TAB 1: PEDIDOS WEB */}
-      <TabPanel value={tabValue} index={0}>
-        <Grid container spacing={3}>
-          {loading ? (
-            skeletonRows.map((_, idx) => (
-              <Grid size={{ xs: 12 }} key={idx}>
-                <Card className={styles.orderCard}>
-                  <CardContent>
-                    <Box className={styles.orderRow}>
-                      <Box className={styles.orderLeft}>
-                        <Box className={styles.orderTitleRow}>
-                          <Skeleton width={160} height={30} />
-                          <Skeleton width={100} height={24} />
-                        </Box>
+        {/* Tab Content */}
+        <div className={styles.tabContent}>
+          {/* Tab 0: Pedidos Web */}
+          {activeTab === 0 && (
+            <div className={styles.ordersGrid}>
+              {loading ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className={styles.orderCard}>
+                    <div className={styles.orderSkeleton}>
+                      <div className={styles.skeleton}></div>
+                      <div className={styles.skeleton}></div>
+                      <div className={styles.skeleton}></div>
+                    </div>
+                  </div>
+                ))
+              ) : orders.length > 0 ? (
+                orders.map(order => (
+                  <div key={order.id} className={styles.orderCard}>
+                    <div className={styles.orderHeader}>
+                      <div className={styles.orderLeft}>
+                        <h3 className={styles.orderId}>Orden {order.orderId}</h3>
+                        <div className={`${styles.statusBadge} ${getStatusClass(order.status)}`}>
+                          {getStatusIcon(order.status)}
+                          <span>{order.status}</span>
+                        </div>
+                      </div>
+                      <div className={styles.orderAmount}>{formatMoneda(order.total)}</div>
+                    </div>
 
-                        <Box className={styles.orderCustomerRow}>
-                          <Skeleton variant="circular" width={24} height={24} />
-                          <Skeleton width={240} />
-                        </Box>
+                    <div className={styles.orderDetails}>
+                      <div className={styles.detailRow}>
+                        <User size={16} />
+                        <span>{order.customer}</span>
+                      </div>
+                      <div className={styles.detailRow}>
+                        <ShoppingBag size={16} />
+                        <span>{order.items} artículos</span>
+                      </div>
+                      <div className={styles.detailRow}>
+                        <Clock size={16} />
+                        <span>{order.time}</span>
+                      </div>
+                    </div>
 
-                        <Skeleton width={90} />
-                      </Box>
-
-                      <Box className={styles.orderRight}>
-                        <Skeleton width={140} height={34} />
-                        <Skeleton width={120} height={34} />
-                      </Box>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))
-          ) : orders.length > 0 ? (
-            orders.map((order) => (
-              <Grid size={{ xs: 12 }} key={order.id}>
-                <Card className={styles.orderCard}>
-                  <CardContent>
-                    <Box className={styles.orderRow}>
-                      <Box className={styles.orderLeft}>
-                        <Box className={styles.orderTitleRow}>
-                          <Typography variant="h6" className={styles.orderTitle}>
-                            Orden {order.orderId}
-                          </Typography>
-
-                          <Chip
-                            label={order.status}
-                            size="small"
-                            className={`${styles.statusChip} ${getStatusVariant(order.status)}`}
-                          />
-                        </Box>
-
-                        <Box className={styles.orderCustomerRow}>
-                          <Avatar className={styles.customerAvatar}>
-                            <Person className={styles.customerAvatarIcon} />
-                          </Avatar>
-
-                          <Typography variant="body2" className={styles.orderCustomerText}>
-                            Cliente: {order.customer} • {order.items} artículos
-                          </Typography>
-                        </Box>
-
-                        <Typography variant="caption" className={styles.orderTime}>
-                          {order.time}
-                        </Typography>
-                      </Box>
-
-                      <Box className={styles.orderRight}>
-                        <Box className={styles.orderRightTop}>
-                          <Typography variant="h5" className={styles.orderAmount}>
-                            {formatMoneda(order.total)}
-                          </Typography>
-
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            startIcon={<Visibility />}
-                            className={styles.viewBtn}
-                          >
-                            Ver detalles
-                          </Button>
-                        </Box>
-
-                        {order.status !== "Completado" ? (
-                          <Box className={styles.orderActions}>
-                            <IconButton size="small" className={styles.actionPink}>
-                              <Edit />
-                            </IconButton>
-                            <IconButton size="small" className={styles.actionBlue}>
-                              <LocalShipping />
-                            </IconButton>
-                          </Box>
-                        ) : null}
-                      </Box>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))
-          ) : (
-            <Grid size={{ xs: 12 }}>
-              <Paper className={styles.emptyPaper}>
-                <Box className={styles.emptyRow}>
-                  <Warning fontSize="small" />
-                  <Typography className={styles.emptyText}>
-                    Sin pedidos web (pendiente de API).
-                  </Typography>
-                </Box>
-                <Typography className={styles.emptyHint}>
-                  Cuando conectes backend, aquí se listarán los pedidos.
-                </Typography>
-              </Paper>
-            </Grid>
+                    <div className={styles.orderActions}>
+                      <button className={styles.viewBtn}>
+                        <Eye size={16} />
+                        Ver detalles
+                      </button>
+                      {order.status !== 'Completado' && (
+                        <>
+                          <button className={styles.editBtn}>
+                            <Edit size={16} />
+                          </button>
+                          <button className={styles.shipBtn}>
+                            <Truck size={16} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className={styles.emptyState}>
+                  <ShoppingBag size={48} />
+                  <p>No hay pedidos web</p>
+                  <span>Los pedidos aparecerán aquí cuando se conecte el backend</span>
+                </div>
+              )}
+            </div>
           )}
-        </Grid>
-      </TabPanel>
 
-      {/* TAB 2: APARTADOS FÍSICOS */}
-      <TabPanel value={tabValue} index={1}>
-        <Grid container spacing={3}>
-          {loading ? (
-            skeletonCards.map((_, idx) => (
-              <Grid size={{ xs: 12, md: 6, lg: 4 }} key={idx}>
-                <Card className={styles.apartadoCard}>
-                  <CardContent>
-                    <Box className={styles.apartadoHeader}>
-                      <Box className={styles.apartadoHeaderLeft}>
-                        <Skeleton variant="circular" width={40} height={40} />
-                        <Box>
-                          <Skeleton width={140} />
-                          <Skeleton width={90} />
-                        </Box>
-                      </Box>
-                      <Skeleton width={90} height={24} />
-                    </Box>
+          {/* Tab 1: Apartados Físicos */}
+          {activeTab === 1 && (
+            <div className={styles.apartadosGrid}>
+              {loading ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className={styles.apartadoCard}>
+                    <div className={styles.apartadoSkeleton}>
+                      <div className={styles.skeleton}></div>
+                      <div className={styles.skeleton}></div>
+                      <div className={styles.skeleton}></div>
+                      <div className={styles.skeleton}></div>
+                    </div>
+                  </div>
+                ))
+              ) : apartados.length > 0 ? (
+                apartados.map(apartado => (
+                  <div key={apartado.id} className={styles.apartadoCard}>
+                    <div className={styles.apartadoHeader}>
+                      <div className={styles.apartadoCustomer}>
+                        <div className={styles.customerAvatar}>
+                          <User size={20} />
+                        </div>
+                        <div>
+                          <h4 className={styles.customerName}>{apartado.customer}</h4>
+                          <p className={styles.apartadoId}>APT-00{apartado.id}</p>
+                        </div>
+                      </div>
+                      <div className={styles.deadlineBadge}>
+                        <Calendar size={14} />
+                        {apartado.deadline}
+                      </div>
+                    </div>
 
-                    <Box className={styles.apartadoStatsBox}>
-                      <Grid container spacing={2}>
-                        <Grid size={{ xs: 4 }}>
-                          <Skeleton width="80%" />
-                          <Skeleton height={28} />
-                        </Grid>
-                        <Grid size={{ xs: 4 }}>
-                          <Skeleton width="80%" />
-                          <Skeleton height={28} />
-                        </Grid>
-                        <Grid size={{ xs: 4 }}>
-                          <Skeleton width="80%" />
-                          <Skeleton height={28} />
-                        </Grid>
-                      </Grid>
-                    </Box>
+                    <div className={styles.apartadoStats}>
+                      <div className={styles.statItem}>
+                        <span className={styles.statLabel}>Total</span>
+                        <span className={styles.statValue}>{formatMoneda(apartado.total)}</span>
+                      </div>
+                      <div className={styles.statItem}>
+                        <span className={styles.statLabel}>Abonado</span>
+                        <span className={`${styles.statValue} ${styles.statGreen}`}>
+                          {formatMoneda(apartado.paid)}
+                        </span>
+                      </div>
+                      <div className={styles.statItem}>
+                        <span className={styles.statLabel}>Resta</span>
+                        <span className={`${styles.statValue} ${styles.statRed}`}>
+                          {formatMoneda(apartado.remaining)}
+                        </span>
+                      </div>
+                    </div>
 
-                    <Skeleton width="60%" />
-                    <Skeleton height={14} />
-                    <Box className={styles.apartadoBtns}>
-                      <Skeleton height={40} />
-                      <Skeleton height={40} />
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))
-          ) : apartados.length > 0 ? (
-            apartados.map((apartado) => (
-              <Grid size={{ xs: 12, md: 6, lg: 4 }} key={apartado.id}>
-                <Card className={styles.apartadoCard}>
-                  <CardContent>
-                    {/* Header */}
-                    <Box className={styles.apartadoHeader}>
-                      <Box className={styles.apartadoHeaderLeft}>
-                        <Avatar className={styles.apartadoAvatar}>
-                          <Person />
-                        </Avatar>
+                    <div className={styles.progressSection}>
+                      <div className={styles.progressHeader}>
+                        <span className={styles.progressLabel}>Progreso de pago</span>
+                        <span className={styles.progressPercent}>{apartado.progress}%</span>
+                      </div>
+                      <div className={styles.progressBar}>
+                        <div
+                          className={styles.progressFill}
+                          style={{ width: `${apartado.progress}%` }}
+                        ></div>
+                      </div>
+                    </div>
 
-                        <Box className={styles.apartadoHeaderText}>
-                          <Typography variant="subtitle1" className={styles.apartadoCustomer}>
-                            {apartado.customer}
-                          </Typography>
-                          <Typography variant="caption" className={styles.apartadoId}>
-                            ID: APT-00{apartado.id}
-                          </Typography>
-                        </Box>
-                      </Box>
-
-                      <Chip
-                        label={`Vence: ${apartado.deadline}`}
-                        size="small"
-                        className={styles.deadlineChip}
-                      />
-                    </Box>
-
-                    {/* Estadísticas */}
-                    <Box className={styles.apartadoStatsBox}>
-                      <Grid container spacing={2}>
-                        <Grid size={{ xs: 4 }}>
-                          <Typography variant="caption" className={styles.statLabel}>
-                            Total
-                          </Typography>
-                          <Typography variant="h6" className={styles.statValue}>
-                            {formatMoneda(apartado.total)}
-                          </Typography>
-                        </Grid>
-
-                        <Grid size={{ xs: 4 }}>
-                          <Typography variant="caption" className={styles.statLabel}>
-                            Abonado
-                          </Typography>
-                          <Typography variant="h6" className={`${styles.statValue} ${styles.statGreen}`}>
-                            {formatMoneda(apartado.paid)}
-                          </Typography>
-                        </Grid>
-
-                        <Grid size={{ xs: 4 }}>
-                          <Typography variant="caption" className={styles.statLabel}>
-                            Resta
-                          </Typography>
-                          <Typography variant="h6" className={`${styles.statValue} ${styles.statRed}`}>
-                            {formatMoneda(apartado.remaining)}
-                          </Typography>
-                        </Grid>
-                      </Grid>
-                    </Box>
-
-                    {/* Progreso */}
-                    <Box className={styles.progressWrap}>
-                      <Box className={styles.progressTopRow}>
-                        <Typography variant="caption" className={styles.progressLabel}>
-                          Progreso de pago
-                        </Typography>
-                        <Typography variant="caption" className={styles.progressPercent}>
-                          {apartado.progress}%
-                        </Typography>
-                      </Box>
-
-                      <LinearProgress
-                        variant="determinate"
-                        value={apartado.progress}
-                        className={styles.progress}
-                      />
-                    </Box>
-
-                    {/* Acciones */}
-                    <Box className={styles.apartadoBtns}>
-                      <Button
-                        fullWidth
-                        variant="contained"
-                        startIcon={<AttachMoney />}
-                        className={styles.primaryButton}
-                      >
+                    <div className={styles.apartadoActions}>
+                      <button className={styles.payBtn}>
+                        <DollarSign size={18} />
                         Abonar
-                      </Button>
-
-                      <Button
-                        fullWidth
-                        variant="outlined"
-                        startIcon={<Cancel />}
-                        className={styles.dangerButton}
-                      >
+                      </button>
+                      <button className={styles.cancelBtn}>
+                        <XCircle size={18} />
                         Cancelar
-                      </Button>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))
-          ) : (
-            <Grid size={{ xs: 12 }}>
-              <Paper className={styles.emptyPaper}>
-                <Box className={styles.emptyRow}>
-                  <Warning fontSize="small" />
-                  <Typography className={styles.emptyText}>
-                    Sin apartados físicos (pendiente de API).
-                  </Typography>
-                </Box>
-                <Typography className={styles.emptyHint}>
-                  Cuando conectes backend, aquí se listarán los apartados.
-                </Typography>
-              </Paper>
-            </Grid>
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className={styles.emptyState}>
+                  <Clock size={48} />
+                  <p>No hay apartados físicos</p>
+                  <span>Los apartados aparecerán aquí cuando se conecte el backend</span>
+                </div>
+              )}
+            </div>
           )}
-        </Grid>
-      </TabPanel>
-    </Box>
+        </div>
+      </div>
+    </AdminLayout>
   );
 };
 

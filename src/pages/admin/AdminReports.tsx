@@ -341,3 +341,5 @@ export const AdminReports: React.FC = () => {
       </div>
   );
 };
+
+export default AdminReports;
