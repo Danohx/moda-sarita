@@ -1,0 +1,321 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--section-gap);
+  font-family: var(--font-primary);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-primary-vibrant);
+  text-decoration: none;
+  font-weight: 700;
+  margin-bottom: 10px;
+  font-size: var(--font-size-aux);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-h2);
+  font-weight: 800;
+  color: var(--color-text);
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  margin: 6px 0 0;
+  opacity: 0.65;
+  color: var(--color-text);
+  font-size: var(--font-size-aux);
+}
+
+.refreshBtn {
+  min-height: 46px;
+  padding: 0 16px;
+  background: var(--color-surface);
+  border: 2px solid var(--color-primary-vibrant);
+  color: var(--color-primary-vibrant);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: var(--border-radius-medium);
+  font-family: var(--font-primary);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.refreshBtn:hover {
+  background: var(--color-primary-hover);
+}
+
+.refreshBtn:disabled,
+.primaryBtn:disabled,
+.iconBtn:disabled,
+.iconBtnDanger:disabled,
+.fileChipRemove:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.uploadCard,
+.galleryCard,
+.errorBox {
+  background: var(--color-surface);
+  border-radius: var(--border-radius-xl);
+  padding: 22px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border);
+}
+
+.errorBox {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  font-weight: 700;
+  border: none;
+}
+
+.sectionTitle {
+  margin: 0 0 16px;
+  font-size: var(--font-size-h3);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.uploadForm {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.uploadControls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.filePicker {
+  min-height: 46px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--border-radius-medium);
+  border: 1px solid var(--color-border);
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-primary);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.filePicker input {
+  display: none;
+}
+
+.uploadInfo {
+  color: var(--color-text);
+  opacity: 0.72;
+  font-size: var(--font-size-aux);
+  min-height: 22px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.primaryBtn {
+  min-height: 46px;
+  padding: 0 18px;
+  border: none;
+  background: var(--color-primary-vibrant);
+  color: var(--color-text-on-vibrant);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: var(--border-radius-medium);
+  font-family: var(--font-primary);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.selectedFiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.fileChip {
+  max-width: 100%;
+  min-height: 38px;
+  padding: 6px 8px 6px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+}
+
+.fileChipName {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-aux);
+  color: var(--color-text);
+}
+
+.fileChipRemove {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-soft);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 220px));
+  gap: 16px;
+  justify-content: flex-start;
+}
+
+.imageCard {
+  background: var(--color-background);
+  border-radius: var(--border-radius-large);
+  padding: 10px;
+  border: 1px solid var(--color-border);
+}
+
+.imageFrame {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: var(--border-radius-medium);
+  overflow: hidden;
+  background: var(--color-surface);
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.imageFooter {
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.mainBadge,
+.normalBadge {
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.mainBadge {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.normalBadge {
+  background: var(--color-primary-soft);
+  color: var(--color-text);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.iconBtn,
+.iconBtnDanger {
+  width: 36px;
+  height: 36px;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--border-radius-small);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.iconBtn {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.iconBtnDanger {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.iconBtn:hover {
+  background: var(--color-warning);
+  color: white;
+}
+
+.iconBtnDanger:hover {
+  background: var(--color-danger);
+  color: white;
+}
+
+.centerState {
+  min-height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-weight: 700;
+  opacity: 0.65;
+  color: var(--color-text);
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 768px) {
+  .uploadControls {
+    align-items: stretch;
+  }
+
+  .filePicker,
+  .primaryBtn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .uploadInfo {
+    width: 100%;
+  }
+}

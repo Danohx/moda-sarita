@@ -1,0 +1,416 @@
+/* OrdersManager.module.css */
+.root {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--section-gap);
+  font-family: var(--font-primary);
+}
+
+.title {
+  font-size: var(--font-size-h2) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.03em !important;
+  color: var(--color-text) !important;
+  font-family: var(--font-primary) !important;
+}
+
+/* ─── TABS ───────────────────────────────────── */
+.tabsPaper {
+  border-radius: var(--border-radius-large) !important;
+  box-shadow: none !important;
+  border: 1px solid var(--color-border) !important;
+  background: var(--color-surface) !important;
+  overflow: hidden;
+}
+
+.tabs :global(.MuiTab-root) {
+  text-transform: none !important;
+  font-family: var(--font-primary) !important;
+  font-weight: 600 !important;
+  font-size: var(--font-size-aux) !important;
+  letter-spacing: 0 !important;
+  padding: 14px 20px !important;
+  color: var(--color-text) !important;
+  opacity: 0.55;
+  transition: opacity 0.2s ease !important;
+}
+
+.tabs :global(.MuiTab-root:hover) {
+  opacity: 0.85;
+}
+.tabs :global(.Mui-selected) {
+  color: var(--color-primary-vibrant) !important;
+  opacity: 1 !important;
+}
+.tabs :global(.MuiTabs-indicator) {
+  background: var(--color-primary-vibrant) !important;
+  height: 2px !important;
+}
+.tab {
+  padding: 14px 20px !important;
+}
+
+/* ─── PANELS ─────────────────────────────────── */
+.tabPanel {
+  padding: 20px 0 0;
+}
+
+/* ─── EMPTY STATE ────────────────────────────── */
+.emptyPaper {
+  padding: 24px !important;
+  border-radius: var(--border-radius-large) !important;
+  box-shadow: none !important;
+  border: 1px dashed var(--color-border) !important;
+  background: var(--color-surface) !important;
+}
+
+.emptyRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text);
+  opacity: 0.5;
+  margin-bottom: 6px;
+}
+.emptyText {
+  font-weight: 700 !important;
+  font-size: var(--font-size-base) !important;
+  color: var(--color-text) !important;
+  font-family: var(--font-primary) !important;
+}
+.emptyHint {
+  font-size: 0.78rem !important;
+  color: var(--color-text) !important;
+  opacity: 0.4;
+  margin-top: 4px;
+}
+
+/* ─── ORDER CARDS ────────────────────────────── */
+.orderCard {
+  border-radius: var(--border-radius-large) !important;
+  box-shadow: none !important;
+  border: 1px solid var(--color-border) !important;
+  background: var(--color-surface) !important;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease !important;
+}
+
+.orderCard:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md) !important;
+}
+
+.orderRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.orderLeft {
+  flex: 1;
+  min-width: 0;
+}
+.orderTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.orderTitle {
+  font-family: var(--font-primary) !important;
+  font-size: var(--font-size-base) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em !important;
+  color: var(--color-primary-vibrant) !important;
+}
+
+.statusChip {
+  font-family: var(--font-primary) !important;
+  font-weight: 700 !important;
+  font-size: 0.7rem !important;
+  border-radius: 20px !important;
+  height: 22px !important;
+}
+.statusPending {
+  background: var(--color-warning-bg) !important;
+  color: var(--color-warning) !important;
+}
+.statusProcessing {
+  background: var(--color-info-bg) !important;
+  color: var(--color-info) !important;
+}
+.statusDone {
+  background: var(--color-success-bg) !important;
+  color: var(--color-success) !important;
+}
+.statusDefault {
+  background: var(--color-primary-bg) !important;
+  color: var(--color-text) !important;
+  opacity: 0.6;
+}
+
+.orderCustomerRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  min-width: 0;
+}
+.customerAvatar {
+  background: var(--color-primary-soft) !important;
+  color: var(--color-primary-vibrant) !important;
+  width: 22px !important;
+  height: 22px !important;
+}
+.customerAvatarIcon {
+  font-size: 14px !important;
+}
+.orderCustomerText {
+  font-size: 0.8rem !important;
+  color: var(--color-text) !important;
+  opacity: 0.6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.orderTime {
+  font-size: 0.7rem !important;
+  color: var(--color-text) !important;
+  opacity: 0.35;
+}
+
+.orderRight {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+}
+.orderRightTop {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.orderAmount {
+  font-family: var(--font-primary) !important;
+  font-size: 1.3rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.03em !important;
+  color: var(--color-primary-vibrant) !important;
+  line-height: 1.1;
+}
+
+.viewBtn {
+  margin-top: 8px !important;
+  border-color: var(--color-primary) !important;
+  color: var(--color-primary-vibrant) !important;
+  border-radius: 20px !important;
+  text-transform: none !important;
+  font-family: var(--font-primary) !important;
+  font-weight: 700 !important;
+  font-size: 0.75rem !important;
+}
+
+.viewBtn:hover {
+  border-color: var(--color-primary-vibrant) !important;
+  background: var(--color-primary-bg) !important;
+}
+
+.orderActions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.actionPink {
+  color: var(--color-primary-vibrant) !important;
+  background: var(--color-primary-soft) !important;
+  border-radius: var(--border-radius-small) !important;
+}
+.actionPink:hover {
+  background: var(--color-primary-hover) !important;
+}
+.actionBlue {
+  color: var(--color-info) !important;
+  background: var(--color-info-bg) !important;
+  border-radius: var(--border-radius-small) !important;
+}
+.actionBlue:hover {
+  background: rgba(37, 99, 235, 0.15) !important;
+}
+
+/* ─── APARTADOS ──────────────────────────────── */
+.apartadoCard {
+  border-radius: var(--border-radius-large) !important;
+  box-shadow: none !important;
+  border: 1px solid var(--color-border) !important;
+  background: var(--color-surface) !important;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease !important;
+}
+
+.apartadoCard:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-pink) !important;
+  border-color: var(--color-primary) !important;
+}
+
+.apartadoHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.apartadoHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.apartadoAvatar {
+  background: var(--color-primary-vibrant) !important;
+  width: 38px !important;
+  height: 38px !important;
+  font-size: 1rem !important;
+}
+.apartadoHeaderText {
+  min-width: 0;
+}
+.apartadoCustomer {
+  font-family: var(--font-primary) !important;
+  font-weight: 700 !important;
+  font-size: var(--font-size-base) !important;
+  color: var(--color-text) !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.apartadoId {
+  font-size: 0.7rem !important;
+  color: var(--color-text) !important;
+  opacity: 0.4;
+}
+.deadlineChip {
+  background: var(--color-warning-bg) !important;
+  color: var(--color-warning) !important;
+  font-weight: 700 !important;
+  font-size: 0.7rem !important;
+  border-radius: 20px !important;
+  height: 22px !important;
+}
+
+.apartadoStatsBox {
+  background: var(--color-primary-bg);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--border-radius-medium);
+  padding: 12px;
+  margin-bottom: 14px;
+}
+.statLabel {
+  font-size: 0.68rem !important;
+  color: var(--color-text) !important;
+  opacity: 0.5;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+}
+.statValue {
+  font-family: var(--font-primary) !important;
+  font-weight: 800 !important;
+  font-size: var(--font-size-base) !important;
+  letter-spacing: -0.02em !important;
+  color: var(--color-text) !important;
+}
+.statGreen {
+  color: var(--color-success) !important;
+}
+.statRed {
+  color: var(--color-danger) !important;
+}
+
+.progressWrap {
+  margin-bottom: 14px;
+}
+.progressTopRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.progressLabel {
+  font-size: 0.72rem !important;
+  color: var(--color-text) !important;
+  opacity: 0.5;
+}
+.progressPercent {
+  font-family: var(--font-primary) !important;
+  font-weight: 700 !important;
+  font-size: 0.8rem !important;
+  color: var(--color-primary-vibrant) !important;
+}
+.progress {
+  height: 6px !important;
+  border-radius: 10px !important;
+  background: var(--color-primary-bg) !important;
+}
+.progress :global(.MuiLinearProgress-bar) {
+  background: var(--color-primary-vibrant) !important;
+  border-radius: 10px !important;
+}
+
+.apartadoBtns {
+  display: flex;
+  gap: 10px;
+}
+
+.primaryButton {
+  background: var(--color-primary-vibrant) !important;
+  border-radius: var(--border-radius-medium) !important;
+  text-transform: none !important;
+  font-family: var(--font-primary) !important;
+  font-weight: 700 !important;
+  font-size: var(--font-size-aux) !important;
+  box-shadow: none !important;
+  transition: all 0.2s ease !important;
+}
+
+.primaryButton:hover {
+  background: var(--color-primary-vibrant-hover) !important;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-pink) !important;
+}
+
+.dangerButton {
+  border-color: rgba(220, 38, 38, 0.3) !important;
+  color: var(--color-danger) !important;
+  border-radius: var(--border-radius-medium) !important;
+  text-transform: none !important;
+  font-family: var(--font-primary) !important;
+  font-weight: 700 !important;
+  font-size: var(--font-size-aux) !important;
+}
+.dangerButton:hover {
+  border-color: var(--color-danger) !important;
+  background: var(--color-danger-bg) !important;
+}
+
+@media (max-width: 900px) {
+  .orderRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .orderRight {
+    justify-content: space-between;
+  }
+  .orderRightTop {
+    align-items: flex-start;
+  }
+  .orderActions {
+    flex-direction: row;
+  }
+}

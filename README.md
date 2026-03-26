@@ -1,73 +1,136 @@
-# React + TypeScript + Vite
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
 ```
+moda-sarita
+├─ apps
+│  ├─ admin
+│  │  ├─ index.html
+│  │  ├─ src
+│  │  │  ├─ App.tsx
+│  │  │  ├─ components
+│  │  │  │  ├─ cards
+│  │  │  │  ├─ filters
+│  │  │  │  ├─ forms
+│  │  │  │  ├─ sections
+│  │  │  │  ├─ tables
+│  │  │  │  └─ ui
+│  │  │  ├─ guards
+│  │  │  ├─ main.tsx
+│  │  │  ├─ pages
+│  │  │  │  └─ admin
+│  │  │  │     ├─ AdminBackups.tsx
+│  │  │  │     ├─ AdminCustomers.tsx
+│  │  │  │     ├─ AdminLogin.tsx
+│  │  │  │     ├─ AdminMarketing.tsx
+│  │  │  │     ├─ AdminPanel.tsx
+│  │  │  │     ├─ AdminReports.tsx
+│  │  │  │     ├─ AdminSettings.tsx
+│  │  │  │     ├─ AdminUsers.tsx
+│  │  │  │     ├─ Dashboard.tsx
+│  │  │  │     ├─ Inventory.tsx
+│  │  │  │     ├─ OrdersManager.tsx
+│  │  │  │     ├─ ProductsManager.tsx
+│  │  │  │     └─ PuntoVenta.tsx
+│  │  │  └─ services
+│  │  │     └─ adminBackupsLocal.ts
+│  │  ├─ styles
+│  │  │  ├─ AdminBackup.module.css
+│  │  │  ├─ AdminCustomers.module.css
+│  │  │  ├─ AdminReports.module.css
+│  │  │  ├─ AdminSettings.module.css
+│  │  │  ├─ AdminSidebar.module.css
+│  │  │  ├─ Dashboard.module.css
+│  │  │  ├─ Inventory.module.css
+│  │  │  ├─ OrdersManager.module.css
+│  │  │  └─ PuntoVenta.module.css
+│  │  └─ vite.config.ts
+│  └─ web
+│     ├─ index.html
+│     ├─ src
+│     │  ├─ App.tsx
+│     │  ├─ components
+│     │  ├─ main.tsx
+│     │  └─ pages
+│     │     ├─ auth
+│     │     │  ├─ ConfigurationPage.tsx
+│     │     │  ├─ Login.tsx
+│     │     │  └─ Register.tsx
+│     │     ├─ general
+│     │     │  ├─ BadRequest.tsx
+│     │     │  ├─ CatalogPage.tsx
+│     │     │  ├─ ComingSoon.tsx
+│     │     │  ├─ ContactPage.tsx
+│     │     │  ├─ HomePage.tsx
+│     │     │  ├─ NotFound.tsx
+│     │     │  ├─ ProductDetail.tsx
+│     │     │  └─ ServerError.tsx
+│     │     └─ public
+│     │        ├─ CarritoPage.tsx
+│     │        ├─ CatalogoProductos.tsx
+│     │        ├─ PaginaPrincipal.tsx
+│     │        └─ ProductoDetalle.tsx
+│     └─ vite.config.ts
+├─ eslint.config.js
+├─ package-lock.json
+├─ package.json
+├─ public
+│  ├─ logo-modasarita.png
+│  └─ logo-web-modasarita.png
+├─ README.md
+├─ shared
+│  ├─ api
+│  │  ├─ auth.api.ts
+│  │  ├─ categorias.api.ts
+│  │  ├─ client.ts
+│  │  ├─ colores.api.ts
+│  │  ├─ config.ts
+│  │  ├─ endpoints.ts
+│  │  ├─ errors.ts
+│  │  ├─ inventario.api.ts
+│  │  ├─ productoDetalle.api.ts
+│  │  ├─ productoImagenes.api.ts
+│  │  ├─ productos.api.ts
+│  │  ├─ security.api.ts
+│  │  ├─ storage.ts
+│  │  ├─ tallas.api.ts
+│  │  ├─ types.ts
+│  │  └─ variantes.api.ts
+│  ├─ assets
+│  │  ├─ icons
+│  │  └─ images
+│  │     ├─ blusa_seda.jpg
+│  │     ├─ chaqueta_piel.jpg
+│  │     ├─ jeans_skinny.jpg
+│  │     └─ vestido_floral.jpg
+│  ├─ components
+│  │  ├─ common
+│  │  │  └─ ProductCard.tsx
+│  │  └─ ui
+│  │     ├─ Button.tsx
+│  │     ├─ CartItem.tsx
+│  │     ├─ Modal.tsx
+│  │     ├─ Navbar.tsx
+│  │     └─ ProductCard.tsx
+│  ├─ context
+│  │  ├─ AuthContext.tsx
+│  │  └─ AuthProvider.tsx
+│  ├─ data
+│  │  └─ Products.ts
+│  ├─ index.css
+│  ├─ styles
+│  │  ├─ Auth.module.css
+│  │  ├─ AuthStyles.module.css
+│  │  ├─ CatalogPage.module.css
+│  │  ├─ ComingSoon.css
+│  │  ├─ ErrorPages.css
+│  │  ├─ Footer.module.css
+│  │  ├─ HomePage.module.css
+│  │  ├─ Navbar.module.css
+│  │  ├─ ProductCard.module.css
+│  │  └─ ProductDetail.module.css
+│  └─ utils
+│     └─ storage.ts
+├─ tsconfig.app.json
+├─ tsconfig.json
+└─ tsconfig.node.json
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
 ```

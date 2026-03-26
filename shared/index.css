@@ -1,0 +1,99 @@
+/* src/index.css */
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+:root {
+  /* 🎨 Colores base */
+  --color-background: #f8f6f7;
+  --color-surface: #ffffff;
+  --color-text: #5c4b57;
+
+  --color-primary: #f7d5e9;
+  --color-primary-soft: rgba(247, 213, 233, 0.35);
+  --color-primary-hover: rgba(247, 213, 233, 0.7);
+  --color-primary-bg: rgba(247, 213, 233, 0.22);
+
+  --color-primary-vibrant: #ec1380;
+  --color-primary-vibrant-hover: #c2185b;
+  --color-text-on-vibrant: #ffffff;
+
+  --color-border: rgba(92, 75, 87, 0.12);
+  --color-border-strong: rgba(92, 75, 87, 0.2);
+
+  --color-success: #16a34a;
+  --color-success-bg: rgba(22, 163, 74, 0.1);
+
+  --color-danger: #dc2626;
+  --color-danger-bg: rgba(220, 38, 38, 0.1);
+
+  --color-warning: #ea580c;
+  --color-warning-bg: rgba(234, 88, 12, 0.1);
+
+  --color-info: #2563eb;
+  --color-info-bg: rgba(37, 99, 235, 0.1);
+
+  /* ✒️ Tipografía */
+  --font-primary: "Manrope", sans-serif;
+
+  --font-size-h1: clamp(2rem, 4vw, 3.25rem);
+  --font-size-h2: clamp(1.5rem, 3vw, 2.25rem);
+  --font-size-h3: clamp(1.2rem, 2vw, 1.75rem);
+  --font-size-base: 1rem;
+  --font-size-aux: 0.875rem;
+
+  /* 📐 Radios */
+  --border-radius-xl: 18px;
+  --border-radius-large: 16px;
+  --border-radius-medium: 12px;
+  --border-radius-small: 8px;
+
+  /* 🌫 Sombras */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-pink: 0 6px 20px rgba(236, 19, 128, 0.18);
+
+  /* 📏 Layout */
+  --container-padding: 24px;
+  --section-gap: 24px;
+
+  /* 📱 Breakpoints de referencia */
+  --bp-xs: 360px;
+  --bp-sm: 375px;
+  --bp-md: 720px;
+  --bp-lg: 1366px;
+  --bp-xl: 1920px;
+}
+
+html {
+  height: 100%;
+  overscroll-behavior-y: none;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  font-family: var(--font-primary);
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  background-color: var(--color-background);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior-y: none;
+}
+
+#root {
+  min-height: 100vh;
+  overscroll-behavior-y: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}

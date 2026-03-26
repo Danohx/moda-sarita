@@ -1,0 +1,218 @@
+/* ProductCatalogs.module.css */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--section-gap);
+  font-family: var(--font-primary);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.title {
+  margin: 0;
+  font-size: var(--font-size-h2);
+  font-weight: 800;
+  color: var(--color-text);
+  letter-spacing: -0.02em;
+}
+.subtitle {
+  margin: 6px 0 0;
+  opacity: 0.65;
+  color: var(--color-text);
+  font-size: var(--font-size-aux);
+}
+
+.refreshBtn {
+  min-height: 46px;
+  padding: 0 16px;
+  background: var(--color-surface);
+  border: 2px solid var(--color-primary-vibrant);
+  color: var(--color-primary-vibrant);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: var(--border-radius-medium);
+  font-family: var(--font-primary);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.refreshBtn:hover {
+  background: var(--color-primary-hover);
+}
+
+.tabs {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.tab,
+.activeTab {
+  min-height: 44px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 2px solid var(--color-primary);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-radius: var(--border-radius-medium);
+  font-family: var(--font-primary);
+  font-weight: 700;
+  cursor: pointer;
+  font-size: var(--font-size-aux);
+}
+
+.activeTab {
+  background: var(--color-primary-vibrant);
+  border-color: var(--color-primary-vibrant);
+  color: white;
+}
+
+.card,
+.errorBox {
+  background: var(--color-surface);
+  border-radius: var(--border-radius-xl);
+  padding: 22px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border);
+}
+
+.errorBox {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  font-weight: 700;
+  border: none;
+}
+
+.cardHeader h2 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--font-size-h3);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.inlineForm {
+  display: flex;
+  gap: 12px;
+  margin: 18px 0 22px;
+  flex-wrap: wrap;
+}
+
+.input {
+  flex: 1;
+  min-width: 240px;
+  min-height: 46px;
+  border: 2px solid var(--color-primary);
+  border-radius: var(--border-radius-medium);
+  padding: 0 14px;
+  font-family: var(--font-primary);
+  font-size: var(--font-size-base);
+  background: var(--color-background);
+  color: var(--color-text);
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--color-primary-vibrant);
+}
+
+.primaryBtn {
+  min-height: 46px;
+  padding: 0 18px;
+  border: none;
+  background: var(--color-primary-vibrant);
+  color: var(--color-text-on-vibrant);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: var(--border-radius-medium);
+  font-family: var(--font-primary);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.itemRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: var(--border-radius-large);
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+}
+
+.itemRow span {
+  display: block;
+  opacity: 0.65;
+  margin-top: 4px;
+  font-size: var(--font-size-aux);
+  color: var(--color-text);
+}
+
+.statusOn,
+.statusOff {
+  min-width: 110px;
+  min-height: 40px;
+  border: none;
+  border-radius: var(--border-radius-medium);
+  font-family: var(--font-primary);
+  font-weight: 700;
+  cursor: pointer;
+  font-size: var(--font-size-aux);
+}
+
+.statusOn {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+.statusOff {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.centerState {
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-weight: 700;
+  opacity: 0.65;
+  color: var(--color-text);
+}
+.spinning {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 768px) {
+  .itemRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

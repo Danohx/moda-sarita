@@ -1,0 +1,19 @@
+.layoutContainer {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+  background-color: var(--color-background);
+}
+
+.mainContent {
+  flex: 1;
+  height: 100vh;
+  overflow-y: auto;
+  background-color: var(--color-background);
+  padding: var(--container-padding);
+  font-family: var(--font-primary);
+}

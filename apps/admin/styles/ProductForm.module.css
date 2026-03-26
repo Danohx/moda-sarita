@@ -1,0 +1,190 @@
+/* ProductForm.module.css */
+.formPage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--section-gap);
+  font-family: var(--font-primary);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-primary-vibrant);
+  text-decoration: none;
+  font-weight: 700;
+  margin-bottom: 10px;
+  font-size: var(--font-size-aux);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-h2);
+  font-weight: 800;
+  color: var(--color-text);
+  letter-spacing: -0.02em;
+}
+.subtitle {
+  margin: 6px 0 0;
+  opacity: 0.65;
+  color: var(--color-text);
+  font-size: var(--font-size-aux);
+}
+
+.card {
+  background: var(--color-surface);
+  border-radius: var(--border-radius-xl);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(260px, 1fr));
+  gap: 18px;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.full {
+  grid-column: 1 / -1;
+}
+
+.field label {
+  font-weight: 700;
+  font-size: var(--font-size-aux);
+  color: var(--color-text);
+}
+
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  border: 2px solid var(--color-primary);
+  border-radius: var(--border-radius-medium);
+  background: var(--color-background);
+  padding: 13px 14px;
+  font-family: var(--font-primary);
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: var(--color-primary-vibrant);
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+}
+
+.switches {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.switchItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--color-primary-bg);
+  border-radius: var(--border-radius-medium);
+  font-weight: 700;
+  font-size: var(--font-size-aux);
+  color: var(--color-text);
+}
+
+.switchItem input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary-vibrant);
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.saveBtn,
+.cancelBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 18px;
+  border-radius: var(--border-radius-medium);
+  font-family: var(--font-primary);
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  font-size: var(--font-size-aux);
+}
+
+.cancelBtn {
+  background: transparent;
+  color: var(--color-text);
+  border: 2px solid var(--color-primary);
+}
+.saveBtn {
+  border: none;
+  color: var(--color-text-on-vibrant);
+  background: var(--color-primary-vibrant);
+}
+.saveBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-pink);
+}
+
+.errorBox,
+.stateBox {
+  background: var(--color-surface);
+  border-radius: var(--border-radius-large);
+  padding: 18px;
+  font-weight: 700;
+}
+
+.errorBox {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+.stateBox {
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
