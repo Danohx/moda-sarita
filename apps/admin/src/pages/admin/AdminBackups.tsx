@@ -13,30 +13,15 @@ import {
   Settings,
 } from "lucide-react";
 import styles from "../../../styles/AdminBackup.module.css";
-
-type BackupStatus = "completed" | "failed";
-
-type Backup = {
-  id: string;
-  filename: string;
-  size: number;
-  status: BackupStatus;
-  createdAt: string;
-  tables: number;
-  records: number;
-  createdBy: string;
-};
+import { backupsService } from "@admin/services/backups.service";
+import type { Backup } from "@shared/api/backups.api";
+import AdminBreadcrumbs from "../bd-monitor/components/AdminBreadcrumbs";
 
 type BackupConfig = {
   autoBackup: boolean;
   frequency: "daily" | "weekly" | "monthly";
   retention: number;
   compression: boolean;
-};
-
-type BackupsResponse = {
-  backups: Backup[];
-  config: BackupConfig;
 };
 
 const DEFAULT_CONFIG: BackupConfig = {
@@ -46,84 +31,70 @@ const DEFAULT_CONFIG: BackupConfig = {
   compression: true,
 };
 
-/**
- * Placeholder API
- * Reemplazar por endpoints reales cuando exista el módulo backend.
- */
-async function fetchBackupsData(signal?: AbortSignal): Promise<BackupsResponse> {
-  void signal;
-  return {
-    backups: [],
-    config: DEFAULT_CONFIG,
-  };
-}
-
 const AdminBackups: React.FC = () => {
   const [backups, setBackups] = useState<Backup[]>([]);
   const [config, setConfig] = useState<BackupConfig>(DEFAULT_CONFIG);
-  const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
-  const [showConfig, setShowConfig] = useState(false);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [creating, setCreating] = useState<boolean>(false);
+  const [showConfig, setShowConfig] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const loadInitialData = useCallback(async () => {
-    const controller = new AbortController();
-
+  const loadBackups = useCallback(async () => {
     try {
+      setError(null);
       setLoading(true);
-      const data = await fetchBackupsData(controller.signal);
-      setBackups(data.backups ?? []);
-      setConfig(data.config ?? DEFAULT_CONFIG);
-    } catch {
+
+      const data = await backupsService.getList();
+      setBackups(data ?? []);
+    } catch (err) {
+      console.error(err);
       setBackups([]);
-      setConfig(DEFAULT_CONFIG);
+      setError("No se pudieron cargar los respaldos.");
     } finally {
       setLoading(false);
     }
-
-    return () => controller.abort();
   }, []);
 
   useEffect(() => {
-    void loadInitialData();
-  }, [loadInitialData]);
-
-  const loadBackups = useCallback(async () => {
-    const controller = new AbortController();
-
-    try {
-      setLoading(true);
-      const data = await fetchBackupsData(controller.signal);
-      setBackups(data.backups ?? []);
-    } catch {
-      setBackups([]);
-    } finally {
-      setLoading(false);
-    }
-
-    return () => controller.abort();
-  }, []);
+    void loadBackups();
+  }, [loadBackups]);
 
   const handleCreateBackup = async () => {
-    setCreating(true);
     try {
-      // TODO: conectar POST /admin/backups
+      setCreating(true);
+      setError(null);
+      await backupsService.create();
+      await loadBackups();
+    } catch (err) {
+      console.error(err);
+      setError("No se pudo crear el respaldo.");
     } finally {
       setCreating(false);
     }
   };
 
-  const handleDownloadBackup = async (_backup: Backup) => {
-    // TODO: conectar GET /admin/backups/:id/download
-    void _backup;
+  const handleDownloadBackup = async (backup: Backup) => {
+    try {
+      setError(null);
+      await backupsService.download(backup);
+    } catch (err) {
+      console.error(err);
+      setError("No se pudo descargar el respaldo.");
+    }
   };
 
-  const handleDeleteBackup = async (_backupId: string) => {
-    // TODO: conectar DELETE /admin/backups/:id
-    void _backupId;
+  const handleDeleteBackup = async (backupId: string) => {
+    try {
+      setError(null);
+      await backupsService.remove(backupId);
+      await loadBackups();
+    } catch (err) {
+      console.error(err);
+      setError("No se pudo eliminar el respaldo.");
+    }
   };
 
   const saveConfig = async () => {
-    // TODO: conectar PATCH /admin/backups/config
     setShowConfig(false);
   };
 
@@ -147,13 +118,22 @@ const AdminBackups: React.FC = () => {
   };
 
   const skeletonCards = useMemo(() => Array.from({ length: 3 }), []);
-  const totalBackupsSize = backups.reduce((sum, backup) => sum + backup.size, 0);
+  const totalBackupsSize = backups.reduce(
+    (sum, backup) => sum + backup.size,
+    0,
+  );
   const lastBackup = backups.length > 0 ? backups[0] : null;
 
   return (
     <div className={styles.backups}>
       <div className={styles.header}>
         <div>
+          <AdminBreadcrumbs
+            items={[
+              { label: "Monitoreo BD", to: "/bd-monitor" },
+              { label: "Respaldos" },
+            ]}
+          />
           <h1 className={styles.title}>Respaldos de Base de Datos</h1>
           <p className={styles.subtitle}>
             Gestiona y descarga copias de seguridad
@@ -186,7 +166,9 @@ const AdminBackups: React.FC = () => {
           </div>
           <div className={styles.statContent}>
             <span className={styles.statLabel}>Espacio Utilizado</span>
-            <span className={styles.statValue}>{formatBytes(totalBackupsSize)}</span>
+            <span className={styles.statValue}>
+              {formatBytes(totalBackupsSize)}
+            </span>
           </div>
         </div>
 
@@ -222,12 +204,18 @@ const AdminBackups: React.FC = () => {
               <label>Formato de Exportación</label>
               <div className={styles.radioGroup}>
                 <label className={styles.radioOption}>
-                  <input type="radio" name="format" value="gz" checked readOnly />
+                  <input
+                    type="radio"
+                    name="format"
+                    value="gz"
+                    checked
+                    readOnly
+                  />
                   <div className={styles.radioLabel}>
                     <FileArchive size={20} />
                     <div>
-                      <strong>SQL comprimido (.archive.gz)</strong>
-                      <span>Disponible cuando el backend de backups exista</span>
+                      <strong>SQL comprimido (.backup.gz)</strong>
+                      <span>Generado desde la API real del sistema</span>
                     </div>
                   </div>
                 </label>
@@ -268,6 +256,8 @@ const AdminBackups: React.FC = () => {
           </button>
         </div>
 
+        {error && <p className={styles.subtitle}>{error}</p>}
+
         {loading ? (
           <div className={styles.backupsList}>
             {skeletonCards.map((_, idx) => (
@@ -292,7 +282,7 @@ const AdminBackups: React.FC = () => {
           <div className={styles.empty}>
             <Database size={48} />
             <p>No hay respaldos disponibles</p>
-            <span>Esta vista está lista para conectarse a tu API.</span>
+            <span>Crea tu primer respaldo desde esta pantalla.</span>
           </div>
         ) : (
           <div className={styles.backupsList}>
@@ -332,15 +322,18 @@ const AdminBackups: React.FC = () => {
 
                   <div className={styles.backupMeta}>
                     <div className={styles.metaItem}>
-                      <Clock size={16} /> <span>{formatDate(backup.createdAt)}</span>
+                      <Clock size={16} />{" "}
+                      <span>{formatDate(backup.createdAt)}</span>
                     </div>
                     <div className={styles.metaItem}>
-                      <HardDrive size={16} /> <span>{formatBytes(backup.size)}</span>
+                      <HardDrive size={16} />{" "}
+                      <span>{formatBytes(backup.size)}</span>
                     </div>
                     <div className={styles.metaItem}>
-                      <Database size={16} />{" "}
+                      <Database size={16} />
                       <span>
-                        {backup.tables} tablas • {backup.records.toLocaleString()} registros
+                        {backup.tables} tablas •{" "}
+                        {backup.records?.toLocaleString()} registros
                       </span>
                     </div>
                     <div className={styles.metaItem}>
@@ -352,7 +345,7 @@ const AdminBackups: React.FC = () => {
                 <div className={styles.backupActions}>
                   <button
                     className={styles.downloadBtn}
-                    onClick={() => void handleDownloadBackup(backup)}
+                    onClick={() => handleDownloadBackup(backup)}
                     title="Descargar"
                     type="button"
                   >
@@ -423,7 +416,8 @@ const AdminBackups: React.FC = () => {
                       onChange={(e) =>
                         setConfig((prev) => ({
                           ...prev,
-                          frequency: e.target.value as BackupConfig["frequency"],
+                          frequency: e.target
+                            .value as BackupConfig["frequency"],
                         }))
                       }
                       className={styles.select}
@@ -456,7 +450,11 @@ const AdminBackups: React.FC = () => {
 
                   <div className={styles.configGroup}>
                     <label className={styles.switchLabel}>
-                      <input type="checkbox" checked={config.compression} readOnly />
+                      <input
+                        type="checkbox"
+                        checked={config.compression}
+                        readOnly
+                      />
                       <span>Comprimir respaldos (.gz)</span>
                     </label>
                   </div>

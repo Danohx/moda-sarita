@@ -18,7 +18,8 @@ export const API_ENDPOINTS = {
     enable2FA: "/security/2fa/enable",
     roles: "/security/roles",
     permisos: "/security/permisos",
-    permisosByRol: (rolId: string | number) => `/security/roles/${rolId}/permisos`,
+    permisosByRol: (rolId: string | number) =>
+      `/security/roles/${rolId}/permisos`,
   },
 
   categorias: {
@@ -70,7 +71,29 @@ export const API_ENDPOINTS = {
   inventario: {
     existencias: "/inventario/existencias",
     variantStock: (id: string | number) => `/inventario/variantes/${id}/stock`,
-    variantMovements: (id: string | number) => `/inventario/variantes/${id}/movimientos`,
-    productMovements: (id: string | number) => `/inventario/productos/${id}/movimientos`,
+    variantMovements: (id: string | number) =>
+      `/inventario/variantes/${id}/movimientos`,
+    productMovements: (id: string | number) =>
+      `/inventario/productos/${id}/movimientos`,
+  },
+  monitoring: {
+    summary: "/monitoring/summary",
+    tables: "/monitoring/tables",
+    vacuum: "/monitoring/vacuum",
+    connections: "/monitoring/connections",
+  },
+  backups: {
+    list: "/backups",
+    create: "/backups",
+    delete: "/backups",
+    download: "/backups",
+  },
+  maintenance: {
+    list: "/maintenance",
+    tables: "/maintenance/tables",
+    run: "/maintenance/run",
+  },
+  auditLogs: {
+    list: "/audit-logs",
   },
 } as const;

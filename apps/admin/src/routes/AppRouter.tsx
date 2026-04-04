@@ -10,7 +10,6 @@ import AdminSettings from "../pages/admin/AdminSettings";
 import { AdminReports } from "../pages/admin/AdminReports";
 import AdminMarketing from "../pages/admin/AdminMarketing";
 import AdminCustomers from "../pages/admin/AdminCustomers";
-import AdminBackups from "../pages/admin/AdminBackups";
 import AdminRoute from "../guards/AdminRoute";
 import GuestRoute from "../guards/GuestRoute";
 import AdminProducts from "../pages/admin/AdminProducts";
@@ -22,6 +21,11 @@ import ProductCatalogs from "../pages/admin/ProductCategorias";
 import InventoryMovements from "../pages/admin/InventoryMovements";
 import InventoryAdjustments from "../pages/admin/InventoryAdjustments";
 import InventoryAlerts from "../pages/admin/InventoryAlerts";
+import AdminDatabaseMonitoring from "../pages/bd-monitor/AdminDatabaseMonitoring";
+import AdminBackups from "@admin/pages/admin/AdminBackups";
+import AdminMaintenance from "@admin/pages/admin/AdminMaintenance";
+import AdminMonitoringLogs from "@admin/pages/admin/AdminMonitoringLogs";
+import AdminMaintenanceRunner from "@admin/pages/bd-monitor/AdminMaintenanceRunner";
 
 export const AppRouter = () => {
   return (
@@ -41,7 +45,6 @@ export const AppRouter = () => {
             <Route path="reports" element={<AdminReports />} />
             <Route path="marketing" element={<AdminMarketing />} />
             <Route path="customers" element={<AdminCustomers />} />
-            <Route path="backups" element={<AdminBackups />} />
             <Route path="products" element={<AdminProducts />} />
             <Route path="products/new" element={<ProductForm />} />
             <Route path="products/catalogs" element={<ProductCatalogs />} />
@@ -59,6 +62,11 @@ export const AppRouter = () => {
             <Route path="inventory/movements" element={<InventoryMovements />} />
             <Route path="inventory/adjustments" element={<InventoryAdjustments />} />
             <Route path="inventory/alerts" element={<InventoryAlerts />} />
+            <Route path="/bd-monitor" element={<AdminDatabaseMonitoring />} />
+            <Route path="/backups" element={<AdminBackups />} />
+            <Route path="/maintenance" element={<AdminMaintenance />} />
+            <Route path="/maintenance/run" element={<AdminMaintenanceRunner />} />
+            <Route path="/monitoring-logs" element={<AdminMonitoringLogs />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />

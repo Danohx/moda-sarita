@@ -11,7 +11,7 @@ import {
   BarChart3,
   Menu,
   Database,
-  Tag
+  Tag,
 } from "lucide-react";
 import styles from "../../../styles/AdminSidebar.module.css";
 import { useAuth } from "@shared/context/AuthContext";
@@ -89,7 +89,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ role }) => {
           <Truck size={20} className={styles.icon} />
           {!collapsed && <span>Pedidos</span>}
         </Link>
-        
+
         <Link to="/products" className={getLinkClass("/products")}>
           <Tag size={20} className={styles.icon} />
           {!collapsed && <span>Productos</span>}
@@ -121,9 +121,9 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ role }) => {
               {!collapsed && <span>Ajustes</span>}
             </Link>
 
-            <Link to="/backups" className={getLinkClass("/backups")}>
+            <Link to="/bd-monitor" className={getLinkClass("/bd-monitor")}>
               <Database size={20} className={styles.icon} />
-              {!collapsed && <span>Respaldos</span>}
+              {!collapsed && <span>Monitoreo BD</span>}
             </Link>
           </>
         )}
