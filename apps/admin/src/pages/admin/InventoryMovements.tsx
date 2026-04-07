@@ -1,75 +1,222 @@
-import React, { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { ArrowLeftRight, RefreshCw, Search } from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useParams } from "react-router-dom";
+import { RefreshCw, Search } from "lucide-react";
 import styles from "../../../styles/InventoryMovements.module.css";
+import { inventarioService } from "@admin/services/inventario.service";
+import type {
+  MovimientoInventario,
+  TipoMovimiento,
+} from "@shared/api/inventario.api";
+import AdminBreadcrumbs from "../../components/layout/AdminBreadcrumbs";
 
-interface MovementItem {
-  id: string | number;
-  fecha: string;
+interface VariantInfo {
   producto: string;
+  variante: string;
   sku: string;
-  tipo: "entrada" | "salida" | "ajuste";
-  cantidad: number;
-  referencia: string;
+  stockFisico: number;
+  apartado: number;
+  disponible: number;
 }
 
-const InventoryMovements: React.FC = () => {
-  const [movements] = useState<MovementItem[]>([]);
-  const [loading] = useState(false);
-  const [refreshing] = useState(false);
+interface MovementItem {
+  id: string;
+  fecha: string;
+  tipo: TipoMovimiento;
+  cantidad: number;
+  motivo: string;
+  usuario: string;
+}
+
+const VARIANT: VariantInfo = {
+  producto: "",
+  variante: "",
+  sku: "",
+  stockFisico: 0,
+  apartado: 0,
+  disponible: 0,
+};
+
+const BADGE_CLASS: Record<MovementItem["tipo"], string> = {
+  ENTRADA: styles.badgeEntry,
+  SALIDA: styles.badgeExit,
+  AJUSTE: styles.badgeAdjust,
+  SET_STOCK: styles.badgeAdjust,
+};
+
+const InventoryVariantMovements: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+
+  const [variant, setVariant] = useState<VariantInfo>(VARIANT);
+  const [movements, setMovements] = useState<MovementItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
-  const filteredMovements = useMemo(() => {
-    return movements.filter((item) => {
-      return (
-        !search ||
-        item.producto.toLowerCase().includes(search.toLowerCase()) ||
-        item.sku.toLowerCase().includes(search.toLowerCase()) ||
-        item.referencia.toLowerCase().includes(search.toLowerCase())
-      );
-    });
+  const loadData = useCallback(
+    async (isRefresh = false) => {
+      if (!id) return;
+
+      try {
+        setError(null);
+
+        if (isRefresh) setRefreshing(true);
+        else setRefreshing(true);
+
+        const [stockResponse, movementsResponse] = await Promise.all([
+          inventarioService.getVariantStock(id),
+          inventarioService.getVariantMovements(id),
+        ]);
+
+        const stock = stockResponse ?? [];
+        const kardex: MovimientoInventario[] = movementsResponse ?? [];
+
+        const talla = stock.talla_nombre;
+        const color = stock.color_nombre;
+
+        const variante =
+          !talla && !color
+            ? "Variante base"
+            : [talla, color].filter(Boolean).join(" / ");
+
+        setVariant({
+          producto: stock.producto_nombre ?? "",
+          variante: variante,
+          sku: stock.sku ?? "",
+          stockFisico: Number(stock.stock_fisico ?? 0),
+          apartado: Number(stock.stock_apartado ?? 0),
+          disponible: Number(stock.stock_disponible ?? 0),
+        });
+
+        setMovements(
+          kardex.map((item) => ({
+            id: String(item.id),
+            fecha: new Date(item.fecha).toLocaleString("es-MX", {
+              dateStyle: "medium",
+              timeStyle: "short",
+            }),
+            tipo: item.tipo,
+            cantidad: Number(item.cantidad ?? 0),
+            motivo: item.motivo ?? "",
+            usuario: item.usuario_email ?? "Sin usuario",
+          })),
+        );
+      } catch (err) {
+        console.error("Error cargando movimientos de inventario:", err);
+        setVariant(VARIANT);
+        setMovements([]);
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [id],
+  );
+
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
+
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return movements;
+    return movements.filter(
+      (m) =>
+        m.motivo.toLowerCase().includes(term) ||
+        m.usuario.toLowerCase().includes(term) ||
+        m.tipo.toLowerCase().includes(term),
+    );
   }, [movements, search]);
 
   return (
     <section className={styles.page}>
       <header className={styles.header}>
         <div>
-          <h1 className={styles.title}>Movimientos de Inventario</h1>
+          <AdminBreadcrumbs
+            items={[
+              { label: "Inventario", to: "/inventory" },
+              { label: "Movimientos" },
+            ]}
+          />
+          <h1 className={styles.title}>
+            Movimientos —{" "}
+            <span className={styles.titleVariant}>{variant.variante}</span>
+          </h1>
           <p className={styles.subtitle}>
-            Consulta entradas, salidas y ajustes registrados en inventario.
+            Historial de entradas, salidas y ajustes de esta variante.
           </p>
         </div>
 
-        <button type="button" className={styles.refreshBtn} disabled={refreshing}>
-          <RefreshCw size={18} className={refreshing ? styles.spinning : ""} />
-          Actualizar
-        </button>
+        <div className={styles.headerActions}>
+          <button
+            type="button"
+            className={styles.refreshBtn}
+            disabled={refreshing}
+          >
+            <RefreshCw
+              size={16}
+              className={refreshing ? styles.spinning : undefined}
+            />
+            Actualizar
+          </button>
+        </div>
       </header>
 
-      <nav className={styles.quickNav}>
-        <Link to="/inventory" className={styles.quickNavItem}>Existencias</Link>
-        <Link to="/inventory/movements" className={styles.quickNavActive}>Movimientos</Link>
-        <Link to="/inventory/adjustments" className={styles.quickNavItem}>Ajustes</Link>
-        <Link to="/inventory/alerts" className={styles.quickNavItem}>Alertas</Link>
-      </nav>
+      <section className={styles.variantCard}>
+        <div className={styles.variantTop}>
+          <div className={styles.variantAvatar}>
+            {variant.producto.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <p className={styles.variantProductName}>{variant.producto}</p>
+            <div className={styles.variantMeta}>
+              <span>{variant.variante}</span>
+              <code className={styles.skuTag}>{variant.sku}</code>
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.metricsRow}>
+          <div className={styles.metric}>
+            <span className={styles.metricLabel}>Stock físico</span>
+            <span className={`${styles.metricVal} ${styles.metricOk}`}>
+              {variant.stockFisico}
+            </span>
+          </div>
+          <div className={styles.metric}>
+            <span className={styles.metricLabel}>Apartado</span>
+            <span className={styles.metricVal}>{variant.apartado}</span>
+          </div>
+          <div className={styles.metric}>
+            <span className={styles.metricLabel}>Disponible</span>
+            <span className={`${styles.metricVal} ${styles.metricOk}`}>
+              {variant.disponible}
+            </span>
+          </div>
+          <div className={styles.metric}>
+            <span className={styles.metricLabel}>Movimientos</span>
+            <span className={styles.metricVal}>{movements.length}</span>
+          </div>
+        </div>
+      </section>
 
       <section className={styles.filtersCard}>
         <div className={styles.searchBox}>
-          <Search size={18} />
+          <Search size={16} className={styles.searchIcon} />
           <input
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Buscar por producto, SKU o referencia"
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por tipo, motivo o usuario…"
           />
         </div>
       </section>
 
       <section className={styles.tableCard}>
         {loading ? (
-          <div className={styles.centerState}>Cargando movimientos...</div>
-        ) : filteredMovements.length === 0 ? (
+          <div className={styles.centerState}>Cargando movimientos…</div>
+        ) : filtered.length === 0 ? (
           <div className={styles.centerState}>
-            No hay movimientos cargados todavía.
+            No hay movimientos para mostrar.
           </div>
         ) : (
           <div className={styles.tableWrapper}>
@@ -77,34 +224,28 @@ const InventoryMovements: React.FC = () => {
               <thead>
                 <tr>
                   <th>Fecha</th>
-                  <th>Producto</th>
-                  <th>SKU</th>
                   <th>Tipo</th>
                   <th>Cantidad</th>
-                  <th>Referencia</th>
+                  <th>Motivo</th>
+                  <th>Usuario</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredMovements.map((item) => (
+                {filtered.map((item) => (
                   <tr key={item.id}>
-                    <td>{item.fecha}</td>
-                    <td>{item.producto}</td>
-                    <td>{item.sku}</td>
+                    <td className={styles.tdMuted}>{item.fecha}</td>
                     <td>
-                      <span
-                        className={
-                          item.tipo === "entrada"
-                            ? styles.badgeEntry
-                            : item.tipo === "salida"
-                            ? styles.badgeExit
-                            : styles.badgeAdjust
-                        }
-                      >
+                      <span className={BADGE_CLASS[item.tipo]}>
                         {item.tipo}
                       </span>
                     </td>
-                    <td>{item.cantidad}</td>
-                    <td>{item.referencia}</td>
+                    <td
+                      className={`${styles.tdMono} ${item.cantidad < 0 ? styles.tdDanger : ""}`}
+                    >
+                      {item.cantidad > 0 ? `+${item.cantidad}` : item.cantidad}
+                    </td>
+                    <td>{item.motivo}</td>
+                    <td className={styles.tdMuted}>{item.usuario}</td>
                   </tr>
                 ))}
               </tbody>
@@ -112,20 +253,8 @@ const InventoryMovements: React.FC = () => {
           </div>
         )}
       </section>
-
-      <section className={styles.infoCard}>
-        <div className={styles.infoIcon}>
-          <ArrowLeftRight size={22} />
-        </div>
-        <div>
-          <strong>Vista estructural</strong>
-          <p>
-            Aquí después podrás filtrar por fechas, tipo de movimiento, producto y variante.
-          </p>
-        </div>
-      </section>
     </section>
   );
 };
 
-export default InventoryMovements;
+export default InventoryVariantMovements;

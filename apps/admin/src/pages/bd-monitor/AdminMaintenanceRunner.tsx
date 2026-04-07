@@ -12,7 +12,7 @@ import styles from "../../../styles/AdminMaintenanceRunner.module.css";
 import { maintenanceService } from "@admin/services/maintenance.service";
 import { monitoringService } from "@admin/services/monitoring.service";
 import type { DbVacuum } from "./types";
-import AdminBreadcrumbs from "./components/AdminBreadcrumbs";
+import AdminBreadcrumbs from "../../components/layout/AdminBreadcrumbs";
 
 function formatDate(value?: string | null) {
   if (!value) return "Nunca";

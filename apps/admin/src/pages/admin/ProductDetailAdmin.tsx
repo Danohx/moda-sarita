@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
-  ArrowLeft,
   Image as ImageIcon,
   Layers3,
   Pencil,
@@ -11,6 +10,9 @@ import {
 } from "lucide-react";
 import styles from "../../../styles/ProductDetailAdmin.module.css";
 import { productosService } from "@admin/services/productos.service";
+import AdminBreadcrumbs from "@admin/components/layout/AdminBreadcrumbs";
+import { useBreadcrumbContext } from "@shared/hooks/useBreadcrumbContext";
+import type { BreadcrumbItem } from "@admin/components/layout/AdminBreadcrumbs";
 
 type ProductViewModel = {
   id: string | number;
@@ -151,6 +153,16 @@ const ProductDetailAdmin: React.FC = () => {
   const [product, setProduct] = useState<ProductViewModel | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const ctx = useBreadcrumbContext();
+  const breadcrumbItems: BreadcrumbItem[] = ctx.from === "list"
+  ? [
+      { label: "Productos", to: "/products" },
+      { label: "Detalles del producto" },
+    ]
+  : [
+      { label: "Productos", to: "/products" },
+      { label: "Detalles del producto" },
+    ];
 
   useEffect(() => {
     let mounted = true;
@@ -239,10 +251,9 @@ const ProductDetailAdmin: React.FC = () => {
     <section className={styles.detailPage}>
       <header className={styles.header}>
         <div>
-          <Link to="/products" className={styles.backLink}>
-            <ArrowLeft size={18} />
-            Volver a productos
-          </Link>
+          <AdminBreadcrumbs
+            items={breadcrumbItems}
+          />
           <h1 className={styles.title}>{product.nombre}</h1>
           <p className={styles.subtitle}>
             Vista administrativa del producto y accesos a gestión avanzada.
@@ -252,6 +263,7 @@ const ProductDetailAdmin: React.FC = () => {
         <div className={styles.headerActions}>
           <Link
             to={`/products/${product.id}/edit`}
+            state={{ from: "detail", productoNombre: product.nombre }}
             className={styles.secondaryBtn}
           >
             <Pencil size={18} />
@@ -259,6 +271,7 @@ const ProductDetailAdmin: React.FC = () => {
           </Link>
           <Link
             to={`/products/${product.id}/variants`}
+            state={{ from: "detail" }}
             className={styles.primaryBtn}
           >
             <Layers3 size={18} />
@@ -379,6 +392,7 @@ const ProductDetailAdmin: React.FC = () => {
             </h2>
             <Link
               to={`/products/${product.id}/images`}
+              state={{ from: "detail"}}
               className={styles.inlineLink}
             >
               Administrar

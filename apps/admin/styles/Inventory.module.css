@@ -66,6 +66,47 @@
   color: var(--color-text-on-vibrant);
 }
 
+.alertsBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border-radius: var(--border-radius-medium);
+  font-weight: 700;
+  font-size: var(--font-size-aux);
+  font-family: var(--font-primary);
+  border: 2px solid var(--color-warning);
+  background: var(--color-surface);
+  color: var(--color-warning);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.alertsBtn:hover:not(:disabled) {
+  background: var(--color-warning-bg);
+}
+
+.alertsBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.alertsBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  background: var(--color-warning);
+  color: var(--color-surface);
+  line-height: 1;
+}
+
 /* ─── CARDS ──────────────────────────────────── */
 .card,
 .filtersCard,
@@ -115,6 +156,9 @@
 .actionBtnSecondary {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  white-space: nowrap;
   gap: 8px;
   padding: 11px 18px;
   border-radius: var(--border-radius-medium);

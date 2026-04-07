@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2, RefreshCw, X } from "lucide-react";
+import { useParams } from "react-router-dom";
+import { Loader2, RefreshCw, X } from "lucide-react";
 import styles from "../../../styles/ProductVariantsManager.module.css";
 import {
   variantesService,
@@ -13,6 +13,9 @@ import ProductVariantForm, {
   mapVariantToForm,
   type VariantFormState,
 } from "@admin/components/components/ProductVariantForm";
+import AdminBreadcrumbs from "@admin/components/layout/AdminBreadcrumbs";
+import { useBreadcrumbContext } from "@shared/hooks/useBreadcrumbContext";
+import type { BreadcrumbItem } from "@admin/components/layout/AdminBreadcrumbs";
 
 interface OptionItem {
   id: string | number;
@@ -112,6 +115,15 @@ function mapVarianteToItem(variant: VarianteRaw): VarianteItem {
 
 const ProductVariantsManager: React.FC = () => {
   const { id = "" } = useParams();
+  const ctx = useBreadcrumbContext();
+  const breadcrumbItems: BreadcrumbItem[] =
+    ctx.from === "detail"
+      ? [
+          { label: "Productos", to: "/products" },
+          { label: "Detalles del producto", to: `/products/${id}` },
+          { label: "Variantes" },
+        ]
+      : [{ label: "Productos", to: "/products" }, { label: "Variantes" }];
 
   const [variants, setVariants] = useState<VarianteItem[]>([]);
   const [colors, setColors] = useState<OptionItem[]>([]);
@@ -120,7 +132,6 @@ const ProductVariantsManager: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [stockDrafts, setStockDrafts] = useState<Record<string, number>>({});
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
   const [selectedVariantId, setSelectedVariantId] = useState<
     string | number | null
@@ -153,15 +164,6 @@ const ProductVariantsManager: React.FC = () => {
         const mapped = ((data ?? []) as VarianteRaw[]).map(mapVarianteToItem);
 
         setVariants(mapped);
-        setStockDrafts((prev) => {
-          const next: Record<string, number> = { ...prev };
-
-          mapped.forEach((variant) => {
-            next[String(variant.id)] = variant.stock_fisico ?? 0;
-          });
-
-          return next;
-        });
       } catch (err) {
         console.error(err);
         setVariants([]);
@@ -300,41 +302,12 @@ const ProductVariantsManager: React.FC = () => {
     }
   };
 
-  const handleSaveStock = async (variant: VarianteItem) => {
-    const current = Number(variant.stock_fisico ?? 0);
-    const next = Number(stockDrafts[String(variant.id)] ?? current);
-    const diff = next - current;
-
-    if (diff === 0) return;
-
-    try {
-      setSaving(true);
-      setError(null);
-
-      await variantesService.changeStock(variant.id, {
-        cantidad: diff,
-        motivo: "Ajuste manual desde administrador de variantes",
-      });
-
-      await loadItems(true);
-    } catch (err) {
-      console.error(err);
-      setError("No se pudo actualizar el stock.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
   return (
     <>
       <section className={styles.page}>
         <header className={styles.header}>
           <div>
-            <Link to={`/products/${id}`} className={styles.backLink}>
-              <ArrowLeft size={18} />
-              Volver al detalle
-            </Link>
-
+            <AdminBreadcrumbs items={breadcrumbItems} />
             <h1 className={styles.title}>Variantes del producto</h1>
             <p className={styles.subtitle}>
               Crea nuevas combinaciones, edita sus precios y ajusta el stock sin
@@ -409,27 +382,6 @@ const ProductVariantsManager: React.FC = () => {
                   </div>
 
                   <div className={styles.variantTools}>
-                    <label className={styles.stockControl}>
-                      <span>Stock</span>
-                      <input
-                        type="number"
-                        min="0"
-                        value={
-                          stockDrafts[String(variant.id)] ??
-                          variant.stock_fisico ??
-                          0
-                        }
-                        onChange={(e) =>
-                          setStockDrafts((prev) => ({
-                            ...prev,
-                            [String(variant.id)]: Number(e.target.value),
-                          }))
-                        }
-                        onBlur={() => void handleSaveStock(variant)}
-                        aria-label={`Stock de ${getVariantLabel(variant)}`}
-                      />
-                    </label>
-
                     <button
                       type="button"
                       className={styles.primaryBtn}

@@ -1,7 +1,7 @@
 import React from "react";
 import { ChevronRight, Home } from "lucide-react";
 import { Link } from "react-router-dom";
-import styles from "../../../../styles/AdminBreadcrumbs.module.css";
+import styles from "../../../styles/AdminBreadcrumbs.module.css";
 
 export interface BreadcrumbItem {
   label: string;

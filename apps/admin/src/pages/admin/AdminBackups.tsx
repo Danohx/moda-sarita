@@ -15,7 +15,7 @@ import {
 import styles from "../../../styles/AdminBackup.module.css";
 import { backupsService } from "@admin/services/backups.service";
 import type { Backup } from "@shared/api/backups.api";
-import AdminBreadcrumbs from "../bd-monitor/components/AdminBreadcrumbs";
+import AdminBreadcrumbs from "@admin/components/layout/AdminBreadcrumbs";
 
 type BackupConfig = {
   autoBackup: boolean;

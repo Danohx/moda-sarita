@@ -1,9 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2, Save } from "lucide-react";
+import { Loader2, Save } from "lucide-react";
 import styles from "../../../styles/ProductForm.module.css";
 import { productosService } from "../../services/productos.service";
 import { categoriaService } from "../../services/categorias.service";
+import { useBreadcrumbContext } from "@shared/hooks/useBreadcrumbContext";
+import AdminBreadcrumbs from "@admin/components/layout/AdminBreadcrumbs";
+import type { BreadcrumbItem } from "@admin/components/layout/AdminBreadcrumbs";
 
 type CategoriaItem = {
   id: string | number;
@@ -77,7 +80,24 @@ function generateSkuFromName(name: string) {
 const ProductForm: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const ctx = useBreadcrumbContext();
   const isEdit = Boolean(id);
+  const breadcrumbItems: BreadcrumbItem[] =
+    ctx.from === "detail"
+      ? [
+          { label: "Productos", to: "/products" },
+          { label: "Detalles del producto", to: `/products/${id}` },
+          { label: isEdit ? "Editar producto" : "Nuevo producto" },
+        ]
+      : isEdit
+        ? [
+            { label: "Productos", to: "/products" },
+            { label: "Editar producto" },
+          ]
+        : [
+            { label: "Productos", to: "/products" },
+            { label: "Nuevo producto" },
+          ];
 
   const [categories, setCategories] = useState<CategoriaItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -89,7 +109,7 @@ const ProductForm: React.FC = () => {
 
   const pageTitle = useMemo(
     () => (isEdit ? "Editar producto" : "Nuevo producto"),
-    [isEdit]
+    [isEdit],
   );
 
   const pageSubtitle = useMemo(
@@ -97,7 +117,7 @@ const ProductForm: React.FC = () => {
       isEdit
         ? "Actualiza la información general del producto. Los precios, stock y atributos se administran desde variantes."
         : "Captura la información general del producto y su configuración comercial inicial.",
-    [isEdit]
+    [isEdit],
   );
 
   useEffect(() => {
@@ -143,12 +163,14 @@ const ProductForm: React.FC = () => {
             (categorias ?? []).map((categoria) => ({
               id: categoria.id,
               nombre: categoria.nombre,
-            }))
+            })),
           );
         }
 
         if (isEdit && id) {
-          const product = (await productosService.getById(id)) as ProductoResponse;
+          const product = (await productosService.getById(
+            id,
+          )) as ProductoResponse;
 
           if (!cancelled && product) {
             setForm((prev) => ({
@@ -187,14 +209,14 @@ const ProductForm: React.FC = () => {
 
   const handleChange = <K extends keyof ProductFormState>(
     field: K,
-    value: ProductFormState[K]
+    value: ProductFormState[K],
   ) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleVariantChange = <K extends keyof VarianteBasePayload>(
     field: K,
-    value: VarianteBasePayload[K]
+    value: VarianteBasePayload[K],
   ) => {
     setForm((prev) => ({
       ...prev,
@@ -321,10 +343,7 @@ const ProductForm: React.FC = () => {
     <section className={styles.formPage}>
       <header className={styles.header}>
         <div>
-          <Link to="/products" className={styles.backLink}>
-            <ArrowLeft size={18} />
-            Volver a productos
-          </Link>
+          <AdminBreadcrumbs items={breadcrumbItems} />
           <h1 className={styles.title}>{pageTitle}</h1>
           <p className={styles.subtitle}>{pageSubtitle}</p>
         </div>
@@ -334,7 +353,10 @@ const ProductForm: React.FC = () => {
 
       <form className={styles.formPage} onSubmit={handleSubmit}>
         <section className={styles.card}>
-          <h2 className={styles.title} style={{ fontSize: "1.2rem", margin: 0 }}>
+          <h2
+            className={styles.title}
+            style={{ fontSize: "1.2rem", margin: 0 }}
+          >
             Datos generales
           </h2>
           <p className={styles.subtitle} style={{ marginTop: "-12px" }}>
@@ -393,7 +415,10 @@ const ProductForm: React.FC = () => {
         </section>
 
         <section className={styles.card}>
-          <h2 className={styles.title} style={{ fontSize: "1.2rem", margin: 0 }}>
+          <h2
+            className={styles.title}
+            style={{ fontSize: "1.2rem", margin: 0 }}
+          >
             Configuración del producto
           </h2>
           <p className={styles.subtitle} style={{ marginTop: "-12px" }}>
@@ -423,11 +448,15 @@ const ProductForm: React.FC = () => {
 
         {!isEdit ? (
           <section className={styles.card}>
-            <h2 className={styles.title} style={{ fontSize: "1.2rem", margin: 0 }}>
+            <h2
+              className={styles.title}
+              style={{ fontSize: "1.2rem", margin: 0 }}
+            >
               Información comercial inicial
             </h2>
             <p className={styles.subtitle} style={{ marginTop: "-12px" }}>
-              Registra la variante base con sus datos esenciales para venta y control.
+              Registra la variante base con sus datos esenciales para venta y
+              control.
             </p>
 
             <div className={styles.grid}>
@@ -449,7 +478,9 @@ const ProductForm: React.FC = () => {
                 <input
                   id="codigo_barras"
                   value={form.variante_base.codigo_barras ?? ""}
-                  onChange={(e) => handleVariantChange("codigo_barras", e.target.value)}
+                  onChange={(e) =>
+                    handleVariantChange("codigo_barras", e.target.value)
+                  }
                 />
               </div>
 
@@ -486,12 +517,13 @@ const ProductForm: React.FC = () => {
         ) : (
           <section className={styles.card}>
             <div className={styles.stateBox} style={{ minHeight: 0 }}>
-              Los precios, SKU, stock y atributos se administran desde el módulo de variantes.
+              Los precios, SKU, stock y atributos se administran desde el módulo
+              de variantes.
             </div>
           </section>
         )}
 
-        {!isEdit ? (
+        {/* {!isEdit ? (
           <section className={styles.card}>
             <h2 className={styles.title} style={{ fontSize: "1.2rem", margin: 0 }}>
               Inventario inicial
@@ -544,7 +576,7 @@ const ProductForm: React.FC = () => {
               </div>
             </div>
           </section>
-        ) : null}
+        ) : null} */}
 
         <div className={styles.footer}>
           {isEdit && id ? (
@@ -556,8 +588,16 @@ const ProductForm: React.FC = () => {
             Cancelar
           </Link>
           <button type="submit" className={styles.saveBtn} disabled={saving}>
-            {saving ? <Loader2 size={18} className={styles.spinning} /> : <Save size={18} />}
-            {saving ? "Guardando..." : isEdit ? "Guardar cambios" : "Guardar producto"}
+            {saving ? (
+              <Loader2 size={18} className={styles.spinning} />
+            ) : (
+              <Save size={18} />
+            )}
+            {saving
+              ? "Guardando..."
+              : isEdit
+                ? "Guardar cambios"
+                : "Guardar producto"}
           </button>
         </div>
       </form>

@@ -1,7 +1,7 @@
 import { Database, HardDriveDownload, ScrollText, Wrench } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import styles from "../../../styles/AdminDatabaseMonitoring.module.css";
-import AdminBreadcrumbs from "./components/AdminBreadcrumbs";
+import AdminBreadcrumbs from "../../components/layout/AdminBreadcrumbs";
 import { AlertsPanel } from "./components/AlertsPanel";
 import { AuditLogsPreview } from "./components/AuditLogsPreview";
 import { BackupsPreview } from "./components/BackupsPreview";

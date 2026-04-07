@@ -206,7 +206,7 @@ export default function ProductVariantForm({
             />
           </div>
 
-          <div className={styles.field}>
+          {/* <div className={styles.field}>
             <label htmlFor="variant-stock-physical">Stock físico</label>
             <input
               id="variant-stock-physical"
@@ -243,7 +243,7 @@ export default function ProductVariantForm({
                 onChange({ ...form, stock_minimo: Number(e.target.value) })
               }
             />
-          </div>
+          </div> */}
         </div>
 
         <div className={styles.switches}>

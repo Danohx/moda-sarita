@@ -1,15 +1,14 @@
-/* InventoryMovements.module.css */
-.page,
-.inventory,
-.products,
-.formPage,
-.detailPage {
+/* InventoryVariantMovements.module.css */
+
+/* ─── Layout ─────────────────────────────────────────────── */
+.page {
   display: flex;
   flex-direction: column;
   gap: var(--section-gap);
   font-family: var(--font-primary);
 }
 
+/* ─── Header ─────────────────────────────────────────────── */
 .header {
   display: flex;
   justify-content: space-between;
@@ -26,93 +25,27 @@
   letter-spacing: -0.02em;
 }
 
+.titleVariant {
+  color: var(--color-primary-vibrant);
+}
+
 .subtitle {
   color: var(--color-text);
   opacity: 0.65;
-  margin: 6px 0 0 0;
+  margin: 6px 0 0;
   font-size: var(--font-size-aux);
 }
 
-/* ─── QUICK NAV ──────────────────────────────── */
-.quickNav {
+.headerActions {
   display: flex;
+  gap: 12px;
   flex-wrap: wrap;
-  gap: 10px;
-  background: var(--color-surface);
-  padding: 12px;
-  border-radius: var(--border-radius-large);
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--color-border);
-}
-
-.quickNavItem,
-.quickNavActive {
-  padding: 9px 15px;
-  border-radius: var(--border-radius-medium);
-  text-decoration: none;
-  font-weight: 700;
-  font-size: var(--font-size-aux);
-  transition: all 0.2s ease;
-}
-
-.quickNavItem {
-  color: var(--color-text);
-}
-.quickNavItem:hover {
-  background: var(--color-primary-hover);
-}
-.quickNavActive {
-  background: var(--color-primary-vibrant);
-  color: var(--color-text-on-vibrant);
-}
-
-/* ─── CARDS ──────────────────────────────────── */
-.card,
-.filtersCard,
-.tableCard,
-.alertCard,
-.infoCard {
-  background: var(--color-surface);
-  border-radius: var(--border-radius-xl);
-  padding: 22px;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--color-border);
-}
-
-/* ─── SEARCH ─────────────────────────────────── */
-.searchBox {
-  display: flex;
   align-items: center;
-  gap: 10px;
-  background: var(--color-background);
-  border: 2px solid transparent;
-  border-radius: var(--border-radius-medium);
-  padding: 0 14px;
 }
 
-.searchBox:focus-within {
-  border-color: var(--color-primary-vibrant);
-  background: var(--color-surface);
-}
-
-.searchBox input {
-  width: 100%;
-  border: none;
-  background: transparent;
-  padding: 13px 0;
-  font-size: var(--font-size-base);
-  color: var(--color-text);
-  outline: none;
-  font-family: var(--font-primary);
-}
-
-/* ─── BUTTONS ────────────────────────────────── */
+/* ─── Buttons ────────────────────────────────────────────── */
 .primaryBtn,
-.refreshBtn,
-.saveBtn,
-.cancelBtn,
-.actionBtn,
-.actionBtnSecondary {
+.refreshBtn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -137,27 +70,6 @@
   transform: translateY(-2px);
 }
 
-.secondaryBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 11px 18px;
-  border-radius: var(--border-radius-medium);
-  font-weight: 700;
-  font-size: var(--font-size-aux);
-  font-family: var(--font-primary);
-  border: 2px solid var(--color-primary-vibrant);
-  background: var(--color-surface);
-  color: var(--color-primary-vibrant);
-  text-decoration: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.secondaryBtn:hover {
-  background: var(--color-primary-hover);
-}
-
 .refreshBtn {
   border: 2px solid var(--color-primary-vibrant);
   background: var(--color-surface);
@@ -168,34 +80,171 @@
   background: var(--color-primary-hover);
 }
 
-.saveBtn {
-  border: none;
-  background: var(--color-primary-vibrant);
-  color: var(--color-text-on-vibrant);
+.refreshBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-.saveBtn:hover {
-  transform: translateY(-2px);
+/* ─── Variant context card ───────────────────────────────── */
+.variantCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-xl);
+  padding: 20px 22px;
+  box-shadow: var(--shadow-sm);
 }
 
-.cancelBtn {
+.variantTop {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.variantAvatar {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--border-radius-medium);
   background: var(--color-primary-bg);
-  color: var(--color-text);
-  border: 2px solid var(--color-primary);
+  border: 1px solid var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--color-primary-vibrant);
+  flex-shrink: 0;
 }
 
-.actionBtn {
-  background: var(--color-primary-vibrant);
-  color: var(--color-text-on-vibrant);
-  padding: 9px 14px;
-}
-.actionBtnSecondary {
-  background: var(--color-primary-hover);
+.variantProductName {
+  font-size: var(--font-size-base);
+  font-weight: 700;
   color: var(--color-text);
-  padding: 9px 14px;
+  margin: 0 0 5px;
 }
 
-/* ─── TABLE ──────────────────────────────────── */
+.variantMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--font-size-aux);
+  color: var(--color-text);
+  opacity: 0.7;
+}
+
+.skuTag {
+  display: inline-flex;
+  align-items: center;
+  background: var(--color-primary-bg);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--border-radius-small, 6px);
+  padding: 2px 9px;
+  font-size: 0.75rem;
+  font-family: monospace;
+  color: var(--color-primary-vibrant);
+  font-style: normal;
+}
+
+/* ─── Metrics ────────────────────────────────────────────── */
+.metricsRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .metricsRow {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-medium);
+  padding: 12px 14px;
+}
+
+.metricLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text);
+  opacity: 0.5;
+}
+
+.metricVal {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--color-text);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.metricOk {
+  color: var(--color-success);
+}
+
+/* ─── Filters card ───────────────────────────────────────── */
+.filtersCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-xl);
+  padding: 14px 22px;
+  box-shadow: var(--shadow-sm);
+}
+
+.searchBox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--color-background);
+  border: 2px solid transparent;
+  border-radius: var(--border-radius-medium);
+  padding: 0 14px;
+  transition: border-color 0.2s ease;
+}
+
+.searchBox:focus-within {
+  border-color: var(--color-primary-vibrant);
+  background: var(--color-surface);
+}
+
+.searchIcon {
+  color: var(--color-text);
+  opacity: 0.4;
+  flex-shrink: 0;
+}
+
+.searchBox input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 13px 0;
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  outline: none;
+  font-family: var(--font-primary);
+}
+
+.searchBox input::placeholder {
+  color: var(--color-text);
+  opacity: 0.4;
+}
+
+/* ─── Table card ─────────────────────────────────────────── */
+.tableCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-xl);
+  padding: 22px;
+  box-shadow: var(--shadow-sm);
+}
+
 .tableWrapper {
   width: 100%;
   overflow-x: auto;
@@ -204,122 +253,98 @@
 .table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 760px;
+  min-width: 560px;
 }
 
 .table th {
   text-align: left;
-  padding: 13px 14px;
+  padding: 10px 14px;
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--color-primary-vibrant);
   border-bottom: 2px solid var(--color-primary);
+  white-space: nowrap;
 }
 
 .table td {
-  padding: 15px 14px;
+  padding: 14px 14px;
   border-bottom: 1px solid var(--color-border);
   color: var(--color-text);
   font-size: var(--font-size-aux);
   vertical-align: middle;
 }
 
-.table tbody tr:hover {
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table tbody tr:hover td {
   background: var(--color-primary-bg);
 }
 
-/* ─── SECTION TITLE ──────────────────────────── */
-.sectionTitle {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  font-size: var(--font-size-base);
-  font-weight: 700;
-  color: var(--color-text);
-  margin: 0;
+/* ─── Table cell helpers ─────────────────────────────────── */
+.tdMuted {
+  opacity: 0.6;
 }
 
-.cardHeader {
-  margin-bottom: 16px;
+.tdMono {
+  font-family: monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
 }
 
-/* ─── BADGES ─────────────────────────────────── */
-.badgeOk {
-  display: inline-flex;
-  align-items: center;
-  padding: 5px 11px;
-  border-radius: 999px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  background: var(--color-success-bg);
-  color: var(--color-success);
-}
-.badgeLow {
-  display: inline-flex;
-  align-items: center;
-  padding: 5px 11px;
-  border-radius: 999px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  background: var(--color-warning-bg);
-  color: var(--color-warning);
-}
-.badgeOut {
-  display: inline-flex;
-  align-items: center;
-  padding: 5px 11px;
-  border-radius: 999px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  background: var(--color-danger-bg);
+.tdDanger {
   color: var(--color-danger);
+}
+
+/* ─── Badges ─────────────────────────────────────────────── */
+.badgeEntry,
+.badgeExit,
+.badgeAdjust {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .badgeEntry {
-  display: inline-flex;
-  padding: 5px 11px;
-  border-radius: 999px;
-  font-size: 0.78rem;
-  font-weight: 700;
   background: var(--color-success-bg);
   color: var(--color-success);
 }
+
 .badgeExit {
-  display: inline-flex;
-  padding: 5px 11px;
-  border-radius: 999px;
-  font-size: 0.78rem;
-  font-weight: 700;
   background: var(--color-danger-bg);
   color: var(--color-danger);
 }
+
 .badgeAdjust {
-  display: inline-flex;
-  padding: 5px 11px;
-  border-radius: 999px;
-  font-size: 0.78rem;
-  font-weight: 700;
   background: rgba(124, 58, 237, 0.1);
   color: #7c3aed;
 }
 
-/* ─── STATES ─────────────────────────────────── */
+/* ─── Empty / loading state ──────────────────────────────── */
 .centerState {
-  min-height: 220px;
+  min-height: 200px;
   display: flex;
   align-items: center;
   justify-content: center;
-  text-align: center;
   color: var(--color-text);
-  opacity: 0.65;
+  opacity: 0.5;
   font-weight: 700;
+  font-size: var(--font-size-aux);
+  text-align: center;
 }
 
+/* ─── Spinner ────────────────────────────────────────────── */
 .spinning {
-  animation: spin 1s linear infinite;
+  animation: spin 0.9s linear infinite;
 }
+
 @keyframes spin {
   from {
     transform: rotate(0deg);
@@ -327,92 +352,4 @@
   to {
     transform: rotate(360deg);
   }
-}
-
-/* ─── SELECT ─────────────────────────────────── */
-.select {
-  width: 100%;
-  border: 2px solid var(--color-primary);
-  background: var(--color-surface);
-  color: var(--color-text);
-  border-radius: var(--border-radius-medium);
-  padding: 0 14px;
-  min-height: 48px;
-  font-size: var(--font-size-base);
-  font-family: var(--font-primary);
-  outline: none;
-}
-
-.select:focus {
-  border-color: var(--color-primary-vibrant);
-}
-
-/* ─── FIELDS ─────────────────────────────────── */
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.field label {
-  font-weight: 700;
-  color: var(--color-text);
-  font-size: var(--font-size-aux);
-}
-
-.field input,
-.field select,
-.field textarea {
-  width: 100%;
-  border: 2px solid var(--color-primary);
-  border-radius: var(--border-radius-medium);
-  background: var(--color-surface);
-  color: var(--color-text);
-  padding: 13px 16px;
-  font-size: var(--font-size-base);
-  font-family: var(--font-primary);
-  outline: none;
-  transition: all 0.2s ease;
-}
-
-.field input:focus,
-.field select:focus,
-.field textarea:focus {
-  border-color: var(--color-primary-vibrant);
-  box-shadow: 0 0 0 3px var(--color-primary-soft);
-}
-
-.full {
-  grid-column: 1 / -1;
-}
-
-/* ─── FOOTER ─────────────────────────────────── */
-.footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 24px;
-  flex-wrap: wrap;
-}
-
-.infoCard {
-  display: flex;
-  gap: 14px;
-  align-items: flex-start;
-}
-
-.infoIcon {
-  color: var(--color-primary-vibrant);
-  flex-shrink: 0;
-}
-.infoCard strong {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--color-text);
-  font-weight: 700;
-}
-.infoCard p {
-  margin: 0;
-  color: var(--color-text);
-  opacity: 0.7;
-  font-size: var(--font-size-aux);
 }

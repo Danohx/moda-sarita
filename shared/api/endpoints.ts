@@ -75,6 +75,7 @@ export const API_ENDPOINTS = {
       `/inventario/variantes/${id}/movimientos`,
     productMovements: (id: string | number) =>
       `/inventario/productos/${id}/movimientos`,
+    movimientos: "/inventario/movimientos",
   },
   monitoring: {
     summary: "/monitoring/summary",

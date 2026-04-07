@@ -3,7 +3,7 @@ import { RefreshCw } from "lucide-react";
 import styles from "../../../styles/Inventory.module.css";
 import { auditLogsService } from "@admin/services/auditLogs.service";
 import type { AuditLog } from "@shared/api/auditLogs.api";
-import AdminBreadcrumbs from "../bd-monitor/components/AdminBreadcrumbs";
+import AdminBreadcrumbs from "../../components/layout/AdminBreadcrumbs";
 
 const AdminMonitoringLogs: React.FC = () => {
   const [items, setItems] = useState<AuditLog[]>([]);

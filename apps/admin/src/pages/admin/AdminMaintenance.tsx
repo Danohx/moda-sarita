@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 import styles from "../../../styles/Inventory.module.css";
 import { maintenanceService } from "@admin/services/maintenance.service";
 import type { MaintenanceJob } from "@shared/api/maintenance.api";
-import AdminBreadcrumbs from "../bd-monitor/components/AdminBreadcrumbs";
+import AdminBreadcrumbs from "../../components/layout/AdminBreadcrumbs";
 
 function formatDate(value?: string | null) {
   if (!value) return "—";

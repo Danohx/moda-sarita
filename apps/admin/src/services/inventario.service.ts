@@ -1,4 +1,6 @@
-import { inventarioApi } from "../../../../shared/api/inventario.api";
+import { inventarioApi, type MovimientoInventario } from "../../../../shared/api/inventario.api";
+
+type CreateMovementPayload = Parameters<typeof inventarioApi.createMovement>[0]
 
 export const inventarioService = {
   async getExistencias() {
@@ -16,19 +18,13 @@ export const inventarioService = {
     return response.data ?? [];
   },
 
-  async getProductMovements(id: string | number) {
+  async getProductMovements(id: string | number): Promise<MovimientoInventario[]> {
     const response = await inventarioApi.getProductMovements(id);
     return response.data ?? [];
   },
 
-  async getInventoryTable() {
-    const rows = await this.getExistencias();
-
-    return rows.map((item) => ({
-      ...item,
-      stock: Number(item.stock ?? 0),
-      hasStock: Number(item.stock ?? 0) > 0,
-      isOutOfStock: Number(item.stock ?? 0) <= 0,
-    }));
-  },
+  async createMovement(payload: CreateMovementPayload) {
+    const response = await inventarioApi.createMovement(payload);
+    return response.data;
+  }
 };

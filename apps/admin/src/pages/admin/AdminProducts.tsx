@@ -13,12 +13,13 @@ import {
   Tag,
   ClipboardCheck,
   ToggleRight,
-  ToggleLeft
+  ToggleLeft,
 } from "lucide-react";
 import styles from "../../../styles/AdminProducts.module.css";
 import { productosService } from "@admin/services/productos.service";
 import type { Producto } from "@shared/api/productos.api";
 import { categoriaService } from "@admin/services/categorias.service";
+import AdminBreadcrumbs from "@admin/components/layout/AdminBreadcrumbs";
 
 interface CategoriaItem {
   id: string | number;
@@ -29,7 +30,7 @@ interface CategoriaItem {
 interface ProductoItem {
   id: string | number;
   nombre: string;
-  sku: string;  
+  sku: string;
   precio_venta: number;
   stock_total: number;
   activo: boolean;
@@ -132,7 +133,7 @@ const AdminProducts: React.FC = () => {
         const normalizedProducts = normalizeProducts(productos, categorias);
         const normalizedCategories = buildCategories(normalizedProducts);
 
-        console.log(normalizedProducts, normalizedCategories)
+        console.log(normalizedProducts, normalizedCategories);
         setProducts(normalizedProducts);
         setCategories(normalizedCategories);
       } catch (err) {
@@ -143,7 +144,6 @@ const AdminProducts: React.FC = () => {
       } finally {
         setLoading(false);
         setRefreshing(false);
-        
       }
     },
     [buildCategories, normalizeProducts],
@@ -154,14 +154,24 @@ const AdminProducts: React.FC = () => {
   }, [loadProducts]);
 
   const handleToggleStatus = async (product: ProductoItem) => {
-    await productosService.changeStatus(product.id, !product.activo);
-    await loadProducts(true);
-  }
+    try {
+      await productosService.changeStatus(product.id, !product.activo);
+      await loadProducts(true);
+    } catch (err) {
+      console.error(err);
+      setError("No se pudo cambiar el estado del producto.");
+    }
+  };
 
   const handleToggleFeatured = async (product: ProductoItem) => {
-    await productosService.changeFeatured(product.id, !product.destacado);
-    await loadProducts(true);
-  }
+    try {
+      await productosService.changeFeatured(product.id, !product.destacado);
+      await loadProducts(true);
+    } catch (err) {
+      console.error(err);
+      setError("No se pudo cambiar el estado destacado.");
+    }
+  };
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
@@ -210,6 +220,7 @@ const AdminProducts: React.FC = () => {
     <section className={styles.products}>
       <header className={styles.header}>
         <div>
+          <AdminBreadcrumbs items={[{ label: "Productos" }]} />
           <h1 className={styles.title}>Productos</h1>
           <p className={styles.subtitle}>
             Gestiona catálogo, estados comerciales y accesos a detalle.
@@ -386,6 +397,7 @@ const AdminProducts: React.FC = () => {
                         </Link>
                         <Link
                           to={`/products/${product.id}/edit`}
+                          state={{ from: "list" }}
                           className={styles.iconBtn}
                           title="Editar"
                         >
@@ -393,6 +405,7 @@ const AdminProducts: React.FC = () => {
                         </Link>
                         <Link
                           to={`/products/${product.id}/variants`}
+                          state={{ from: "list", productoNombre: product.nombre }}
                           className={styles.iconBtn}
                           title="Variantes"
                         >
@@ -400,6 +413,7 @@ const AdminProducts: React.FC = () => {
                         </Link>
                         <Link
                           to={`/products/${product.id}/images`}
+                          state={{ from: "list" }}
                           className={styles.iconBtn}
                           title="Imágenes"
                         >
@@ -415,11 +429,15 @@ const AdminProducts: React.FC = () => {
                         </button>
                         <button
                           type="button"
-                          className={product.activo ? styles.badgeActive : styles.badgeInactive}
+                          className={styles.iconBtn}
                           title={product.activo ? "Desactivar" : "Activar"}
                           onClick={() => void handleToggleStatus(product)}
                         >
-                          {product.activo ? <ToggleRight /> : <ToggleLeft />}
+                          {product.activo ? (
+                            <ToggleRight size={17} />
+                          ) : (
+                            <ToggleLeft size={17} />
+                          )}
                         </button>
                       </div>
                     </td>

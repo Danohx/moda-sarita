@@ -1,8 +1,11 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, ImagePlus, RefreshCw, Star, Trash2, X } from "lucide-react";
+import { useParams } from "react-router-dom";
+import { ImagePlus, RefreshCw, Star, Trash2, X } from "lucide-react";
 import styles from "../../../styles/ProductImagesManager.module.css";
 import { productoImagenesService } from "@admin/services/productoImagenes.service";
+import AdminBreadcrumbs from "@admin/components/layout/AdminBreadcrumbs";
+import type { BreadcrumbItem } from "@admin/components/layout/AdminBreadcrumbs";
+import { useBreadcrumbContext } from "@shared/hooks/useBreadcrumbContext";
 
 type ProductImage = {
   id: string | number;
@@ -25,6 +28,18 @@ const ProductImagesManager: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [files, setFiles] = useState<File[]>([]);
+  const ctx = useBreadcrumbContext();
+  const breadcrumbItems: BreadcrumbItem[] =
+    ctx.from === "detail"
+      ? [
+          { label: "Productos", to: "/products" },
+          { label: "Detalles del producto", to: `/productos/${id}` },
+          { label: "Imagenes del producto" },
+        ]
+      : [
+          { label: "Productos", to: "/products" },
+          { label: "Imagenes del producto" },
+        ];
 
   const loadItems = useCallback(
     async (isRefresh = false) => {
@@ -185,10 +200,7 @@ const ProductImagesManager: React.FC = () => {
     <section className={styles.page}>
       <header className={styles.header}>
         <div>
-          <Link to={`/products/${id}`} className={styles.backLink}>
-            <ArrowLeft size={18} />
-            Volver al detalle
-          </Link>
+          <AdminBreadcrumbs items={breadcrumbItems} />
           <h1 className={styles.title}>Imágenes del producto</h1>
           <p className={styles.subtitle}>
             Carga, organiza y define la imagen principal del producto.

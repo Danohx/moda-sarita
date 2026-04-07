@@ -19,8 +19,6 @@ import ProductVariantsManager from "../pages/admin/ProductVariantsManager";
 import ProductImagesManager from "../pages/admin/ProductImagesManager";
 import ProductCatalogs from "../pages/admin/ProductCategorias";
 import InventoryMovements from "../pages/admin/InventoryMovements";
-import InventoryAdjustments from "../pages/admin/InventoryAdjustments";
-import InventoryAlerts from "../pages/admin/InventoryAlerts";
 import AdminDatabaseMonitoring from "../pages/bd-monitor/AdminDatabaseMonitoring";
 import AdminBackups from "@admin/pages/admin/AdminBackups";
 import AdminMaintenance from "@admin/pages/admin/AdminMaintenance";
@@ -59,9 +57,7 @@ export const AppRouter = () => {
               element={<ProductImagesManager />}
             />
             <Route path="inventory" element={<Inventory />} />
-            <Route path="inventory/movements" element={<InventoryMovements />} />
-            <Route path="inventory/adjustments" element={<InventoryAdjustments />} />
-            <Route path="inventory/alerts" element={<InventoryAlerts />} />
+            <Route path="inventory/variants/:id/movements" element={<InventoryMovements />} />
             <Route path="/bd-monitor" element={<AdminDatabaseMonitoring />} />
             <Route path="/backups" element={<AdminBackups />} />
             <Route path="/maintenance" element={<AdminMaintenance />} />
