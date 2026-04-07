@@ -58,11 +58,11 @@ export const AppRouter = () => {
             />
             <Route path="inventory" element={<Inventory />} />
             <Route path="inventory/variants/:id/movements" element={<InventoryMovements />} />
-            <Route path="/bd-monitor" element={<AdminDatabaseMonitoring />} />
-            <Route path="/backups" element={<AdminBackups />} />
-            <Route path="/maintenance" element={<AdminMaintenance />} />
-            <Route path="/maintenance/run" element={<AdminMaintenanceRunner />} />
-            <Route path="/monitoring-logs" element={<AdminMonitoringLogs />} />
+            <Route path="bd-monitor" element={<AdminDatabaseMonitoring />} />
+            <Route path="backups" element={<AdminBackups />} />
+            <Route path="maintenance" element={<AdminMaintenance />} />
+            <Route path="maintenance/run" element={<AdminMaintenanceRunner />} />
+            <Route path="monitoring-logs" element={<AdminMonitoringLogs />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />

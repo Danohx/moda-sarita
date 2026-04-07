@@ -9,7 +9,7 @@ type Props = {
 };
 
 export const AuthProvider: React.FC<Props> = ({ children }) => {
-  const [user, setUser] = useState<AuthUser | null>(authStorage.getUser());
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   const restoreSession = async () => {
@@ -26,6 +26,7 @@ export const AuthProvider: React.FC<Props> = ({ children }) => {
 
       const me = await authApi.me();
       setUser(me);
+      authStorage.setUser?.(me);
     } catch {
       setUser(null);
       authStorage.clearSession();
@@ -39,6 +40,7 @@ export const AuthProvider: React.FC<Props> = ({ children }) => {
       await authApi.logout();
     } finally {
       setUser(null);
+      authStorage.clearSession();
     }
   };
 
