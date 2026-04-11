@@ -13,92 +13,571 @@ import {
   RefreshCw,
 } from "lucide-react";
 import styles from "../../../styles/PuntoVenta.module.css";
+import type { Producto } from "@shared/api/productos.api";
+import { productosService } from "@admin/services/productos.service";
+import { categoriaService } from "@admin/services/categorias.service";
+import { variantesService } from "@admin/services/variantes.service";
+import { clientesService } from "@admin/services/clientes.service";
+import { ventasService } from "@admin/services/ventas.service";
+import ModalVariantes from "@admin/components/components/ModalVariantes";
+import ModalCliente, {
+  type ClientePOS,
+} from "@admin/components/components/ModalClientes";
+import ModalCheckout from "@admin/components/components/ModalCheckout";
+import ModalApartado from "@admin/components/components/ModalApartado";
 
-interface Producto {
-  id: string;
+interface CategoriaItem {
+  id: string | number;
   nombre: string;
-  precio: number;
-  stock: number;
-  sku?: string;
-  imagen?: string;
-  categoria?: string;
+  activo?: boolean;
+}
+
+interface ProductoItem {
+  id: string | number;
+  nombre: string;
+  sku: string;
+  precio_venta: number;
+  stock_total: number;
+  activo: boolean;
+  destacado: boolean;
+  categoria: {
+    id: string | number;
+    nombre: string;
+  } | null;
 }
 
 interface CarritoItem {
   id: string;
+  productoId: string;
   nombre: string;
   precio: number;
   cantidad: number;
   stock: number;
+  variante?: string;
 }
 
-interface Cliente {
+interface VarianteItem {
+  id: string | number;
+  producto_id?: string | number;
+  sku?: string;
+  codigo_barras?: string;
+  precio_venta?: number;
+  precio_costo?: number;
+  stock_fisico?: number;
+  stock_apartado?: number;
+  stock_minimo?: number;
+  stock_disponible?: number;
+  activo?: boolean;
+  color_id?: string | number | null;
+  talla_id?: string | number | null;
+  color_nombre?: string | null;
+  color_hex?: string | null;
+  talla_nombre?: string | null;
+  talla_tipo?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface ModalVarianteItem {
+  id: string;
+  etiqueta: string;
+  stock: number;
+  precio?: number;
+}
+
+interface ModalGrupoVariante {
+  nombre: string;
+  variantes: ModalVarianteItem[];
+}
+
+interface ProductoVariantesModal {
   id: string;
   nombre: string;
-  telefono?: string;
-}
-
-type PosData = {
-  productos: Producto[];
-  cliente: Cliente | null;
-};
-
-/**
- * Placeholder API
- * Reemplazar después por endpoints reales:
- * - GET /inventario/existencias
- * - GET /clientes
- * - POST /ventas/pedidos
- * - POST /ventas/apartados
- */
-async function fetchPosData(signal?: AbortSignal): Promise<PosData> {
-  void signal;
-  return {
-    productos: [],
-    cliente: null,
-  };
+  sku?: string;
+  precio: number;
+  imagen?: string;
+  grupos: ModalGrupoVariante[];
 }
 
 export const POS: React.FC = () => {
   const [busqueda, setBusqueda] = useState("");
   const [carrito, setCarrito] = useState<CarritoItem[]>([]);
-  const [cliente, setCliente] = useState<Cliente | null>(null);
-  const [productos, setProductos] = useState<Producto[]>([]);
+  const [cliente, setCliente] = useState<ClientePOS | null>(null);
+  const [products, setProducts] = useState<ProductoItem[]>([]);
+  const [, setCategories] = useState<CategoriaItem[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const load = useCallback(async () => {
-    const controller = new AbortController();
-
-    try {
-      setLoading(true);
-      const data = await fetchPosData(controller.signal);
-      setProductos(data.productos ?? []);
-      setCliente(data.cliente ?? null);
-    } catch {
-      setProductos([]);
-      setCliente(null);
-    } finally {
-      setLoading(false);
-    }
-
-    return () => controller.abort();
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const [, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [modalVariantesAbierto, setModalVariantesAbierto] = useState(false);
+  const [productoModal, setProductoModal] =
+    useState<ProductoVariantesModal | null>(null);
+  const [variantesActuales, setVariantesActuales] = useState<VarianteItem[]>(
+    [],
+  );
+  const [, setCargandoVariantes] = useState(false);
+  const [clientesLista, setClientesLista] = useState<ClientePOS[]>([]);
+  const [modalClienteAbierto, setModalClienteAbierto] = useState(false);
+  const [cargandoCliente, setCargandoCliente] = useState(false);
+  const [modalCheckoutAbierto, setModalCheckoutAbierto] = useState(false);
+  const [modalApartadoAbierto, setModalApartadoAbierto] = useState(false);
+  const [procesandoPago, setProcesandoPago] = useState(false);
+  const [procesandoApartado, setProcesandoApartado] = useState(false);
 
   const productosFiltrados = useMemo(() => {
+    const productosActivos = products.filter((p) => p.activo);
     const q = busqueda.toLowerCase().trim();
-    if (!q) return productos;
+    if (!q) return productosActivos;
 
-    return productos.filter(
+    return productosActivos.filter(
       (p) =>
         p.nombre.toLowerCase().includes(q) ||
         p.sku?.toLowerCase().includes(q) ||
-        p.categoria?.toLowerCase().includes(q)
+        p.categoria?.nombre?.toLowerCase().includes(q),
     );
-  }, [busqueda, productos]);
+  }, [busqueda, products]);
+
+  const normalizeProducts = useCallback(
+    (data: Producto[], categorias: CategoriaItem[]) => {
+      const categoriasMap = new Map(
+        categorias.map((categoria) => [String(categoria.id), categoria]),
+      );
+
+      const normalized: ProductoItem[] = data.map((product) => {
+        const categoria = product.categoria_id
+          ? categoriasMap.get(String(product.categoria_id))
+          : null;
+
+        return {
+          id: product.id,
+          nombre: product.nombre ?? "Sin nombre",
+          sku: product.sku ?? "",
+          precio_venta: Number(product.precio_venta ?? 0),
+          stock_total: Number(product.stock_total ?? 0),
+          activo: Boolean(product.activo),
+          destacado: Boolean(product.destacado),
+          categoria: categoria
+            ? {
+                id: categoria.id,
+                nombre: categoria.nombre,
+              }
+            : null,
+        };
+      });
+      return normalized;
+    },
+    [],
+  );
+
+  const buildCategories = useCallback((items: ProductoItem[]) => {
+    const uniqueCategories = Array.from(
+      new Map(
+        items
+          .filter((product) => product.categoria)
+          .map((product) => [
+            String(product.categoria!.id),
+            {
+              id: product.categoria!.id,
+              nombre: product.categoria!.nombre,
+            },
+          ]),
+      ).values(),
+    ).sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+    return uniqueCategories;
+  }, []);
+
+  const loadProducts = useCallback(
+    async (isRefresh = false) => {
+      try {
+        setError(null);
+
+        if (isRefresh) {
+          setRefreshing(true);
+        } else {
+          setLoading(true);
+        }
+
+        const [productos, categorias] = await Promise.all([
+          productosService.getList(),
+          categoriaService.getCategorias(),
+        ]);
+        const normalizedProducts = normalizeProducts(productos, categorias);
+        const normalizedCategories = buildCategories(normalizedProducts);
+
+        console.log(normalizedProducts, normalizedCategories);
+        setProducts(normalizedProducts);
+        setCategories(normalizedCategories);
+      } catch (err) {
+        console.error(err);
+        setProducts([]);
+        setCategories([]);
+        setError("No se pudieron cargar los productos.");
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [buildCategories, normalizeProducts],
+  );
+
+  const getStockDisponible = (variante: VarianteItem) => {
+    const stockFisico = Number(variante.stock_fisico ?? 0);
+    const stockApartado = Number(variante.stock_apartado ?? 0);
+    return Math.max(stockFisico - stockApartado, 0);
+  };
+
+  const mapVariantesToModal = useCallback(
+    (
+      producto: ProductoItem,
+      variantes: VarianteItem[],
+    ): ProductoVariantesModal => {
+      const tallasMap = new Map<string, ModalVarianteItem>();
+      const coloresMap = new Map<string, ModalVarianteItem>();
+
+      for (const variante of variantes) {
+        const stock = getStockDisponible(variante);
+        const precio = Number(
+          variante.precio_venta ?? producto.precio_venta ?? 0,
+        );
+
+        if (variante.talla_id && variante.talla_nombre) {
+          const key = String(variante.talla_id);
+          const current = tallasMap.get(key);
+
+          if (!current || stock > current.stock) {
+            tallasMap.set(key, {
+              id: key,
+              etiqueta: variante.talla_nombre,
+              stock,
+              precio,
+            });
+          }
+        }
+
+        if (variante.color_id && variante.color_nombre) {
+          const key = String(variante.color_id);
+          const current = coloresMap.get(key);
+
+          if (!current || stock > current.stock) {
+            coloresMap.set(key, {
+              id: key,
+              etiqueta: variante.color_nombre,
+              stock,
+              precio,
+            });
+          }
+        }
+      }
+
+      const grupos: ModalGrupoVariante[] = [];
+
+      if (tallasMap.size > 0) {
+        grupos.push({
+          nombre: "Talla",
+          variantes: Array.from(tallasMap.values()),
+        });
+      }
+
+      if (coloresMap.size > 0) {
+        grupos.push({
+          nombre: "Color",
+          variantes: Array.from(coloresMap.values()),
+        });
+      }
+
+      return {
+        id: String(producto.id),
+        nombre: producto.nombre,
+        sku: producto.sku,
+        precio: producto.precio_venta,
+        grupos,
+      };
+    },
+    [],
+  );
+
+  const handleOpenVariantes = useCallback(
+    async (producto: ProductoItem) => {
+      try {
+        setCargandoVariantes(true);
+        setError(null);
+
+        const response = await variantesService.getByProductoId(producto.id);
+        const variantes = Array.isArray(response) ? response : [];
+
+        const variantesActivas = variantes.filter((v) => v.activo !== false);
+
+        if (variantesActivas.length === 0) {
+          return;
+        }
+
+        setVariantesActuales(variantesActivas as VarianteItem[]);
+        setProductoModal(
+          mapVariantesToModal(producto, variantesActivas as VarianteItem[]),
+        );
+        setModalVariantesAbierto(true);
+      } catch (err) {
+        console.error(err);
+        setError("No se pudieron cargar las variantes del producto.");
+      } finally {
+        setCargandoVariantes(false);
+      }
+    },
+    [mapVariantesToModal],
+  );
+
+  const handleAgregarVariante = useCallback(
+    (
+      productoId: string,
+      variantesSeleccionadas: Record<string, string>,
+      cantidad: number,
+    ) => {
+      const tallaId = variantesSeleccionadas.Talla
+        ? Number(variantesSeleccionadas.Talla)
+        : null;
+
+      const colorId = variantesSeleccionadas.Color
+        ? Number(variantesSeleccionadas.Color)
+        : null;
+
+      const variante = variantesActuales.find((item) => {
+        const tallaOk =
+          tallaId === null || Number(item.talla_id ?? 0) === tallaId;
+        const colorOk =
+          colorId === null || Number(item.color_id ?? 0) === colorId;
+        return tallaOk && colorOk;
+      });
+
+      if (!variante) {
+        setError(
+          "No se encontró una variante válida para la combinación seleccionada.",
+        );
+        return;
+      }
+
+      const stockDisponible = getStockDisponible(variante);
+
+      if (stockDisponible <= 0) {
+        setError("La variante seleccionada no tiene stock disponible.");
+        return;
+      }
+
+      const varianteNombre = [variante.talla_nombre, variante.color_nombre]
+        .filter(Boolean)
+        .join(" / ");
+
+      const precioFinal = Number(
+        variante.precio_venta ?? productoModal?.precio ?? 0,
+      );
+
+      setCarrito((prev) => {
+        const existente = prev.find((item) => item.id === variante.id);
+
+        if (existente) {
+          const nuevaCantidad = Math.min(
+            existente.cantidad + cantidad,
+            stockDisponible,
+          );
+
+          return prev.map((item) =>
+            item.id === variante.id
+              ? { ...item, cantidad: nuevaCantidad }
+              : item,
+          );
+        }
+
+        return [
+          ...prev,
+          {
+            id: String(variante.id),
+            productoId,
+            nombre: productoModal?.nombre ?? "Producto",
+            precio: precioFinal,
+            cantidad: Math.min(cantidad, stockDisponible),
+            stock: stockDisponible,
+            variante: varianteNombre || "Variante base",
+          },
+        ];
+      });
+
+      setModalVariantesAbierto(false);
+      setProductoModal(null);
+      setVariantesActuales([]);
+    },
+    [productoModal, variantesActuales],
+  );
+  const loadClientes = useCallback(async () => {
+    try {
+      const data = await clientesService.getList();
+      setClientesLista((data || []) as ClientePOS[]);
+    } catch (err) {
+      console.error("Error cargando clientes", err);
+    }
+  }, []);
+
+  const handleCrearClientePOS = async (
+    nuevoClienteData: Omit<ClientePOS, "id">,
+  ) => {
+    setCargandoCliente(true);
+    try {
+      type CreateClientePayload = Parameters<typeof clientesService.create>[0];
+
+      const payload: CreateClientePayload = {
+        nombres: nuevoClienteData.nombres,
+        apellido_paterno: nuevoClienteData.apellido_paterno,
+        apellido_materno: nuevoClienteData.apellido_materno ?? undefined,
+        telefono: nuevoClienteData.telefono ?? undefined,
+        email: nuevoClienteData.email ?? undefined,
+      };
+
+      const respuesta = await clientesService.create(payload);
+
+      const nuevoCliente = respuesta || { ...nuevoClienteData, id: Date.now() };
+
+      setClientesLista((prev) => [nuevoCliente as ClientePOS, ...prev]);
+      setCliente(nuevoCliente as ClientePOS);
+      setModalClienteAbierto(false);
+    } catch (error) {
+      setError(`No se pudo crear el cliente. Intente nuevamente. ${error}`);
+    } finally {
+      setCargandoCliente(false);
+    }
+  };
+
+  const handlePagarVenta = async (metodo: string) => {
+    try {
+      setProcesandoPago(true);
+      setError(null);
+
+      const payload: Parameters<typeof ventasService.crearVentaPOS>[0] = {
+        cliente_id: cliente ? cliente.id : null,
+        vendedor_id: "1",
+        metodo_pago: metodo,
+        tipo: "PUNTO_VENTA",
+        items: carrito.map((item) => {
+          const cant = Number(item.cantidad);
+
+          if (!item.id || typeof item.id !== "string") {
+            console.error("❌ ID de variante inválido o vacío:", item);
+            throw new Error(
+              `El producto ${item.nombre} no tiene un ID de variante válido.`,
+            );
+          }
+          if (isNaN(cant) || cant <= 0) {
+            throw new Error(
+              `La cantidad para ${item.nombre} debe ser mayor a 0.`,
+            );
+          }
+
+          return {
+            variante_id: String(item.id),
+            cantidad: cant,
+            precio_unitario: Number(item.precio),
+          };
+        }),
+
+        descuento: 0,
+        costo_envio: 0,
+      };
+
+      console.log("📤 Payload listo para el backend:", payload);
+
+      await ventasService.crearVentaPOS(payload);
+
+      setCarrito([]);
+      setCliente(null);
+      setModalCheckoutAbierto(false);
+      alert("¡Venta registrada con éxito!");
+
+      loadProducts(true);
+    } catch (err) {
+      console.error("Error al crear el apartado:", err);
+      setError("Ocurrió un error al crear el apartado.");
+    } finally {
+      setProcesandoPago(false);
+    }
+  };
+
+  const handleCrearApartado = async (
+    anticipo: number,
+    diasVigencia: number,
+  ) => {
+    try {
+      setProcesandoApartado(true);
+      setError(null);
+
+      const fechaLimite = new Date();
+      fechaLimite.setDate(fechaLimite.getDate() + diasVigencia);
+
+      const payload: Parameters<typeof ventasService.crearApartado>[0] = {
+        cliente_id: cliente ? cliente.id : null,
+        vendedor_id: 1,
+        anticipo: anticipo,
+        metodo_pago: anticipo > 0 ? "EFECTIVO" : "PENDIENTE",
+        fecha_limite_apartado: fechaLimite.toISOString(),
+        tipo: "APARTADO",
+        items: carrito.map((item) => {
+          const cant = Number(item.cantidad);
+
+          if (!item.id || typeof item.id !== "string") {
+            throw new Error(
+              `El producto ${item.nombre} no tiene un ID de variante válido.`,
+            );
+          }
+          if (isNaN(cant) || cant <= 0) {
+            throw new Error(
+              `La cantidad para ${item.nombre} debe ser mayor a 0.`,
+            );
+          }
+
+          return {
+            variante_id: String(item.id),
+            cantidad: cant,
+            precio_unitario: Number(item.precio),
+          };
+        }),
+      };
+
+      console.log("📦 Payload Apartado listo:", payload);
+
+      await ventasService.crearApartado(payload);
+
+      setCarrito([]);
+      setCliente(null);
+      setModalApartadoAbierto(false);
+      alert("¡Apartado registrado con éxito!");
+
+      loadProducts(true);
+    } catch (err) {
+      let backendMessage = "Ocurrió un error al crear el apartado.";
+
+      if (typeof err === "object" && err !== null) {
+        const error = err as {
+          response?: {
+            data?: {
+              msg?: string;
+              message?: string;
+            };
+          };
+          message?: string;
+        };
+
+        backendMessage =
+          error.response?.data?.msg ||
+          error.response?.data?.message ||
+          error.message ||
+          backendMessage;
+      }
+      setError(backendMessage);
+    } finally {
+      setProcesandoApartado(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProducts();
+    loadClientes();
+  }, [loadProducts, loadClientes]);
 
   const subtotal = useMemo(() => {
     return carrito.reduce((sum, item) => sum + item.precio * item.cantidad, 0);
@@ -114,42 +593,16 @@ export const POS: React.FC = () => {
     }).format(valor);
   };
 
-  const agregarAlCarrito = (producto: Producto) => {
-    setCarrito((prev) => {
-      const existe = prev.find((item) => item.id === producto.id);
-
-      if (existe) {
-        if (existe.cantidad >= producto.stock) {
-          return prev;
-        }
-
-        return prev.map((item) =>
-          item.id === producto.id
-            ? { ...item, cantidad: item.cantidad + 1 }
-            : item
-        );
-      }
-
-      return [
-        ...prev,
-        {
-          id: producto.id,
-          nombre: producto.nombre,
-          precio: producto.precio,
-          cantidad: 1,
-          stock: producto.stock,
-        },
-      ];
-    });
-  };
-
   const cambiarCantidad = (id: string, delta: number) => {
     setCarrito((prev) =>
       prev.map((item) => {
         if (item.id !== id) return item;
-        const nuevaCantidad = Math.max(1, Math.min(item.stock, item.cantidad + delta));
+        const nuevaCantidad = Math.max(
+          1,
+          Math.min(item.stock, item.cantidad + delta),
+        );
         return { ...item, cantidad: nuevaCantidad };
-      })
+      }),
     );
   };
 
@@ -157,19 +610,12 @@ export const POS: React.FC = () => {
     setCarrito((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const procesarVenta = () => {
-    if (carrito.length === 0) return;
-    // TODO: conectar POST /ventas/pedidos
-  };
-
-  const crearApartado = () => {
-    if (carrito.length === 0) return;
-    // TODO: conectar POST /ventas/apartados
-  };
-
-  const seleccionarCliente = () => {
-    // TODO: abrir modal / buscador real de clientes
-  };
+  const itemsResumen = carrito.map((item) => ({
+    nombre: item.nombre,
+    variante: item.variante,
+    cantidad: item.cantidad,
+    precio: item.precio,
+  }));
 
   return (
     <div className={styles.pos}>
@@ -188,6 +634,9 @@ export const POS: React.FC = () => {
 
       <div className={styles.mainGrid}>
         <div className={styles.productosPanel}>
+          {error && (
+            <div style={{ color: "red", marginBottom: "10px" }}>{error}</div>
+          )}
           <div className={styles.searchBox}>
             <Search size={20} />
             <input
@@ -213,12 +662,12 @@ export const POS: React.FC = () => {
                 <div
                   key={producto.id}
                   className={styles.productoCard}
-                  onClick={() => agregarAlCarrito(producto)}
+                  onClick={() => handleOpenVariantes(producto)}
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
-                      agregarAlCarrito(producto);
+                      handleOpenVariantes(producto);
                     }
                   }}
                 >
@@ -228,18 +677,20 @@ export const POS: React.FC = () => {
 
                   <div className={styles.productoInfo}>
                     <h3 className={styles.productoNombre}>{producto.nombre}</h3>
-                    <p className={styles.productoSku}>SKU: {producto.sku ?? "N/A"}</p>
+                    <p className={styles.productoSku}>
+                      SKU: {producto.sku ?? "N/A"}
+                    </p>
 
                     <div className={styles.productoFooter}>
                       <span className={styles.productoPrecio}>
-                        {formatMoneda(producto.precio)}
+                        {formatMoneda(producto.precio_venta)}
                       </span>
                       <span
                         className={`${styles.stockBadge} ${
-                          producto.stock < 10 ? styles.stockBajo : ""
+                          producto.stock_total < 10 ? styles.stockBajo : ""
                         }`}
                       >
-                        Stock: {producto.stock}
+                        Stock: {producto.stock_total}
                       </span>
                     </div>
                   </div>
@@ -248,9 +699,9 @@ export const POS: React.FC = () => {
             ) : (
               <div className={styles.emptyState}>
                 <AlertCircle size={48} />
-                <p className={styles.emptyTitle}>Sin productos para mostrar</p>
+                <p className={styles.emptyTitle}>No existen productos</p>
                 <p className={styles.emptySubtitle}>
-                  Esta vista está pendiente de conexión a la API.
+                  Intente con otro término de búsqueda.
                 </p>
               </div>
             )}
@@ -258,22 +709,154 @@ export const POS: React.FC = () => {
         </div>
 
         <div className={styles.carritoPanel}>
+          {/* Reemplazar tu tarjeta de cliente actual por esta */}
           <div className={styles.clienteCard}>
-            <div className={styles.clienteHeader}>
-              <User size={20} />
-              <span className={styles.clienteLabel}>Cliente</span>
+            <div
+              className={styles.clienteHeader}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "10px",
+              }}
+            >
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "8px" }}
+              >
+                <User size={20} />
+                <span
+                  className={styles.clienteLabel}
+                  style={{ fontWeight: "bold" }}
+                >
+                  Cliente
+                </span>
+              </div>
+
+              {/* Botones de acción rápida: Cambiar / Quitar */}
+              {cliente && (
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <button
+                    onClick={() => setModalClienteAbierto(true)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#3b82f6",
+                      cursor: "pointer",
+                      fontSize: "13px",
+                    }}
+                  >
+                    Cambiar
+                  </button>
+                  <button
+                    onClick={() => setCliente(null)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#ef4444",
+                      cursor: "pointer",
+                      fontSize: "13px",
+                    }}
+                  >
+                    Quitar
+                  </button>
+                </div>
+              )}
             </div>
 
-            <button className={styles.clienteBtn} onClick={seleccionarCliente} type="button">
+            <button
+              className={styles.clienteBtn}
+              type="button"
+              onClick={() => !cliente && setModalClienteAbierto(true)}
+              style={{
+                width: "100%",
+                textAlign: "left",
+                padding: "10px",
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                borderRadius: "6px",
+                cursor: "pointer",
+              }}
+            >
               {cliente ? (
-                <div className={styles.clienteInfo}>
-                  <span className={styles.clienteNombre}>{cliente.nombre}</span>
+                <div className={styles.clienteInfoFull}>
+                  <span
+                    className={styles.clienteNombre}
+                    style={{
+                      display: "block",
+                      fontWeight: "bold",
+                      fontSize: "15px",
+                    }}
+                  >
+                    {`${cliente.nombres} ${cliente.apellido_paterno} ${cliente.apellido_materno || ""}`.trim()}
+                  </span>
+
                   {cliente.telefono && (
-                    <span className={styles.clienteTel}>{cliente.telefono}</span>
+                    <span
+                      className={styles.clienteTel}
+                      style={{
+                        display: "block",
+                        fontSize: "13px",
+                        color: "#64748b",
+                        marginTop: "4px",
+                      }}
+                    >
+                      Tel: {cliente.telefono}
+                    </span>
+                  )}
+
+                  {/* Resumen de Crédito */}
+                  {cliente.tiene_credito && (
+                    <div
+                      style={{
+                        marginTop: "8px",
+                        padding: "8px",
+                        backgroundColor: "#eff6ff",
+                        borderRadius: "4px",
+                        fontSize: "13px",
+                        border: "1px solid #bfdbfe",
+                      }}
+                    >
+                      <strong style={{ color: "#1d4ed8" }}>
+                        Cliente con Crédito
+                      </strong>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          marginTop: "4px",
+                        }}
+                      >
+                        <span>
+                          Límite: {formatMoneda(cliente.limite_credito || 0)}
+                        </span>
+                        <span
+                          style={{
+                            color:
+                              (cliente.saldo_deudor ?? 0) > 0
+                                ? "#b91c1c"
+                                : "#15803d",
+                            fontWeight: "500",
+                          }}
+                        >
+                          Deuda: {formatMoneda(cliente.saldo_deudor || 0)}
+                        </span>
+                      </div>
+                    </div>
                   )}
                 </div>
               ) : (
-                <span className={styles.clientePlaceholder}>Seleccionar Cliente</span>
+                <span
+                  className={styles.clientePlaceholder}
+                  style={{
+                    color: "#64748b",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    height: "40px",
+                  }}
+                >
+                  + Seleccionar o Crear Cliente
+                </span>
               )}
             </button>
           </div>
@@ -292,7 +875,11 @@ export const POS: React.FC = () => {
 
             {carrito.length === 0 ? (
               <div className={styles.carritoVacio}>
-                {loading ? <RefreshCw size={48} className={styles.spinning} /> : <ShoppingCart size={48} />}
+                {loading ? (
+                  <RefreshCw size={48} className={styles.spinning} />
+                ) : (
+                  <ShoppingCart size={48} />
+                )}
                 <p className={styles.vacioTitle}>
                   {loading ? "Cargando..." : "Carrito vacío"}
                 </p>
@@ -309,7 +896,19 @@ export const POS: React.FC = () => {
                     <div key={item.id} className={styles.carritoItem}>
                       <div className={styles.itemInfo}>
                         <h4 className={styles.itemNombre}>{item.nombre}</h4>
-                        <p className={styles.itemPrecio}>{formatMoneda(item.precio)}</p>
+                        <div className={styles.itemPrecioWrap}>
+                          <p className={styles.itemPrecioUnit}>
+                            {formatMoneda(item.precio)} c/u
+                          </p>
+                          <p className={styles.itemSubtotal}>
+                            {formatMoneda(item.precio * item.cantidad)}
+                          </p>
+                        </div>
+                        {item.variante && (
+                          <span className={styles.itemVariante}>
+                            {item.variante}
+                          </span>
+                        )}
                       </div>
 
                       <div className={styles.itemControls}>
@@ -322,7 +921,9 @@ export const POS: React.FC = () => {
                             <Minus size={16} />
                           </button>
 
-                          <span className={styles.cantidadText}>{item.cantidad}</span>
+                          <span className={styles.cantidadText}>
+                            {item.cantidad}
+                          </span>
 
                           <button
                             className={styles.cantidadBtn}
@@ -367,27 +968,88 @@ export const POS: React.FC = () => {
             <div className={styles.acciones}>
               <button
                 className={styles.procesarBtn}
-                onClick={procesarVenta}
-                disabled={carrito.length === 0}
+                disabled={carrito.length === 0 || procesandoPago}
                 type="button"
+                onClick={() => setModalCheckoutAbierto(true)}
               >
                 <CreditCard size={20} />
-                Procesar Pago
+                {procesandoPago ? "Procesando..." : "Procesar Pago"}
               </button>
 
               <button
                 className={styles.apartarBtn}
-                onClick={crearApartado}
-                disabled={carrito.length === 0}
+                disabled={carrito.length === 0 || procesandoApartado}
                 type="button"
+                onClick={() => {
+                  if (!cliente) {
+                    alert(
+                      "Debes seleccionar un cliente para poder crear un apartado!",
+                    );
+                    return;
+                  }
+                  setModalApartadoAbierto(true);
+                }}
               >
                 <Receipt size={20} />
-                Apartar
+                {procesandoApartado ? "Apartando..." : "Apartar"}
               </button>
             </div>
           </div>
         </div>
       </div>
+      {modalVariantesAbierto && productoModal && (
+        <ModalVariantes
+          producto={productoModal}
+          variantesRaw={variantesActuales}
+          onCerrar={() => {
+            setModalVariantesAbierto(false);
+            setProductoModal(null);
+            setVariantesActuales([]);
+          }}
+          onAgregar={handleAgregarVariante}
+        />
+      )}
+      {modalClienteAbierto && (
+        <ModalCliente
+          clientes={clientesLista}
+          clienteActual={cliente}
+          onSeleccionar={(c) => {
+            setCliente(c);
+            setModalClienteAbierto(false);
+          }}
+          onCrearCliente={handleCrearClientePOS}
+          onCerrar={() => setModalClienteAbierto(false)}
+          cargando={cargandoCliente}
+        />
+      )}
+      {modalCheckoutAbierto && (
+        <ModalCheckout
+          items={itemsResumen}
+          subtotal={subtotal}
+          iva={iva}
+          total={total}
+          clienteNombre={
+            cliente
+              ? `${cliente.nombres} ${cliente.apellido_paterno}`
+              : undefined
+          }
+          onPagar={handlePagarVenta}
+          onCerrar={() => setModalCheckoutAbierto(false)}
+        />
+      )}
+      {modalApartadoAbierto && (
+        <ModalApartado
+          items={itemsResumen}
+          total={total}
+          clienteNombre={
+            cliente
+              ? `${cliente.nombres} ${cliente.apellido_paterno}`
+              : undefined
+          }
+          onApartar={handleCrearApartado}
+          onCerrar={() => setModalApartadoAbierto(false)}
+        />
+      )}
     </div>
   );
 };

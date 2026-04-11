@@ -1,0 +1,671 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-family: var(--font-primary);
+}
+
+/* ── Header bar ── */
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-large);
+  flex-wrap: wrap;
+}
+
+.barLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.barRight {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* ← espacio entre el botón Historial y el chip de estado */
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--color-primary-bg);
+  color: var(--color-primary-vibrant);
+  border: 1px solid var(--color-primary);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: var(--border-radius-medium);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* ── Botón Historial ── */
+.historialBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  min-height: 32px;
+  border-radius: var(--border-radius-medium);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  font-family: var(--font-primary);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none; /* por si lo usas como <a> */
+}
+
+.historialBtn:hover {
+  border-color: var(--color-primary-vibrant);
+  color: var(--color-primary-vibrant);
+  background: var(--color-primary-bg);
+}
+
+/* ── Chips de estado ── */
+.status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 13px;
+  min-height: 32px; /* ← misma altura que .historialBtn */
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.statusIdle {
+  background: var(--color-bg);
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.statusOpen {
+  background: rgba(16, 185, 129, 0.12);
+  color: rgb(5, 150, 105);
+  border-color: rgba(16, 185, 129, 0.22);
+}
+
+.statusClosed {
+  background: rgba(59, 130, 246, 0.12);
+  color: rgb(37, 99, 235);
+  border-color: rgba(59, 130, 246, 0.22);
+}
+
+/* ── Empty state ── */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 28px;
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--border-radius-large);
+  color: var(--color-text);
+}
+
+/* Fila superior: icono + texto */
+.emptyStateTop {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.emptyState strong {
+  display: block;
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+
+.emptyState p {
+  margin: 0;
+  opacity: 0.65;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+/* Fila inferior: fondo + botón alineados */
+.emptyStateBody {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.fondoField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-text);
+  opacity: 0.7;
+  min-width: 180px;
+}
+
+/* ── Grid ── */
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Panel ── */
+.panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-large);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.panelHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--color-text);
+  opacity: 0.45;
+}
+
+.panelTitle {
+  margin: 4px 0 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+}
+
+/* ── Times ── */
+.times {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.timeBox {
+  padding: 14px;
+  border-radius: var(--border-radius-medium);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.timeBox span {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text);
+  opacity: 0.5;
+}
+
+.timeBox strong {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.timeDash {
+  width: 10px;
+  height: 2px;
+  background: var(--color-border);
+}
+
+/* ── Big number ── */
+.bigNumber {
+  padding: 16px;
+  border-radius: var(--border-radius-medium);
+  background: var(--color-primary-bg);
+  border: 1px solid var(--color-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bigNumber span {
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-primary-vibrant);
+  opacity: 0.75;
+}
+
+.bigNumber strong {
+  font-size: clamp(1.6rem, 2vw, 2.1rem);
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  color: var(--color-primary-vibrant);
+}
+
+/* ── Rows ── */
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.row span {
+  font-size: 0.82rem;
+  opacity: 0.65;
+}
+
+.row strong {
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+/* ── Method grid ── */
+.methodGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.methodCard {
+  padding: 12px;
+  border-radius: var(--border-radius-medium);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.methodCard span {
+  font-size: 0.75rem;
+  font-weight: 700;
+  opacity: 0.6;
+  color: var(--color-text);
+}
+
+.methodCard strong {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+/* ── Form ── */
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-text);
+  opacity: 0.7;
+}
+
+.fieldFull {
+  grid-column: 1 / -1;
+}
+
+.inputShell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  min-height: 44px;
+  border-radius: var(--border-radius-medium);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-primary-vibrant);
+}
+
+.inputShell input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: var(--font-primary);
+  font-size: 0.9rem;
+  color: var(--color-text);
+  cursor: default;
+}
+
+.field textarea {
+  resize: none;
+  padding: 12px;
+  border-radius: var(--border-radius-medium);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  font-family: var(--font-primary);
+  font-size: 0.84rem;
+  color: var(--color-text);
+  line-height: 1.6;
+  cursor: default;
+  outline: none;
+}
+
+/* ── Diff card ── */
+.diffCard {
+  padding: 16px;
+  border-radius: var(--border-radius-medium);
+  border: 1px solid transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.diffCard span {
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.7;
+  color: var(--color-text);
+}
+
+.diffCard strong {
+  font-size: clamp(1.4rem, 2vw, 1.9rem);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  color: var(--color-text);
+}
+
+.diff_success {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+.diff_danger {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+.diff_warning {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.22);
+}
+
+/* ── Result icon ── */
+.resultIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tone_success {
+  background: rgba(16, 185, 129, 0.12);
+  color: rgb(5, 150, 105);
+}
+.tone_danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: rgb(220, 38, 38);
+}
+.tone_warning {
+  background: rgba(245, 158, 11, 0.14);
+  color: rgb(217, 119, 6);
+}
+
+/* ── Icon box ── */
+.iconBox {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--color-primary-bg);
+  color: var(--color-primary-vibrant);
+  border: 1px solid var(--color-primary);
+}
+
+/* ── Actions ── */
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ── Buttons ── */
+.primaryBtn,
+.secondaryBtn {
+  width: 100%;
+  min-height: 44px;
+  border-radius: var(--border-radius-medium);
+  font-family: var(--font-primary);
+  font-size: 0.84rem;
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.primaryBtn {
+  background: var(--color-primary-vibrant);
+  color: var(--color-text-on-vibrant);
+  box-shadow: var(--shadow-pink);
+}
+
+.primaryBtn:hover:not(:disabled) {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.secondaryBtn {
+  background: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.secondaryBtn:hover:not(:disabled) {
+  border-color: var(--color-primary-vibrant);
+  color: var(--color-primary-vibrant);
+  background: var(--color-primary-bg);
+}
+
+.primaryBtn:disabled,
+.secondaryBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.printSheet {
+  display: none;
+}
+
+.printHeader {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.printHeader h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  color: #221019;
+}
+
+.printHeader p {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: #555;
+}
+
+.printSection {
+  border: 1px solid #d9d9d9;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  background: #fff;
+}
+
+.printRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 0;
+  border-bottom: 1px dashed #d9d9d9;
+  font-size: 14px;
+}
+
+.printRow:last-child {
+  border-bottom: none;
+}
+
+.printRow span {
+  color: #444;
+}
+
+.printRow strong {
+  color: #221019;
+  font-weight: 700;
+}
+
+.printObservacionesLabel {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: #221019;
+  margin-bottom: 8px;
+}
+
+.printObservacionesText {
+  margin: 0;
+  min-height: 48px;
+  font-size: 14px;
+  color: #333;
+  white-space: pre-wrap;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .printSheet,
+  .printSheet * {
+    visibility: visible;
+  }
+
+  .printSheet {
+    display: block;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 24px;
+    background: white;
+    color: black;
+    font-family: Arial, sans-serif;
+  }
+
+  .page {
+    padding: 0 !important;
+    margin: 0 !important;
+    background: white !important;
+  }
+
+  .bar,
+  .grid,
+  .emptyState {
+    display: none !important;
+  }
+
+  @page {
+    size: auto;
+    margin: 12mm;
+  }
+}
+
+/* ── Responsive ── */
+@media (max-width: 1100px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .methodGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+  .methodGrid {
+    grid-template-columns: 1fr;
+  }
+  .times {
+    grid-template-columns: 1fr;
+  }
+  .timeDash {
+    display: none;
+  }
+}

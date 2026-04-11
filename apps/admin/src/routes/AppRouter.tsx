@@ -24,6 +24,8 @@ import AdminBackups from "@admin/pages/admin/AdminBackups";
 import AdminMaintenance from "@admin/pages/admin/AdminMaintenance";
 import AdminMonitoringLogs from "@admin/pages/admin/AdminMonitoringLogs";
 import AdminMaintenanceRunner from "@admin/pages/bd-monitor/AdminMaintenanceRunner";
+import CorteCaja from "@admin/pages/admin/CorteCaja";
+import HistorialCortes from "@admin/pages/admin/HistorialCortes";
 
 export const AppRouter = () => {
   return (
@@ -37,7 +39,10 @@ export const AppRouter = () => {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="pos" element={<POS />} />
+            <Route path="corte" element={<CorteCaja />} />
             <Route path="orders" element={<OrdersManager />} />
+            <Route path="corte/history/" element={<HistorialCortes />} />
+            <Route path="corte/history/:id" element={<CorteCaja />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="settings" element={<AdminSettings />} />
             <Route path="reports" element={<AdminReports />} />

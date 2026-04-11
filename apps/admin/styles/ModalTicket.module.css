@@ -1,0 +1,329 @@
+/* ModalTicket.module.css */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(92, 75, 87, 0.4);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+  animation: overlayIn 0.2s ease;
+}
+
+.modal {
+  background: var(--color-surface);
+  border-radius: var(--border-radius-xl);
+  width: 100%;
+  max-width: 400px;
+  max-height: 90vh;
+  box-shadow: 0 24px 64px rgba(92, 75, 87, 0.2), 0 4px 16px rgba(236, 19, 128, 0.1);
+  border: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  animation: modalIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.9) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Cerrar esquina */
+.cerrarBtn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-small);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-text);
+  opacity: 0.4;
+  transition: all 0.15s ease;
+}
+
+.cerrarBtn:hover {
+  opacity: 1;
+  background: var(--color-primary-bg);
+}
+
+/* ── Éxito ── */
+.exito {
+  padding: 28px 24px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background: linear-gradient(160deg, rgba(236,19,128,0.06) 0%, transparent 60%);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.exitoIcono {
+  width: 64px;
+  height: 64px;
+  background: var(--color-success-bg);
+  border: 2px solid rgba(22, 163, 74, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-success);
+  margin-bottom: 14px;
+  animation: iconPop 0.4s 0.15s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes iconPop {
+  from { transform: scale(0); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.exitoTitulo {
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+  margin: 0 0 6px;
+}
+
+.exitoSub {
+  font-size: 0.8rem;
+  color: var(--color-text);
+  opacity: 0.45;
+  margin: 0;
+}
+
+/* ── Ticket ── */
+.ticket {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+  font-family: var(--font-primary);
+}
+
+.ticket::-webkit-scrollbar { width: 4px; }
+.ticket::-webkit-scrollbar-thumb { background: var(--color-primary); border-radius: 10px; }
+
+.ticketHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.ticketFolio, .ticketFecha {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ticketFecha { text-align: right; }
+
+.folioLabel {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-text);
+  opacity: 0.35;
+}
+
+.folioNum {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--color-primary-vibrant);
+}
+
+.ticketFecha span:first-child, .ticketHora {
+  font-size: 0.72rem;
+  color: var(--color-text);
+  opacity: 0.45;
+}
+
+.ticketCliente {
+  font-size: 0.78rem;
+  color: var(--color-text);
+  opacity: 0.55;
+  margin-bottom: 8px;
+}
+
+.ticketCliente strong { opacity: 1; }
+
+.divPunteado {
+  border-top: 1.5px dashed var(--color-border);
+  margin: 10px 0;
+}
+
+/* Items */
+.ticketItems {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ticketItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.ticketItemNombre {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ticketItemNombre span:first-child {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ticketVariante {
+  font-size: 0.68rem;
+  color: var(--color-text);
+  opacity: 0.4;
+}
+
+.ticketItemRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.ticketQty {
+  font-size: 0.72rem;
+  color: var(--color-text);
+  opacity: 0.35;
+  font-weight: 600;
+}
+
+.ticketPrecio {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+/* Totales ticket */
+.ticketTotales {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ticketTotalRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: var(--color-text);
+  opacity: 0.5;
+}
+
+.ticketTotalFinal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0 8px;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 4px;
+}
+
+.ticketTotalFinal span:first-child {
+  font-size: var(--font-size-aux);
+  font-weight: 700;
+  color: var(--color-text);
+  opacity: 0.65;
+}
+
+.ticketTotalFinal span:last-child {
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--color-primary-vibrant);
+}
+
+.ticketTotalRow.anticipoRow { opacity: 0.8; }
+.anticipoValor { color: var(--color-success); font-weight: 700; }
+
+.metodoBadge {
+  margin-top: 6px;
+  font-size: 0.72rem;
+  color: var(--color-text);
+  opacity: 0.4;
+  text-align: center;
+}
+
+/* ── Acciones ── */
+.acciones {
+  padding: 14px 20px 16px;
+  display: flex;
+  gap: 8px;
+  border-top: 1px solid var(--color-border);
+}
+
+.imprimirBtn {
+  flex: 1;
+  padding: 11px;
+  background: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-medium);
+  font-family: var(--font-primary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  opacity: 0.6;
+  transition: all 0.15s ease;
+}
+
+.imprimirBtn:hover {
+  opacity: 1;
+  background: var(--color-primary-bg);
+  border-color: var(--color-border-strong);
+}
+
+.nuevaVentaBtn {
+  flex: 1.4;
+  padding: 11px 16px;
+  background: var(--color-primary-vibrant);
+  color: #fff;
+  border: none;
+  border-radius: var(--border-radius-medium);
+  font-family: var(--font-primary);
+  font-size: var(--font-size-aux);
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  box-shadow: var(--shadow-pink);
+  transition: all 0.2s ease;
+}
+
+.nuevaVentaBtn:hover {
+  background: var(--color-primary-vibrant-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(236, 19, 128, 0.3);
+}

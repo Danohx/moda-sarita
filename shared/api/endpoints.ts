@@ -97,4 +97,26 @@ export const API_ENDPOINTS = {
   auditLogs: {
     list: "/audit-logs",
   },
+  clientes: {
+    list: "/clientes",
+    byId: (id: string | number) => `/clientes/${id}`,
+    credito: (id: string | number) => `/clientes/${id}/credito`,
+    direcciones: (id: string | number) => `/clientes/${id}/direcciones`,
+    direccionPrincipal: (id: string | number, direccionId: string | number) => 
+      `/clientes/${id}/direcciones/${direccionId}/principal`,
+    direccionById: (id: string | number, direccionId: string | number) => 
+      `/clientes/${id}/direcciones/${direccionId}`,
+  },
+  ventas: {
+    pos: "/ventas/pos",
+    apartados: "/ventas/apartados",
+    abonos: (id: string | number) => `/ventas/apartados/${id}/abonos`,
+    liquidar: (id: string | number) => `/ventas/apartados/${id}/liquidar`,
+    cancelar: (id: string | number) => `/ventas/apartados/${id}/cancelar`,
+    abrirCorte: "/ventas/corte/abrir",
+    corteActual: "/ventas/corte/actual",
+    cerrarCorte: (id: string | number) => `/ventas/corte/${id}/cerrar`,
+    historialCortes: "/ventas/corte/historial",
+    corteById: (id: string | number) => `/ventas/corte/${id}`,
+  },
 } as const;

@@ -12,6 +12,7 @@ import {
   Menu,
   Database,
   Tag,
+  DollarSign,
 } from "lucide-react";
 import styles from "../../../styles/AdminSidebar.module.css";
 import { useAuth } from "@shared/context/AuthContext";
@@ -83,6 +84,11 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ role }) => {
         <Link to="/pos" className={getLinkClass("/pos")}>
           <Store size={20} className={styles.icon} />
           {!collapsed && <span>Punto de Venta</span>}
+        </Link>
+        
+        <Link to="/corte" className={getLinkClass("/corte")}>
+          <DollarSign size={20} className={styles.icon} />
+          {!collapsed && <span>Corte de Caja</span>}
         </Link>
 
         <Link to="/orders" className={getLinkClass("/orders")}>
