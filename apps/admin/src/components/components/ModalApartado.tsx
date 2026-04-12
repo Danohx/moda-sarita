@@ -10,6 +10,7 @@ interface ResumenItem {
 }
 
 interface ModalApartadoProps {
+  isOpen: boolean;
   items: ResumenItem[];
   total: number;
   clienteNombre?: string;
@@ -20,7 +21,11 @@ interface ModalApartadoProps {
 const DIAS_OPCIONES = [3, 7, 14, 30];
 const PORCENTAJES_ANTICIPO = [10, 20, 30, 50];
 
+const CURRENCY_FORMATTER = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" });
+const fmt = (v: number) => CURRENCY_FORMATTER.format(v);
+
 export const ModalApartado: React.FC<ModalApartadoProps> = ({
+  isOpen,
   items,
   total,
   clienteNombre,
@@ -33,8 +38,18 @@ export const ModalApartado: React.FC<ModalApartadoProps> = ({
   const [modoPersonalizado, setModoPersonalizado] = useState(false);
   const [notas, setNotas] = useState("");
 
-  const formatMoneda = (v: number) =>
-    new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(v);
+  // Resetear estado interno cuando se cierra
+  React.useEffect(() => {
+    if (!isOpen) {
+      setDiasVigencia(7);
+      setPorcentaje(20);
+      setAnticipoPersonalizado("");
+      setModoPersonalizado(false);
+      setNotas("");
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
 
   const anticipo = modoPersonalizado
     ? parseFloat(anticipoPersonalizado) || 0
@@ -61,11 +76,8 @@ export const ModalApartado: React.FC<ModalApartadoProps> = ({
   return (
     <div className={styles.overlay} onClick={onCerrar}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
         <div className={styles.header}>
-          <div className={styles.headerIcon}>
-            <Receipt size={20} />
-          </div>
+          <div className={styles.headerIcon}><Receipt size={20} /></div>
           <div>
             <h2 className={styles.titulo}>Crear apartado</h2>
             <p className={styles.subtitulo}>
@@ -78,13 +90,11 @@ export const ModalApartado: React.FC<ModalApartadoProps> = ({
         </div>
 
         <div className={styles.body}>
-          {/* Total */}
           <div className={styles.totalBanner}>
             <span className={styles.totalLabel}>Total del apartado</span>
-            <span className={styles.totalValor}>{formatMoneda(total)}</span>
+            <span className={styles.totalValor}>{fmt(total)}</span>
           </div>
 
-          {/* Anticipo */}
           <div className={styles.seccion}>
             <span className={styles.seccionLabel}>Anticipo</span>
             <div className={styles.porcentajesGrid}>
@@ -92,16 +102,11 @@ export const ModalApartado: React.FC<ModalApartadoProps> = ({
                 <button
                   key={p}
                   type="button"
-                  className={`${styles.porcentajeBtn} ${
-                    !modoPersonalizado && porcentaje === p ? styles.porcentajeActivo : ""
-                  }`}
-                  onClick={() => {
-                    setPorcentaje(p);
-                    setModoPersonalizado(false);
-                  }}
+                  className={`${styles.porcentajeBtn} ${!modoPersonalizado && porcentaje === p ? styles.porcentajeActivo : ""}`}
+                  onClick={() => { setPorcentaje(p); setModoPersonalizado(false); }}
                 >
                   <span className={styles.porcentajeNum}>{p}%</span>
-                  <span className={styles.porcentajeMonto}>{formatMoneda(total * p / 100)}</span>
+                  <span className={styles.porcentajeMonto}>{fmt(total * p / 100)}</span>
                 </button>
               ))}
             </div>
@@ -133,19 +138,17 @@ export const ModalApartado: React.FC<ModalApartadoProps> = ({
             )}
           </div>
 
-          {/* Resumen anticipo + restante */}
           <div className={styles.resumenPago}>
             <div className={styles.resumenPagoRow}>
               <span>Paga hoy</span>
-              <span className={styles.resumenPagoValor}>{formatMoneda(anticipo)}</span>
+              <span className={styles.resumenPagoValor}>{fmt(anticipo)}</span>
             </div>
             <div className={styles.resumenPagoRow}>
               <span>Resta al recoger</span>
-              <span>{formatMoneda(restante)}</span>
+              <span>{fmt(restante)}</span>
             </div>
           </div>
 
-          {/* Vigencia */}
           <div className={styles.seccion}>
             <span className={styles.seccionLabel}>Vigencia</span>
             <div className={styles.diasGrid}>
@@ -166,7 +169,6 @@ export const ModalApartado: React.FC<ModalApartadoProps> = ({
             </div>
           </div>
 
-          {/* Notas */}
           <div className={styles.seccion}>
             <span className={styles.seccionLabel}>Notas (opcional)</span>
             <textarea
@@ -178,7 +180,6 @@ export const ModalApartado: React.FC<ModalApartadoProps> = ({
             />
           </div>
 
-          {/* Warning si anticipo inválido */}
           {modoPersonalizado && anticipoPersonalizado && !puedeApartar && (
             <div className={styles.warningBanner}>
               <AlertCircle size={15} />
@@ -187,7 +188,6 @@ export const ModalApartado: React.FC<ModalApartadoProps> = ({
           )}
         </div>
 
-        {/* Footer */}
         <div className={styles.footer}>
           <button
             className={styles.apartarBtn}
@@ -195,7 +195,7 @@ export const ModalApartado: React.FC<ModalApartadoProps> = ({
             disabled={!puedeApartar}
             type="button"
           >
-            Confirmar apartado · {formatMoneda(anticipo)}
+            Confirmar apartado · {fmt(anticipo)}
             <ChevronRight size={18} />
           </button>
         </div>

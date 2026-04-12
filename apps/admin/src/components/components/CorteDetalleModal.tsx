@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   X,
   Wallet,
@@ -33,10 +33,14 @@ interface Props {
   hasNext?: boolean;
 }
 
-const fmt = (v: number) =>
-  new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(
-    v,
-  );
+type Tone = "pending" | "success" | "danger" | "warning";
+
+const CURRENCY_FORMATTER = new Intl.NumberFormat("es-MX", {
+  style: "currency",
+  currency: "MXN",
+});
+
+const fmt = (value: number) => CURRENCY_FORMATTER.format(value);
 
 const fmtFechaLarga = (iso: string) =>
   new Date(iso).toLocaleDateString("es-MX", {
@@ -52,7 +56,36 @@ const fmtHora = (iso: string) =>
     minute: "2-digit",
   });
 
-export default function CorteDetalleModal({
+function getInitials(name: string) {
+  return name
+    .trim()
+    .split(/\s+/)
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
+
+function getTone(isClosed: boolean, diferencia: number): Tone {
+  if (!isClosed) return "pending";
+  if (diferencia === 0) return "success";
+  return diferencia < 0 ? "danger" : "warning";
+}
+
+function getToneLabel(tone: Tone) {
+  switch (tone) {
+    case "success":
+      return "Corte exacto";
+    case "danger":
+      return "Faltante";
+    case "warning":
+      return "Sobrante";
+    default:
+      return "Turno abierto";
+  }
+}
+
+export default React.memo(function CorteDetalleModal({
   corte,
   onClose,
   onPrev,
@@ -60,79 +93,97 @@ export default function CorteDetalleModal({
   hasPrev = false,
   hasNext = false,
 }: Props) {
-  useEffect(() => {
-    if (!corte) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-      if (e.key === "ArrowLeft" && hasPrev) onPrev?.();
-      if (e.key === "ArrowRight" && hasNext) onNext?.();
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [corte, onClose, onPrev, onNext, hasPrev, hasNext]);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
 
-  useEffect(() => {
-    if (corte) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
+  const isClosed = Boolean(corte?.fin_turno);
+  const totalSistema = corte?.total_sistema ?? 0;
+  const totalReal = corte?.total_real ?? 0;
+  const diferencia = isClosed ? totalReal - totalSistema : 0;
+  const tone = getTone(isClosed, diferencia);
+  const toneLabel = getToneLabel(tone);
+
+  const metadata = useMemo(() => {
+    if (!corte) return null;
+
+    return {
+      fechaLabel: fmtFechaLarga(corte.inicio_turno),
+      horaApertura: fmtHora(corte.inicio_turno),
+      horaCierre: corte.fin_turno ? fmtHora(corte.fin_turno) : null,
+      initials: getInitials(corte.usuario_nombre),
     };
   }, [corte]);
 
-  if (!corte) return null;
+  const handlePrint = useCallback(() => {
+    window.print();
+  }, []);
 
-  const isClosed = !!corte.fin_turno;
-  const totalSistema = corte.total_sistema;
-  const totalReal = corte.total_real ?? 0;
-  const diferencia = isClosed ? totalReal - totalSistema : 0;
+  const onCloseRef = useRef(onClose);
+  const onPrevRef = useRef(onPrev);
+  const onNextRef = useRef(onNext);
+  const hasPrevRef = useRef(hasPrev);
+  const hasNextRef = useRef(hasNext);
 
-  const tone = !isClosed
-    ? "pending"
-    : diferencia === 0
-      ? "success"
-      : diferencia < 0
-        ? "danger"
-        : "warning";
+  useEffect(() => {
+    onCloseRef.current = onClose;
+    onPrevRef.current = onPrev;
+    onNextRef.current = onNext;
+    hasPrevRef.current = hasPrev;
+    hasNextRef.current = hasNext;
+  });
 
-  const toneLabel =
-    tone === "pending"
-      ? "Turno abierto"
-      : tone === "success"
-        ? "Corte exacto"
-        : tone === "danger"
-          ? "Faltante"
-          : "Sobrante";
+  useEffect(() => {
+    if (!corte) return;
+    document.body.style.overflow = "hidden";
+    closeButtonRef.current?.focus();
 
-  const horaApertura = fmtHora(corte.inicio_turno);
-  const horaCierre = corte.fin_turno ? fmtHora(corte.fin_turno) : null;
-  const fechaLabel = fmtFechaLarga(corte.inicio_turno);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onCloseRef.current();
+      }
+      if (e.key === "ArrowLeft" && hasPrevRef.current) {
+        e.preventDefault();
+        onPrevRef.current?.();
+      }
+      if (e.key === "ArrowRight" && hasNextRef.current) {
+        e.preventDefault();
+        onNextRef.current?.();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [corte]);
+
+  if (!corte || !metadata) return null;
 
   return (
     <>
       <div
-        className={`${styles.overlay} ${corte ? styles.overlayVisible : ""}`}
+        className={`${styles.overlay} ${styles.overlayVisible}`}
         onClick={onClose}
         aria-hidden="true"
       />
+
       <div
-        className={`${styles.panel} ${corte ? styles.panelVisible : ""}`}
+        className={`${styles.panel} ${styles.panelVisible}`}
         role="dialog"
         aria-modal="true"
-        aria-label={`Detalle del corte #${corte.id}`}
+        aria-labelledby="corte-detalle-title"
+        aria-describedby="corte-detalle-summary"
       >
         <div className={styles.modalHeader}>
           <div className={styles.modalMeta}>
             <span className={styles.modalBadge}>
               <Wallet size={13} /> Corte #{corte.id}
             </span>
-            <span className={styles.modalFecha}>{fechaLabel}</span>
+            <span className={styles.modalFecha}>{metadata.fechaLabel}</span>
           </div>
 
           <div className={styles.modalActions}>
-            {/* Navegación prev / next */}
             <div className={styles.navGroup}>
               <button
                 type="button"
@@ -140,6 +191,7 @@ export default function CorteDetalleModal({
                 onClick={onPrev}
                 disabled={!hasPrev}
                 title="Corte anterior (←)"
+                aria-label="Ver corte anterior"
               >
                 <ChevronLeft size={15} />
               </button>
@@ -149,6 +201,7 @@ export default function CorteDetalleModal({
                 onClick={onNext}
                 disabled={!hasNext}
                 title="Corte siguiente (→)"
+                aria-label="Ver corte siguiente"
               >
                 <ChevronRight size={15} />
               </button>
@@ -158,17 +211,19 @@ export default function CorteDetalleModal({
               type="button"
               className={styles.printBtn}
               title="Imprimir corte"
-              onClick={() => window.print()}
+              onClick={handlePrint}
             >
               <Printer size={14} />
-              Imprimir
+              <span>Imprimir</span>
             </button>
 
             <button
+              ref={closeButtonRef}
               type="button"
               className={styles.closeBtn}
               onClick={onClose}
               title="Cerrar (Esc)"
+              aria-label="Cerrar detalle del corte"
             >
               <X size={16} />
             </button>
@@ -176,7 +231,10 @@ export default function CorteDetalleModal({
         </div>
 
         <div className={styles.modalBody}>
-          <div className={`${styles.resultBanner} ${styles[`banner_${tone}`]}`}>
+          <div
+            id="corte-detalle-summary"
+            className={`${styles.resultBanner} ${styles[`banner_${tone}`]}`}
+          >
             <div className={styles.bannerLeft}>
               <div className={`${styles.bannerIcon} ${styles[`icon_${tone}`]}`}>
                 {tone === "success" ? (
@@ -187,11 +245,15 @@ export default function CorteDetalleModal({
               </div>
               <div>
                 <span className={styles.bannerLabel}>{toneLabel}</span>
-                <strong className={styles.bannerAmount}>
+                <strong
+                  id="corte-detalle-title"
+                  className={styles.bannerAmount}
+                >
                   {isClosed ? fmt(diferencia) : "Turno en curso"}
                 </strong>
               </div>
             </div>
+
             <span
               className={`${styles.estadoChip} ${isClosed ? styles.chipClosed : styles.chipOpen}`}
             >
@@ -203,9 +265,12 @@ export default function CorteDetalleModal({
             <div className={styles.col}>
               <div className={styles.card}>
                 <div className={styles.cardHead}>
-                  <p className={styles.eyebrow}>Turno</p>
-                  <h3 className={styles.cardTitle}>Horario</h3>
+                  <div>
+                    <p className={styles.eyebrow}>Turno</p>
+                    <h3 className={styles.cardTitle}>Horario</h3>
+                  </div>
                 </div>
+
                 <div className={styles.times}>
                   <div className={styles.timeBlock}>
                     <div className={styles.timeIconWrap}>
@@ -213,10 +278,12 @@ export default function CorteDetalleModal({
                     </div>
                     <div>
                       <span>Apertura</span>
-                      <strong>{horaApertura}</strong>
+                      <strong>{metadata.horaApertura}</strong>
                     </div>
                   </div>
+
                   <div className={styles.timeLine} />
+
                   <div className={styles.timeBlock}>
                     <div
                       className={`${styles.timeIconWrap} ${isClosed ? styles.timeIconClosed : styles.timeIconPending}`}
@@ -225,24 +292,22 @@ export default function CorteDetalleModal({
                     </div>
                     <div>
                       <span>{isClosed ? "Cierre" : "En curso"}</span>
-                      <strong>{horaCierre ?? "---"}</strong>
+                      <strong>{metadata.horaCierre ?? "---"}</strong>
                     </div>
                   </div>
                 </div>
               </div>
+
               <div className={styles.card}>
                 <div className={styles.cardHead}>
-                  <p className={styles.eyebrow}>Responsable</p>
-                  <h3 className={styles.cardTitle}>Cajero en turno</h3>
-                </div>
-                <div className={styles.cajeroRow}>
-                  <div className={styles.avatarLg}>
-                    {corte.usuario_nombre
-                      .split(" ")
-                      .map((n) => n[0])
-                      .slice(0, 2)
-                      .join("")}
+                  <div>
+                    <p className={styles.eyebrow}>Responsable</p>
+                    <h3 className={styles.cardTitle}>Cajero en turno</h3>
                   </div>
+                </div>
+
+                <div className={styles.cajeroRow}>
+                  <div className={styles.avatarLg}>{metadata.initials}</div>
                   <div>
                     <strong className={styles.cajeroName}>
                       {corte.usuario_nombre}
@@ -253,17 +318,22 @@ export default function CorteDetalleModal({
                   </div>
                 </div>
               </div>
+
               <div className={styles.card}>
                 <div className={styles.cardHead}>
-                  <p className={styles.eyebrow}>Sistema</p>
-                  <h3 className={styles.cardTitle}>Esperado en caja</h3>
+                  <div>
+                    <p className={styles.eyebrow}>Sistema</p>
+                    <h3 className={styles.cardTitle}>Esperado en caja</h3>
+                  </div>
                 </div>
+
                 <div className={styles.bigNumber}>
                   <span>Total esperado</span>
                   <strong>
                     {isClosed ? fmt(totalSistema) : "Calculando al cerrar..."}
                   </strong>
                 </div>
+
                 <div className={styles.rows}>
                   <div className={styles.row}>
                     <span>Ventas del turno</span>
@@ -276,11 +346,14 @@ export default function CorteDetalleModal({
                 </div>
               </div>
             </div>
+
             <div className={styles.col}>
               <div className={styles.card}>
                 <div className={styles.cardHead}>
-                  <p className={styles.eyebrow}>Conteo físico</p>
-                  <h3 className={styles.cardTitle}>Lo que había en caja</h3>
+                  <div>
+                    <p className={styles.eyebrow}>Conteo físico</p>
+                    <h3 className={styles.cardTitle}>Lo que había en caja</h3>
+                  </div>
                   <div className={styles.cardIcon}>
                     <Calculator size={14} />
                   </div>
@@ -318,8 +391,10 @@ export default function CorteDetalleModal({
 
               <div className={styles.card}>
                 <div className={styles.cardHead}>
-                  <p className={styles.eyebrow}>Resultado</p>
-                  <h3 className={styles.cardTitle}>Diferencia del corte</h3>
+                  <div>
+                    <p className={styles.eyebrow}>Resultado</p>
+                    <h3 className={styles.cardTitle}>Diferencia del corte</h3>
+                  </div>
                   <div
                     className={`${styles.cardIcon} ${styles[`cardIcon_${tone}`]}`}
                   >
@@ -356,10 +431,12 @@ export default function CorteDetalleModal({
 
               <div className={styles.card}>
                 <div className={styles.cardHead}>
-                  <p className={styles.eyebrow}>Acción</p>
-                  <h3 className={styles.cardTitle}>
-                    {isClosed ? "Turno cerrado" : "Turno activo"}
-                  </h3>
+                  <div>
+                    <p className={styles.eyebrow}>Acción</p>
+                    <h3 className={styles.cardTitle}>
+                      {isClosed ? "Turno cerrado" : "Turno activo"}
+                    </h3>
+                  </div>
                   <div className={styles.cardIcon}>
                     <CircleDollarSign size={14} />
                   </div>
@@ -381,7 +458,7 @@ export default function CorteDetalleModal({
                   <button
                     type="button"
                     className={styles.printBtnFull}
-                    onClick={() => window.print()}
+                    onClick={handlePrint}
                   >
                     <Printer size={14} /> Imprimir corte
                   </button>
@@ -400,4 +477,4 @@ export default function CorteDetalleModal({
       </div>
     </>
   );
-}
+});

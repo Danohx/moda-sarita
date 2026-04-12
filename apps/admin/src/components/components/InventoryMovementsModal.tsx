@@ -52,7 +52,7 @@ export interface FormData {
 
 const noop = () => {};
 
-const initialForm: FormData = {
+const INITIAL_FORM: FormData = {
   variante_id: "",
   movementType: "ENTRADA",
   cantidad: "",
@@ -77,13 +77,13 @@ const InventoryMovementModal: React.FC<InventoryMovementModalProps> = ({
 }) => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState<FormData>(initialForm);
+  const [form, setForm] = useState<FormData>(INITIAL_FORM);
 
   const isContextual = Boolean(String(variante_id ?? "").trim());
 
+  // Resetear form cuando el modal abre o cambia la variante contextual
   useEffect(() => {
     if (!isOpen) return;
-
     setError(null);
     setForm({
       variante_id: String(variante_id ?? ""),
@@ -107,7 +107,6 @@ const InventoryMovementModal: React.FC<InventoryMovementModalProps> = ({
         stockMinimo: Number(stockMinimo ?? 0),
       };
     }
-
     return (
       variantOptions.find(
         (item) => item.id === String(form.variante_id ?? ""),
@@ -136,7 +135,6 @@ const InventoryMovementModal: React.FC<InventoryMovementModalProps> = ({
         motivo: form.motivo.trim(),
       };
     }
-
     return {
       variante_id: form.variante_id,
       accion: form.movementType,
@@ -148,34 +146,32 @@ const InventoryMovementModal: React.FC<InventoryMovementModalProps> = ({
   const handleChange =
     (field: keyof FormData) =>
     (
-      event: React.ChangeEvent<
+      e: React.ChangeEvent<
         HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
       >,
     ) => {
-      setForm((prev) => ({ ...prev, [field]: event.target.value }));
-
+      setForm((prev) => ({ ...prev, [field]: e.target.value }));
       if (error) setError(null);
     };
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     setError(null);
 
     if (!form.variante_id.trim()) {
       setError("Debes seleccionar una variante.");
       return;
     }
-
-    if (form.movementType === "SET_STOCK") {
-      if (form.stockFinal.trim() === "") {
-        setError("Debes indicar el stock final.");
-        return;
-      }
-    } else if (form.cantidad.trim() === "") {
+    if (form.movementType === "SET_STOCK" && form.stockFinal.trim() === "") {
+      setError("Debes indicar el stock final.");
+      return;
+    } else if (
+      form.movementType !== "SET_STOCK" &&
+      form.cantidad.trim() === ""
+    ) {
       setError("Debes indicar la cantidad.");
       return;
     }
-
     if (!form.motivo.trim()) {
       setError("Debes indicar el motivo del movimiento.");
       return;
@@ -187,8 +183,9 @@ const InventoryMovementModal: React.FC<InventoryMovementModalProps> = ({
       onClose();
     } catch (err) {
       console.error(err);
-      const message = err instanceof Error ? err.message : "Error desconocido";
-      setError(`No se pudo crear el movimiento. ${message}`);
+      setError(
+        `No se pudo crear el movimiento. ${err instanceof Error ? err.message : "Error desconocido"}`,
+      );
     } finally {
       setSaving(false);
     }

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Palette, RefreshCw, Ruler, Save, Shapes } from "lucide-react";
 import styles from "../../../styles/ProductCatalogs.module.css";
 import { categoriaService } from "@admin/services/categorias.service";
+import AdminBreadcrumbs from "@admin/components/layout/AdminBreadcrumbs";
 
 interface CatalogItem {
   id: string | number;
@@ -121,6 +122,12 @@ const ProductCatalogs: React.FC = () => {
     <section className={styles.page}>
       <header className={styles.header}>
         <div>
+          <AdminBreadcrumbs 
+            items={[
+              { label: "Productos", to: "/products" },
+              { label: "Categorias"}
+            ]}
+          />
           <h1 className={styles.title}>Catálogos base</h1>
           <p className={styles.subtitle}>
             Administra categorías, colores y tallas que alimentan productos y variantes.

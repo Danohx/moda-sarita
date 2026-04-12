@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   History,
   Search,
@@ -45,11 +45,15 @@ interface ApiError {
 
 type EstadoFiltro = "todos" | "abierto" | "cerrado";
 type RangoFiltro = "hoy" | "semana" | "mes" | "personalizado";
+type Tone = "success" | "danger" | "warning";
 
-const fmt = (v: number) =>
-  new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(
-    v,
-  );
+const PAGE_SIZE = 5;
+const CURRENCY_FORMATTER = new Intl.NumberFormat("es-MX", {
+  style: "currency",
+  currency: "MXN",
+});
+
+const fmt = (value: number) => CURRENCY_FORMATTER.format(value);
 
 const fmtFecha = (iso: string) =>
   new Date(iso).toLocaleDateString("es-MX", {
@@ -64,12 +68,69 @@ const fmtHora = (iso: string) =>
     minute: "2-digit",
   });
 
-function getTone(diff: number): "success" | "danger" | "warning" {
+function getTone(diff: number): Tone {
   if (diff === 0) return "success";
   return diff < 0 ? "danger" : "warning";
 }
 
-const PAGE_SIZE = 5;
+function normalizeDate(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function getDateRange(
+  rango: RangoFiltro,
+  fechaDesde: string,
+  fechaHasta: string,
+) {
+  const now = new Date();
+  const today = normalizeDate(now);
+
+  if (rango === "hoy") {
+    const start = today;
+    const end = new Date(today);
+    end.setDate(end.getDate() + 1);
+    return { start, end };
+  }
+
+  if (rango === "semana") {
+    const start = new Date(today);
+    start.setDate(start.getDate() - 6);
+    const end = new Date(today);
+    end.setDate(end.getDate() + 1);
+    return { start, end };
+  }
+
+  if (rango === "mes") {
+    const start = new Date(today.getFullYear(), today.getMonth(), 1);
+    const end = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+    return { start, end };
+  }
+
+  const start = fechaDesde ? new Date(`${fechaDesde}T00:00:00`) : null;
+  const end = fechaHasta ? new Date(`${fechaHasta}T23:59:59.999`) : null;
+  return { start, end };
+}
+
+function isWithinRange(
+  iso: string,
+  range: { start: Date | null; end: Date | null },
+) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return false;
+  if (range.start && date < range.start) return false;
+  if (range.end && date > range.end) return false;
+  return true;
+}
+
+function getInitials(name: string) {
+  return name
+    .trim()
+    .split(/\s+/)
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
 
 export default function HistorialCortes() {
   const [cortes, setCortes] = useState<CorteHistorial[]>([]);
@@ -85,49 +146,71 @@ export default function HistorialCortes() {
   const [fechaHasta, setFechaHasta] = useState("");
 
   const [page, setPage] = useState(1);
-  const [selectedCorteIndex, setSelectedCorteIndex] = useState<number | null>(
-    null,
+  const [selectedCorteId, setSelectedCorteId] = useState<
+    string | number | null
+  >(null);
+
+  const searchQuery = useMemo(() => busqueda.trim().toLowerCase(), [busqueda]);
+  const activeRange = useMemo(
+    () => getDateRange(rango, fechaDesde, fechaHasta),
+    [rango, fechaDesde, fechaHasta],
   );
 
   const cajerosDisponibles = useMemo(() => {
-    const nombres = cortes.map((c) => c.usuario_nombre);
+    const nombres = cortes.map((corte) => corte.usuario_nombre);
     return ["Todos", ...Array.from(new Set(nombres))];
   }, [cortes]);
 
   const filtered = useMemo(() => {
-    return cortes.filter((c) => {
-      if (cajero !== "Todos" && c.usuario_nombre !== cajero) return false;
-      if (estado === "abierto" && c.fin_turno) return false;
-      if (estado === "cerrado" && !c.fin_turno) return false;
-      if (soloDiff && c.fin_turno) {
-        const diff = (c.total_real ?? 0) - c.total_sistema;
+    return cortes.filter((corte) => {
+      if (!isWithinRange(corte.inicio_turno, activeRange)) return false;
+      if (cajero !== "Todos" && corte.usuario_nombre !== cajero) return false;
+      if (estado === "abierto" && corte.fin_turno) return false;
+      if (estado === "cerrado" && !corte.fin_turno) return false;
+
+      if (soloDiff && corte.fin_turno) {
+        const diff = (corte.total_real ?? 0) - corte.total_sistema;
         if (diff === 0) return false;
       }
-      if (busqueda) {
-        const q = busqueda.toLowerCase();
-        if (
-          !c.usuario_nombre.toLowerCase().includes(q) &&
-          !String(c.id).includes(q)
-        )
-          return false;
+
+      if (searchQuery) {
+        const matchesName = corte.usuario_nombre
+          .toLowerCase()
+          .includes(searchQuery);
+        const matchesId = String(corte.id).toLowerCase().includes(searchQuery);
+        if (!matchesName && !matchesId) return false;
       }
+
       return true;
     });
-  }, [cortes, cajero, estado, soloDiff, busqueda]);
+  }, [activeRange, cajero, cortes, estado, searchQuery, soloDiff]);
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE) || 1;
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
+
+  const paginated = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, page]);
 
   const stats = useMemo(() => {
-    const cerrados = cortes.filter((c) => c.fin_turno);
-    const abiertos = cortes.filter((c) => !c.fin_turno);
+    const cerrados = cortes.filter((corte) => corte.fin_turno);
+    const abiertos = cortes.filter((corte) => !corte.fin_turno);
     const conDiff = cerrados.filter(
-      (c) => (c.total_real ?? c.total_sistema) !== c.total_sistema,
+      (corte) =>
+        (corte.total_real ?? corte.total_sistema) !== corte.total_sistema,
     );
+
     const totalVentas = cerrados.reduce(
-      (s, c) => s + Number(c.total_sistema),
+      (sum, corte) => sum + Number(corte.total_sistema),
       0,
     );
+
     return {
       cerrados: cerrados.length,
       abiertos: abiertos.length,
@@ -136,7 +219,23 @@ export default function HistorialCortes() {
     };
   }, [cortes]);
 
-  const loadHistorial = async () => {
+  const selectedCorteIndex = useMemo(
+    () => filtered.findIndex((corte) => corte.id === selectedCorteId),
+    [filtered, selectedCorteId],
+  );
+
+  const selectedCorte =
+    selectedCorteIndex >= 0 ? filtered[selectedCorteIndex] : null;
+
+  useEffect(() => {
+    if (selectedCorteId === null) return;
+    const stillExists = filtered.some((corte) => corte.id === selectedCorteId);
+    if (!stillExists) {
+      setSelectedCorteId(null);
+    }
+  }, [filtered, selectedCorteId]);
+
+  const loadHistorial = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -152,25 +251,91 @@ export default function HistorialCortes() {
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    loadHistorial();
   }, []);
 
-  const handleVerDetalle = (id: string | number) => {
-    const index = filtered.findIndex((c) => c.id === id);
-    if (index !== -1) {
-      setSelectedCorteIndex(index);
-    }
-  };
+  useEffect(() => {
+    void loadHistorial();
+  }, [loadHistorial]);
+
+  // ─── Refs para handlePrev/handleNext estables ───────────────────────────────
+  // Se evita recrear las callbacks cuando filtered o selectedCorteIndex cambian,
+  // lo que evita que el modal reciba nuevas referencias de props en cada render.
+  const filteredRef = useRef(filtered);
+  const selectedCorteIndexRef = useRef(selectedCorteIndex);
+
+  useEffect(() => {
+    filteredRef.current = filtered;
+  }, [filtered]);
+
+  useEffect(() => {
+    selectedCorteIndexRef.current = selectedCorteIndex;
+  }, [selectedCorteIndex]);
+
+  // ─── Handlers ───────────────────────────────────────────────────────────────
+
+  const handleSearchChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setBusqueda(event.target.value);
+      setPage(1);
+    },
+    [],
+  );
+
+  const handleRangoChange = useCallback((nextRange: RangoFiltro) => {
+    setRango(nextRange);
+    setPage(1);
+  }, []);
+
+  const handleCajeroChange = useCallback(
+    (event: React.ChangeEvent<HTMLSelectElement>) => {
+      setCajero(event.target.value);
+      setPage(1);
+    },
+    [],
+  );
+
+  const handleEstadoChange = useCallback(
+    (event: React.ChangeEvent<HTMLSelectElement>) => {
+      setEstado(event.target.value as EstadoFiltro);
+      setPage(1);
+    },
+    [],
+  );
+
+  const handleToggleDiff = useCallback(() => {
+    setSoloDiff((prev) => !prev);
+    setPage(1);
+  }, []);
+
+  const handleOpenDetail = useCallback((id: string | number) => {
+    setSelectedCorteId(id);
+  }, []);
+
+  // Sin dependencias → referencia estable siempre.
+  // Leen el estado actual mediante refs para no necesitar las vars directamente.
+  const handlePrev = useCallback(() => {
+    const idx = selectedCorteIndexRef.current;
+    if (idx <= 0) return;
+    setSelectedCorteId(filteredRef.current[idx - 1]?.id ?? null);
+  }, []);
+
+  const handleNext = useCallback(() => {
+    const idx = selectedCorteIndexRef.current;
+    if (idx < 0 || idx >= filteredRef.current.length - 1) return;
+    setSelectedCorteId(filteredRef.current[idx + 1]?.id ?? null);
+  }, []);
 
   return (
     <div className={styles.page}>
       <header className={styles.header}>
         <div className={styles.headerTop}>
           <div className={styles.titleGroup}>
-            <AdminBreadcrumbs items={[{ label: "Corte de Caja", to: "/corte" }, { label: "Historial de cortes" }]} />
+            <AdminBreadcrumbs
+              items={[
+                { label: "Corte de Caja", to: "/corte" },
+                { label: "Historial de cortes" },
+              ]}
+            />
             <span className={styles.badge}>
               <History size={14} /> Historial de cortes
             </span>
@@ -202,24 +367,9 @@ export default function HistorialCortes() {
       </header>
 
       {error && (
-        <div
-          style={{
-            background: "#fee2e2",
-            color: "#991b1b",
-            padding: "12px",
-            borderRadius: "6px",
-            margin: "0 24px",
-          }}
-        >
-          <AlertTriangle
-            size={16}
-            style={{
-              display: "inline",
-              marginRight: "8px",
-              verticalAlign: "middle",
-            }}
-          />
-          {error}
+        <div className={styles.errorBanner} role="alert">
+          <AlertTriangle size={16} />
+          <span>{error}</span>
         </div>
       )}
 
@@ -230,10 +380,7 @@ export default function HistorialCortes() {
             type="text"
             placeholder="Buscar cajero o ID de corte..."
             value={busqueda}
-            onChange={(e) => {
-              setBusqueda(e.target.value);
-              setPage(1);
-            }}
+            onChange={handleSearchChange}
           />
         </div>
 
@@ -241,19 +388,16 @@ export default function HistorialCortes() {
           <Calendar size={13} />
           <div className={styles.segmented}>
             {(["hoy", "semana", "mes", "personalizado"] as RangoFiltro[]).map(
-              (r) => (
+              (item) => (
                 <button
-                  key={r}
+                  key={item}
                   type="button"
-                  className={rango === r ? styles.segActive : ""}
-                  onClick={() => {
-                    setRango(r);
-                    setPage(1);
-                  }}
+                  className={rango === item ? styles.segActive : ""}
+                  onClick={() => handleRangoChange(item)}
                 >
-                  {r === "personalizado"
+                  {item === "personalizado"
                     ? "Custom"
-                    : r.charAt(0).toUpperCase() + r.slice(1)}
+                    : item.charAt(0).toUpperCase() + item.slice(1)}
                 </button>
               ),
             )}
@@ -265,28 +409,28 @@ export default function HistorialCortes() {
             <input
               type="date"
               value={fechaDesde}
-              onChange={(e) => setFechaDesde(e.target.value)}
+              onChange={(event) => {
+                setFechaDesde(event.target.value);
+                setPage(1);
+              }}
             />
             <span>–</span>
             <input
               type="date"
               value={fechaHasta}
-              onChange={(e) => setFechaHasta(e.target.value)}
+              onChange={(event) => {
+                setFechaHasta(event.target.value);
+                setPage(1);
+              }}
             />
           </div>
         )}
 
         <div className={styles.selectWrap}>
           <User size={13} />
-          <select
-            value={cajero}
-            onChange={(e) => {
-              setCajero(e.target.value);
-              setPage(1);
-            }}
-          >
-            {cajerosDisponibles.map((c) => (
-              <option key={c}>{c}</option>
+          <select value={cajero} onChange={handleCajeroChange}>
+            {cajerosDisponibles.map((nombreCajero) => (
+              <option key={nombreCajero}>{nombreCajero}</option>
             ))}
           </select>
           <ChevronDown size={13} />
@@ -294,13 +438,7 @@ export default function HistorialCortes() {
 
         <div className={styles.selectWrap}>
           <Filter size={13} />
-          <select
-            value={estado}
-            onChange={(e) => {
-              setEstado(e.target.value as EstadoFiltro);
-              setPage(1);
-            }}
-          >
+          <select value={estado} onChange={handleEstadoChange}>
             <option value="todos">Todos</option>
             <option value="cerrado">Cerrados</option>
             <option value="abierto">Abiertos</option>
@@ -311,10 +449,8 @@ export default function HistorialCortes() {
         <button
           type="button"
           className={`${styles.toggleBtn} ${soloDiff ? styles.toggleActive : ""}`}
-          onClick={() => {
-            setSoloDiff((p) => !p);
-            setPage(1);
-          }}
+          onClick={handleToggleDiff}
+          aria-pressed={soloDiff}
         >
           <AlertTriangle size={13} />
           Solo diferencias
@@ -324,11 +460,11 @@ export default function HistorialCortes() {
       <div className={styles.tableWrap}>
         {loading ? (
           <div className={styles.skeleton}>
-            {[...Array(4)].map((_, i) => (
+            {Array.from({ length: 4 }).map((_, index) => (
               <div
-                key={i}
+                key={index}
                 className={styles.skeletonRow}
-                style={{ animationDelay: `${i * 0.08}s` }}
+                style={{ animationDelay: `${index * 0.08}s` }}
               />
             ))}
           </div>
@@ -359,27 +495,27 @@ export default function HistorialCortes() {
               </tr>
             </thead>
             <tbody>
-              {paginated.map((c) => {
-                const isClosed = !!c.fin_turno;
+              {paginated.map((corte) => {
+                const isClosed = Boolean(corte.fin_turno);
                 const diff = isClosed
-                  ? (c.total_real ?? 0) - c.total_sistema
+                  ? (corte.total_real ?? 0) - corte.total_sistema
                   : null;
                 const tone = diff !== null ? getTone(diff) : null;
 
                 return (
-                  <tr key={c.id} className={styles.row}>
+                  <tr key={corte.id} className={styles.row}>
                     <td className={styles.idCell}>
                       <span className={styles.idBadge}>
-                        #{String(c.id).slice(0, 8)}
+                        #{String(corte.id).slice(0, 8)}
                       </span>
                     </td>
                     <td>
                       <div className={styles.dateCell}>
                         <span className={styles.dateMain}>
-                          {fmtFecha(c.inicio_turno)}
+                          {fmtFecha(corte.inicio_turno)}
                         </span>
                         <span className={styles.dateSub}>
-                          {fmtHora(c.inicio_turno)}
+                          {fmtHora(corte.inicio_turno)}
                         </span>
                       </div>
                     </td>
@@ -387,10 +523,10 @@ export default function HistorialCortes() {
                       {isClosed ? (
                         <div className={styles.dateCell}>
                           <span className={styles.dateMain}>
-                            {fmtFecha(c.fin_turno!)}
+                            {fmtFecha(corte.fin_turno as string)}
                           </span>
                           <span className={styles.dateSub}>
-                            {fmtHora(c.fin_turno!)}
+                            {fmtHora(corte.fin_turno as string)}
                           </span>
                         </div>
                       ) : (
@@ -400,18 +536,16 @@ export default function HistorialCortes() {
                     <td>
                       <div className={styles.cajeroCell}>
                         <div className={styles.avatar}>
-                          {c.usuario_nombre
-                            .split(" ")
-                            .map((n) => n[0])
-                            .slice(0, 2)
-                            .join("")}
+                          {getInitials(corte.usuario_nombre)}
                         </div>
-                        <span>{c.usuario_nombre}</span>
+                        <span>{corte.usuario_nombre}</span>
                       </div>
                     </td>
-                    <td className={styles.moneyCell}>{fmt(c.total_sistema)}</td>
                     <td className={styles.moneyCell}>
-                      {isClosed ? fmt(c.total_real ?? 0) : "---"}
+                      {fmt(corte.total_sistema)}
+                    </td>
+                    <td className={styles.moneyCell}>
+                      {isClosed ? fmt(corte.total_real ?? 0) : "---"}
                     </td>
                     <td>
                       {diff !== null && tone ? (
@@ -438,8 +572,9 @@ export default function HistorialCortes() {
                       <button
                         type="button"
                         className={styles.eyeBtn}
-                        onClick={() => handleVerDetalle(c.id)}
+                        onClick={() => handleOpenDetail(corte.id)}
                         title="Ver detalle"
+                        aria-label={`Ver detalle del corte ${corte.id}`}
                       >
                         <Eye size={14} />
                         <ArrowUpRight size={11} />
@@ -463,25 +598,32 @@ export default function HistorialCortes() {
           <div className={styles.pageButtons}>
             <button
               type="button"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
               disabled={page === 1}
+              aria-label="Página anterior"
             >
               <ChevronLeft size={15} />
             </button>
-            {[...Array(totalPages)].map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                className={page === i + 1 ? styles.pageActive : ""}
-                onClick={() => setPage(i + 1)}
-              >
-                {i + 1}
-              </button>
-            ))}
+            {Array.from({ length: totalPages }).map((_, index) => {
+              const pageNumber = index + 1;
+              return (
+                <button
+                  key={pageNumber}
+                  type="button"
+                  className={page === pageNumber ? styles.pageActive : ""}
+                  onClick={() => setPage(pageNumber)}
+                  aria-label={`Ir a la página ${pageNumber}`}
+                  aria-current={page === pageNumber ? "page" : undefined}
+                >
+                  {pageNumber}
+                </button>
+              );
+            })}
             <button
               type="button"
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
               disabled={page === totalPages}
+              aria-label="Página siguiente"
             >
               <ChevronRight size={15} />
             </button>
@@ -489,24 +631,16 @@ export default function HistorialCortes() {
         </div>
       )}
 
-      {selectedCorteIndex !== null && (
-        <CorteDetalleModal
-          corte={filtered[selectedCorteIndex]}
-          onClose={() => setSelectedCorteIndex(null)}
-          onPrev={() =>
-            setSelectedCorteIndex((prev) =>
-              prev !== null && prev > 0 ? prev - 1 : prev,
-            )
-          }
-          onNext={() =>
-            setSelectedCorteIndex((prev) =>
-              prev !== null && prev < filtered.length - 1 ? prev + 1 : prev,
-            )
-          }
-          hasPrev={selectedCorteIndex > 0}
-          hasNext={selectedCorteIndex < filtered.length - 1}
-        />
-      )}
+      <CorteDetalleModal
+        corte={selectedCorte}
+        onClose={() => setSelectedCorteId(null)}
+        onPrev={handlePrev}
+        onNext={handleNext}
+        hasPrev={selectedCorteIndex > 0}
+        hasNext={
+          selectedCorteIndex >= 0 && selectedCorteIndex < filtered.length - 1
+        }
+      />
     </div>
   );
 }

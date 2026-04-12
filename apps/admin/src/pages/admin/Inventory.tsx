@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import {
   AlertTriangle,
   ArrowRightLeft,
@@ -46,47 +46,39 @@ const Inventory: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<
-    "all" | "ok" | "bajo" | "agotado"
-  >("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "ok" | "bajo" | "agotado">("all");
   const [isMovementModalOpen, setIsMovementModalOpen] = useState(false);
-  const [selectedMovementRow, setSelectedMovementRow] =
-    useState<InventoryRow | null>(null);
+  const [selectedMovementRow, setSelectedMovementRow] = useState<InventoryRow | null>(null);
   const [isAlertsModalOpen, setIsAlertsModalOpen] = useState(false);
 
   const loadInventory = useCallback(async (isRefresh = false) => {
     try {
       setError(null);
-
-      if (isRefresh) setRefreshing(true);
-      else setLoading(true);
+      if(isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
 
       const rows = await inventarioService.getExistencias();
 
       const mapped = (rows ?? []).map((item) => {
-        const stockFisico = Number(item.stock_fisico ?? 0);
-        const stockApartado = Number(item.stock_apartado ?? 0);
+        const stockFisico     = Number(item.stock_fisico ?? 0);
+        const stockApartado   = Number(item.stock_apartado ?? 0);
         const stockDisponible = Number(item.stock_disponible ?? 0);
-        const stockMinimo = Number(item.stock_minimo ?? 0);
-        const bajoStock = Boolean(item.bajo_stock);
+        const stockMinimo     = Number(item.stock_minimo ?? 0);
+        const bajoStock       = Boolean(item.bajo_stock);
 
-        const varianteParts = [
-          item.talla_nombre ?? null,
-          item.color_nombre ?? null,
-        ].filter(Boolean);
+        const varianteParts = [item.talla_nombre ?? null, item.color_nombre ?? null].filter(Boolean);
 
         let estado: "ok" | "bajo" | "agotado" = "ok";
-
         if (stockDisponible <= 0) estado = "agotado";
         else if (bajoStock || stockDisponible <= stockMinimo) estado = "bajo";
 
         return {
           id: String(item.variante_id),
           producto: item.producto_nombre ?? "",
-          variante:
-            varianteParts.length > 0
-              ? varianteParts.join(" / ")
-              : "Variante base",
+          variante: varianteParts.length > 0 ? varianteParts.join(" / ") : "Variante base",
           sku: item.sku ?? "",
           categoria: item.categoria_nombre ?? "Sin categoría",
           stockFisico,
@@ -108,41 +100,47 @@ const Inventory: React.FC = () => {
     }
   }, []);
 
-  const handleRefresh = () => {
-    void loadInventory(true);
-  };
+  // Ref para handleRefresh estable — evita que los modales reciban
+  // nuevas referencias de props en cada render
+  const loadInventoryRef = useRef(loadInventory);
+  useEffect(() => { loadInventoryRef.current = loadInventory; }, [loadInventory]);
 
-  const handleOpenMovementModal = (row?: InventoryRow | null) => {
+  const handleRefresh = useCallback(() => {
+    void loadInventoryRef.current(true);
+  }, []);
+
+  const handleOpenMovementModal = useCallback((row?: InventoryRow | null) => {
     setSelectedMovementRow(row ?? null);
     setIsMovementModalOpen(true);
-  };
+  }, []);
 
-  const handleCloseMovementModal = () => {
+  const handleCloseMovementModal = useCallback(() => {
     setIsMovementModalOpen(false);
     setSelectedMovementRow(null);
     handleRefresh();
-  };
+  }, [handleRefresh]);
 
-  const handleRegisterFromAlert = (alertItem: AlertItem) => {
-    const row = items.find((i) => i.id === alertItem.id) ?? null;
-    setIsAlertsModalOpen(false);
-    handleOpenMovementModal(row);
-  };
+  const handleRegisterFromAlert = useCallback(
+    (alertItem: AlertItem) => {
+      const row = items.find((i) => i.id === alertItem.id) ?? null;
+      setIsAlertsModalOpen(false);
+      handleOpenMovementModal(row);
+    },
+    [items, handleOpenMovementModal],
+  );
+
+  const handleCloseAlertsModal = useCallback(() => setIsAlertsModalOpen(false), []);
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
       const term = search.trim().toLowerCase();
-
       const matchesSearch =
         !term ||
         item.producto.toLowerCase().includes(term) ||
         item.variante.toLowerCase().includes(term) ||
         item.sku.toLowerCase().includes(term) ||
         item.categoria.toLowerCase().includes(term);
-
-      const matchesStatus =
-        statusFilter === "all" || item.estado === statusFilter;
-
+      const matchesStatus = statusFilter === "all" || item.estado === statusFilter;
       return matchesSearch && matchesStatus;
     });
   }, [items, search, statusFilter]);
@@ -177,21 +175,11 @@ const Inventory: React.FC = () => {
   );
 
   const stats = useMemo(() => {
-    const stockFisico = items.reduce((acc, item) => acc + item.stockFisico, 0);
-    const stockDisponible = items.reduce(
-      (acc, item) => acc + item.stockDisponible,
-      0,
-    );
-    const lowStock = items.filter((item) => item.estado === "bajo").length;
-    const agotados = items.filter((item) => item.estado === "agotado").length;
-
-    return {
-      totalVariantes: items.length,
-      stockFisico,
-      stockDisponible,
-      lowStock,
-      agotados,
-    };
+    const stockFisico     = items.reduce((acc, item) => acc + item.stockFisico, 0);
+    const stockDisponible = items.reduce((acc, item) => acc + item.stockDisponible, 0);
+    const lowStock  = items.filter((item) => item.estado === "bajo").length;
+    const agotados  = items.filter((item) => item.estado === "agotado").length;
+    return { totalVariantes: items.length, stockFisico, stockDisponible, lowStock, agotados };
   }, [items]);
 
   useEffect(() => {
@@ -205,8 +193,7 @@ const Inventory: React.FC = () => {
           <AdminBreadcrumbs items={[{ label: "Inventario" }]} />
           <h1 className={styles.title}>Inventario</h1>
           <p className={styles.subtitle}>
-            Consulta el inventario por variante, disponible, apartado y estado
-            actual.
+            Consulta el inventario por variante, disponible, apartado y estado actual.
           </p>
         </div>
 
@@ -236,12 +223,9 @@ const Inventory: React.FC = () => {
           <button
             type="button"
             className={styles.secondaryBtn}
-            onClick={() => void handleRefresh()}
+            onClick={handleRefresh}
           >
-            <RefreshCw
-              size={18}
-              className={refreshing ? styles.spinning : ""}
-            />
+            <RefreshCw size={18} className={refreshing ? styles.spinning : ""} />
             Actualizar
           </button>
         </div>
@@ -255,7 +239,6 @@ const Inventory: React.FC = () => {
             <strong>{stats.totalVariantes}</strong>
           </div>
         </article>
-
         <article className={`${styles.statCard} ${styles.infoCard}`}>
           <Package size={28} />
           <div>
@@ -263,7 +246,6 @@ const Inventory: React.FC = () => {
             <strong>{stats.stockFisico}</strong>
           </div>
         </article>
-
         <article className={`${styles.statCard} ${styles.warningCard}`}>
           <AlertTriangle size={28} />
           <div>
@@ -271,7 +253,6 @@ const Inventory: React.FC = () => {
             <strong>{stats.stockDisponible}</strong>
           </div>
         </article>
-
         <article className={`${styles.statCard} ${styles.dangerCard}`}>
           <ArrowRightLeft size={28} />
           <div>
@@ -286,7 +267,7 @@ const Inventory: React.FC = () => {
           <Search size={18} />
           <input
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por producto, variante, SKU o categoría"
           />
         </div>
@@ -294,11 +275,7 @@ const Inventory: React.FC = () => {
         <select
           className={styles.select}
           value={statusFilter}
-          onChange={(event) =>
-            setStatusFilter(
-              event.target.value as "all" | "ok" | "bajo" | "agotado",
-            )
-          }
+          onChange={(e) => setStatusFilter(e.target.value as "all" | "ok" | "bajo" | "agotado")}
         >
           <option value="all">Todos los estados</option>
           <option value="ok">En rango</option>
@@ -311,9 +288,7 @@ const Inventory: React.FC = () => {
         {loading ? (
           <div className={styles.centerState}>Cargando existencias...</div>
         ) : filteredItems.length === 0 ? (
-          <div className={styles.centerState}>
-            No hay existencias para mostrar.
-          </div>
+          <div className={styles.centerState}>No hay existencias para mostrar.</div>
         ) : (
           <div className={styles.tableWrapper}>
             <table className={styles.table}>
@@ -387,18 +362,14 @@ const Inventory: React.FC = () => {
       <InventoryAlertsModal
         open={isAlertsModalOpen}
         alerts={alertItems}
-        onClose={() => setIsAlertsModalOpen(false)}
+        onClose={handleCloseAlertsModal}
         onRegisterMovement={handleRegisterFromAlert}
       />
 
       <InventoryMovementModal
         isOpen={isMovementModalOpen}
         onClose={handleCloseMovementModal}
-        title={
-          selectedMovementRow
-            ? "Registrar movimiento"
-            : "Registrar movimiento global"
-        }
+        title={selectedMovementRow ? "Registrar movimiento" : "Registrar movimiento global"}
         subtitle={
           selectedMovementRow
             ? "Realiza un movimiento rápido sobre la variante seleccionada."

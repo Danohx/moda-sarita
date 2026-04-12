@@ -1,8 +1,3 @@
-/* HistorialCortes.module.css
-   Sigue exactamente el mismo sistema de design tokens que CorteCaja.module.css
-   (var(--color-*), var(--font-primary), var(--border-radius-*), var(--shadow-*))
-*/
-
 .page {
   display: flex;
   flex-direction: column;
@@ -10,7 +5,6 @@
   font-family: var(--font-primary);
 }
 
-/* ── Header ── */
 .header {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -62,7 +56,6 @@
   color: var(--color-text);
 }
 
-/* ── Stats row ── */
 .statsRow {
   display: flex;
   align-items: stretch;
@@ -97,11 +90,29 @@
   color: var(--color-text);
 }
 
-.statOpen strong   { color: rgb(5, 150, 105); }
-.statDiff strong   { color: rgb(220, 38, 38); }
-.statVentas strong { color: var(--color-primary-vibrant); }
+.statOpen strong {
+  color: rgb(5, 150, 105);
+}
 
-/* ── Filter bar ── */
+.statDiff strong {
+  color: rgb(220, 38, 38);
+}
+
+.statVentas strong {
+  color: var(--color-primary-vibrant);
+}
+
+.errorBanner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--border-radius-medium);
+  background: rgba(239, 68, 68, 0.08);
+  color: rgb(153, 27, 27);
+  border: 1px solid rgba(239, 68, 68, 0.18);
+}
+
 .filterBar {
   display: flex;
   align-items: center;
@@ -113,7 +124,6 @@
   border-radius: var(--border-radius-large);
 }
 
-/* Buscador */
 .searchBox {
   display: flex;
   align-items: center;
@@ -139,9 +149,10 @@
   color: var(--color-text);
 }
 
-.searchBox input::placeholder { opacity: 0.45; }
+.searchBox input::placeholder {
+  opacity: 0.45;
+}
 
-/* Segmented control (rango) */
 .filterGroup {
   display: flex;
   align-items: center;
@@ -171,9 +182,13 @@
   opacity: 0.6;
 }
 
-.segmented button:last-child { border-right: none; }
+.segmented button:last-child {
+  border-right: none;
+}
 
-.segmented button:hover { opacity: 1; }
+.segmented button:hover {
+  opacity: 1;
+}
 
 .segActive {
   background: var(--color-primary-bg) !important;
@@ -181,7 +196,6 @@
   opacity: 1 !important;
 }
 
-/* Date range inputs */
 .dateRange {
   display: flex;
   align-items: center;
@@ -202,7 +216,6 @@
   outline: none;
 }
 
-/* Select wraps */
 .selectWrap {
   display: flex;
   align-items: center;
@@ -230,7 +243,6 @@
   padding-right: 4px;
 }
 
-/* Toggle btn */
 .toggleBtn {
   display: inline-flex;
   align-items: center;
@@ -249,7 +261,9 @@
   white-space: nowrap;
 }
 
-.toggleBtn:hover { opacity: 1; }
+.toggleBtn:hover {
+  opacity: 1;
+}
 
 .toggleActive {
   background: rgba(239, 68, 68, 0.08) !important;
@@ -258,7 +272,6 @@
   opacity: 1 !important;
 }
 
-/* ── Table ── */
 .tableWrap {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -285,11 +298,6 @@
   color: var(--color-text);
   opacity: 0.45;
   white-space: nowrap;
-  display: revert; /* resetting if any global reset interferes */
-}
-
-/* thead th inline icons */
-.table thead th {
   display: table-cell;
 }
 
@@ -305,9 +313,13 @@
   transition: background 0.1s ease;
 }
 
-.row:last-child { border-bottom: none; }
+.row:last-child {
+  border-bottom: none;
+}
 
-.row:hover { background: var(--color-bg); }
+.row:hover {
+  background: var(--color-bg);
+}
 
 .table tbody td {
   padding: 12px 16px;
@@ -316,8 +328,9 @@
   vertical-align: middle;
 }
 
-/* ID cell */
-.idCell { width: 60px; }
+.idCell {
+  width: 60px;
+}
 
 .idBadge {
   display: inline-flex;
@@ -332,7 +345,6 @@
   opacity: 0.6;
 }
 
-/* Date cell */
 .dateCell {
   display: flex;
   flex-direction: column;
@@ -358,7 +370,6 @@
   opacity: 0.8;
 }
 
-/* Cajero cell */
 .cajeroCell {
   display: flex;
   align-items: center;
@@ -381,14 +392,12 @@
   letter-spacing: 0;
 }
 
-/* Money cell */
 .moneyCell {
   font-weight: 800;
   font-size: 0.86rem;
   font-variant-numeric: tabular-nums;
 }
 
-/* Diff pills */
 .diffPill {
   display: inline-flex;
   align-items: center;
@@ -431,7 +440,6 @@
   opacity: 0.5;
 }
 
-/* Estado pill */
 .estadoPill {
   display: inline-flex;
   align-items: center;
@@ -454,7 +462,6 @@
   border-color: rgba(16, 185, 129, 0.2);
 }
 
-/* Eye button */
 .eyeBtn {
   display: inline-flex;
   align-items: center;
@@ -475,7 +482,6 @@
   transform: translateY(-1px);
 }
 
-/* ── Skeleton loader ── */
 .skeleton {
   display: flex;
   flex-direction: column;
@@ -492,11 +498,15 @@
 }
 
 @keyframes shimmer {
-  0%, 100% { opacity: 0.4; }
-  50%       { opacity: 0.7; }
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
-/* ── Empty state ── */
 .empty {
   display: flex;
   flex-direction: column;
@@ -514,7 +524,6 @@
   font-weight: 600;
 }
 
-/* ── Pagination ── */
 .pagination {
   display: flex;
   align-items: center;
@@ -577,25 +586,45 @@
   opacity: 1 !important;
 }
 
-/* ── Responsive ── */
 @media (max-width: 1100px) {
-  .headerTop { flex-direction: column; }
-  .statsRow  { width: 100%; }
+  .headerTop {
+    flex-direction: column;
+  }
+
+  .statsRow {
+    width: 100%;
+  }
 }
 
 @media (max-width: 768px) {
   .table thead th:nth-child(5),
-  .table tbody td:nth-child(5) { display: none; }   /* Oculta "Esperado" */
+  .table tbody td:nth-child(5) {
+    display: none;
+  }
 
-  .filterBar { gap: 8px; }
-  .searchBox { min-width: 100%; }
+  .filterBar {
+    gap: 8px;
+  }
+
+  .searchBox {
+    min-width: 100%;
+  }
+
+  .errorBanner {
+    width: 100%;
+  }
 }
 
 @media (max-width: 540px) {
   .table thead th:nth-child(2),
   .table tbody td:nth-child(2),
   .table thead th:nth-child(3),
-  .table tbody td:nth-child(3) { display: none; }   /* Oculta fechas */
+  .table tbody td:nth-child(3) {
+    display: none;
+  }
 
-  .statsRow .statCard { flex: 1; min-width: 80px; }
+  .statsRow .statCard {
+    flex: 1;
+    min-width: 80px;
+  }
 }

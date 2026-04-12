@@ -1,12 +1,6 @@
 import React, { useState } from "react";
 import {
-  X,
-  CreditCard,
-  Banknote,
-  Smartphone,
-  ShoppingBag,
-  ChevronRight,
-  User,
+  X, CreditCard, Banknote, Smartphone, ShoppingBag, ChevronRight, User,
 } from "lucide-react";
 import styles from "../../../styles/ModalCheckout.module.css";
 
@@ -20,6 +14,7 @@ interface ResumenItem {
 }
 
 interface ModalCheckoutProps {
+  isOpen: boolean;
   items: ResumenItem[];
   subtotal: number;
   iva: number;
@@ -29,7 +24,11 @@ interface ModalCheckoutProps {
   onCerrar: () => void;
 }
 
+const CURRENCY_FORMATTER = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" });
+const fmt = (v: number) => CURRENCY_FORMATTER.format(v);
+
 export const ModalCheckout: React.FC<ModalCheckoutProps> = ({
+  isOpen,
   items,
   subtotal,
   iva,
@@ -41,8 +40,15 @@ export const ModalCheckout: React.FC<ModalCheckoutProps> = ({
   const [metodo, setMetodo] = useState<MetodoPago>("EFECTIVO");
   const [montoEfectivo, setMontoEfectivo] = useState("");
 
-  const formatMoneda = (v: number) =>
-    new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(v);
+  // Resetear estado interno cuando se cierra
+  React.useEffect(() => {
+    if (!isOpen) {
+      setMetodo("EFECTIVO");
+      setMontoEfectivo("");
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
 
   const cambio =
     metodo === "EFECTIVO" && montoEfectivo
@@ -54,9 +60,9 @@ export const ModalCheckout: React.FC<ModalCheckoutProps> = ({
     (montoEfectivo !== "" && parseFloat(montoEfectivo) >= total);
 
   const metodos: { id: MetodoPago; label: string; icon: React.ReactNode }[] = [
-    { id: "EFECTIVO",       label: "Efectivo",       icon: <Banknote size={20} /> },
-    { id: "TARJETA",        label: "Tarjeta",         icon: <CreditCard size={20} /> },
-    { id: "TRANSFERENCIA",  label: "Transferencia",   icon: <Smartphone size={20} /> },
+    { id: "EFECTIVO",      label: "Efectivo",     icon: <Banknote size={20} /> },
+    { id: "TARJETA",       label: "Tarjeta",       icon: <CreditCard size={20} /> },
+    { id: "TRANSFERENCIA", label: "Transferencia", icon: <Smartphone size={20} /> },
   ];
 
   const montosSugeridos = [
@@ -68,11 +74,8 @@ export const ModalCheckout: React.FC<ModalCheckoutProps> = ({
   return (
     <div className={styles.overlay} onClick={onCerrar}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
         <div className={styles.header}>
-          <div className={styles.headerIcon}>
-            <ShoppingBag size={20} />
-          </div>
+          <div className={styles.headerIcon}><ShoppingBag size={20} /></div>
           <div>
             <h2 className={styles.titulo}>Cobro</h2>
             {clienteNombre && (
@@ -87,49 +90,31 @@ export const ModalCheckout: React.FC<ModalCheckoutProps> = ({
         </div>
 
         <div className={styles.body}>
-          {/* Resumen de items */}
           <div className={styles.resumenItems}>
             {items.map((item, i) => (
               <div key={i} className={styles.resumenRow}>
                 <span className={styles.resumenNombre}>
                   {item.nombre}
-                  {item.variante && (
-                    <span className={styles.resumenVariante}> · {item.variante}</span>
-                  )}
+                  {item.variante && <span className={styles.resumenVariante}> · {item.variante}</span>}
                   <span className={styles.resumenCantidad}> ×{item.cantidad}</span>
                 </span>
-                <span className={styles.resumenPrecio}>
-                  {formatMoneda(item.precio * item.cantidad)}
-                </span>
+                <span className={styles.resumenPrecio}>{fmt(item.precio * item.cantidad)}</span>
               </div>
             ))}
           </div>
 
-          {/* Totales */}
           <div className={styles.totalesCard}>
-            <div className={styles.totalRow}>
-              <span>Subtotal</span>
-              <span>{formatMoneda(subtotal)}</span>
-            </div>
-            <div className={styles.totalRow}>
-              <span>IVA (16%)</span>
-              <span>{formatMoneda(iva)}</span>
-            </div>
-            <div className={styles.totalRowFinal}>
-              <span>Total</span>
-              <span>{formatMoneda(total)}</span>
-            </div>
+            <div className={styles.totalRow}><span>Subtotal</span><span>{fmt(subtotal)}</span></div>
+            <div className={styles.totalRow}><span>IVA (16%)</span><span>{fmt(iva)}</span></div>
+            <div className={styles.totalRowFinal}><span>Total</span><span>{fmt(total)}</span></div>
           </div>
 
-          {/* Método de pago */}
           <div className={styles.metodos}>
             {metodos.map((m) => (
               <button
                 key={m.id}
                 type="button"
-                className={`${styles.metodoBtn} ${
-                  metodo === m.id ? styles.metodoActivo : ""
-                }`}
+                className={`${styles.metodoBtn} ${metodo === m.id ? styles.metodoActivo : ""}`}
                 onClick={() => setMetodo(m.id)}
               >
                 <span className={styles.metodoIcono}>{m.icon}</span>
@@ -138,7 +123,6 @@ export const ModalCheckout: React.FC<ModalCheckoutProps> = ({
             ))}
           </div>
 
-          {/* Campo efectivo */}
           {metodo === "EFECTIVO" && (
             <div className={styles.efectivoSection}>
               <label className={styles.fieldLabel}>Monto recibido</label>
@@ -165,7 +149,7 @@ export const ModalCheckout: React.FC<ModalCheckoutProps> = ({
                       className={styles.sugeridoBtn}
                       onClick={() => setMontoEfectivo(String(monto))}
                     >
-                      {formatMoneda(monto)}
+                      {fmt(monto)}
                     </button>
                   ))}
                 </div>
@@ -174,24 +158,21 @@ export const ModalCheckout: React.FC<ModalCheckoutProps> = ({
               {montoEfectivo && parseFloat(montoEfectivo) >= total && (
                 <div className={styles.cambioRow}>
                   <span>Cambio</span>
-                  <span className={styles.cambioValor}>{formatMoneda(cambio)}</span>
+                  <span className={styles.cambioValor}>{fmt(cambio)}</span>
                 </div>
               )}
             </div>
           )}
         </div>
 
-        {/* Footer */}
         <div className={styles.footer}>
           <button
             className={styles.pagarBtn}
-            onClick={() =>
-              onPagar(metodo, montoEfectivo ? parseFloat(montoEfectivo) : undefined)
-            }
+            onClick={() => onPagar(metodo, montoEfectivo ? parseFloat(montoEfectivo) : undefined)}
             disabled={!puedePagar}
             type="button"
           >
-            Confirmar pago · {formatMoneda(total)}
+            Confirmar pago · {fmt(total)}
             <ChevronRight size={18} />
           </button>
         </div>

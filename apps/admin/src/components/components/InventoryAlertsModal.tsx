@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { AlertTriangle, ArrowRightLeft, BarChart2, X } from "lucide-react";
 import styles from "../../../styles/InventoryAlertsModal.module.css";
@@ -22,36 +22,38 @@ const InventoryAlertsModal: React.FC<InventoryAlertsModalProps> = ({
   alerts,
   open,
   onClose,
-  onRegisterMovement
+  onRegisterMovement,
 }) => {
   const overlayRef = useRef<HTMLDivElement>(null);
+
+  // Refs estables para evitar que el listener se recree cuando
+  // onClose cambia de referencia en el padre (sin useCallback allá)
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; });
 
   useEffect(() => {
     if (!open) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") onCloseRef.current();
     };
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
-  }, [open, onClose]);
+  }, [open]); // solo depende de open, no de onClose
 
   useEffect(() => {
-    if (open) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
+    document.body.style.overflow = open ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
   }, [open]);
 
-  const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === overlayRef.current) onClose();
-  };
+  const handleOverlayClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (e.target === overlayRef.current) onCloseRef.current();
+    },
+    [],
+  );
 
   const agotados = alerts.filter((a) => a.estado === "agotado").length;
-  const bajos = alerts.filter((a) => a.estado === "bajo").length;
+  const bajos    = alerts.filter((a) => a.estado === "bajo").length;
 
   if (!open) return null;
 
@@ -76,9 +78,7 @@ const InventoryAlertsModal: React.FC<InventoryAlertsModalProps> = ({
               </h2>
               <p className={styles.subtitle}>
                 <span className={styles.countChip}>{alerts.length}</span>
-                {alerts.length === 1
-                  ? " variante en alerta"
-                  : " variantes en alerta"}
+                {alerts.length === 1 ? " variante en alerta" : " variantes en alerta"}
                 {agotados > 0 && (
                   <span className={styles.subtitleBadgeOut}>
                     {agotados} agotada{agotados > 1 ? "s" : ""}
@@ -115,16 +115,12 @@ const InventoryAlertsModal: React.FC<InventoryAlertsModalProps> = ({
                 <li
                   key={item.id}
                   className={`${styles.alertItem} ${
-                    item.estado === "agotado"
-                      ? styles.alertItemOut
-                      : styles.alertItemLow
+                    item.estado === "agotado" ? styles.alertItemOut : styles.alertItemLow
                   }`}
                 >
                   <div
                     className={`${styles.statusBar} ${
-                      item.estado === "agotado"
-                        ? styles.statusBarOut
-                        : styles.statusBarLow
+                      item.estado === "agotado" ? styles.statusBarOut : styles.statusBarLow
                     }`}
                     aria-hidden="true"
                   />
@@ -132,13 +128,7 @@ const InventoryAlertsModal: React.FC<InventoryAlertsModalProps> = ({
                   <div className={styles.itemContent}>
                     <div className={styles.itemInfo}>
                       <span className={styles.itemNombre}>{item.nombre}</span>
-                      <span
-                        className={
-                          item.estado === "agotado"
-                            ? styles.badgeOut
-                            : styles.badgeLow
-                        }
-                      >
+                      <span className={item.estado === "agotado" ? styles.badgeOut : styles.badgeLow}>
                         {item.estado === "agotado" ? "Agotado" : "Stock bajo"}
                       </span>
                     </div>
@@ -148,23 +138,16 @@ const InventoryAlertsModal: React.FC<InventoryAlertsModalProps> = ({
                         <span className={styles.stockLabel}>Disponible</span>
                         <strong
                           className={`${styles.stockVal} ${
-                            item.stockDisponible === 0
-                              ? styles.stockValDanger
-                              : styles.stockValWarn
+                            item.stockDisponible === 0 ? styles.stockValDanger : styles.stockValWarn
                           }`}
                         >
                           {item.stockDisponible}
                         </strong>
                       </span>
-                      <span
-                        className={styles.stockDivider}
-                        aria-hidden="true"
-                      />
+                      <span className={styles.stockDivider} aria-hidden="true" />
                       <span className={styles.stockItem}>
                         <span className={styles.stockLabel}>Mínimo</span>
-                        <strong className={styles.stockVal}>
-                          {item.stockMinimo}
-                        </strong>
+                        <strong className={styles.stockVal}>{item.stockMinimo}</strong>
                       </span>
                     </div>
 
