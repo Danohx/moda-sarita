@@ -4,10 +4,12 @@ type ClienteFilters = Parameters<typeof clientesApi.getAll>[0];
 type CreateClientePayload = Parameters<typeof clientesApi.create>[0];
 type UpdateClientePayload = Parameters<typeof clientesApi.update>[1];
 type UpdateCreditoPayload = Parameters<typeof clientesApi.updateCredito>[1];
+type CreateAbonoCreditoPayload = Parameters<
+  typeof clientesApi.abonarCredito
+>[1];
 type CreateDireccionPayload = Parameters<typeof clientesApi.addDireccion>[1];
 
 export const clientesService = {
-  
   async getList(filters?: ClienteFilters) {
     const response = await clientesApi.getAll(filters);
     return response.data ?? [];
@@ -29,7 +31,9 @@ export const clientesService = {
   },
 
   async save(
-    payload: (CreateClientePayload & { id?: string | number }) | (UpdateClientePayload & { id: string | number })
+    payload:
+      | (CreateClientePayload & { id?: string | number })
+      | (UpdateClientePayload & { id: string | number }),
   ) {
     if ("id" in payload && payload.id !== undefined && payload.id !== null) {
       const { id, ...rest } = payload;
@@ -46,12 +50,25 @@ export const clientesService = {
     return response.data;
   },
 
+  async getMovimientosCredito(id: string | number) {
+    const response = await clientesApi.getMovimientosCredito(id);
+    return response.data ?? [];
+  },
+
+  async abonarCredito(id: string | number, payload: CreateAbonoCreditoPayload) {
+    const response = await clientesApi.abonarCredito(id, payload);
+    return response.data;
+  },
+
   async addDireccion(id: string | number, payload: CreateDireccionPayload) {
     const response = await clientesApi.addDireccion(id, payload);
     return response.data;
   },
 
-  async setDireccionPrincipal(id: string | number, direccionId: string | number) {
+  async setDireccionPrincipal(
+    id: string | number,
+    direccionId: string | number,
+  ) {
     const response = await clientesApi.setDireccionPrincipal(id, direccionId);
     return response.data;
   },

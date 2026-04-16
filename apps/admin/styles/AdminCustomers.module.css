@@ -33,13 +33,11 @@
   box-shadow: var(--shadow-pink) !important;
   transition: all 0.2s ease !important;
 }
-
 .primaryButton:hover {
   background: var(--color-primary-vibrant-hover) !important;
   transform: translateY(-1px);
 }
 
-/* ─── STATS ──────────────────────────────────── */
 .statsGrid {
   margin-bottom: 0 !important;
 }
@@ -53,7 +51,6 @@
     transform 0.2s ease,
     box-shadow 0.2s ease !important;
 }
-
 .statCard:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md) !important;
@@ -129,7 +126,6 @@
   background: var(--color-surface) !important;
 }
 
-/* ─── FILTERS ────────────────────────────────── */
 .filtersPaper {
   padding: 18px 20px !important;
   border-radius: var(--border-radius-large) !important;
@@ -137,7 +133,6 @@
   border: 1px solid var(--color-border) !important;
   background: var(--color-surface) !important;
 }
-
 .searchIcon {
   color: var(--color-primary-vibrant) !important;
   opacity: 0.7;
@@ -175,13 +170,11 @@
   font-weight: 700 !important;
   font-size: var(--font-size-aux) !important;
 }
-
 .moreFiltersBtn:hover {
   border-color: var(--color-primary-vibrant) !important;
   background: var(--color-primary-bg) !important;
 }
 
-/* ─── TABLE ──────────────────────────────────── */
 .tablePaper {
   border-radius: var(--border-radius-large) !important;
   box-shadow: none !important;
@@ -189,11 +182,9 @@
   background: var(--color-surface) !important;
   overflow: hidden;
 }
-
 .tableHeadRow {
   background: var(--color-primary-bg) !important;
 }
-
 .headCell {
   font-family: var(--font-primary) !important;
   font-size: 0.7rem !important;
@@ -203,7 +194,6 @@
   color: var(--color-primary-vibrant) !important;
   padding: 12px 16px !important;
 }
-
 .tableRowHover:hover {
   background: var(--color-primary-bg) !important;
 }
@@ -284,7 +274,6 @@
   background: var(--color-primary-soft) !important;
 }
 
-/* ─── DIALOG ─────────────────────────────────── */
 .dialogTitle {
   background: var(--color-primary-bg) !important;
   border-bottom: 1px solid var(--color-primary) !important;
@@ -294,7 +283,6 @@
   color: var(--color-primary-vibrant) !important;
   padding: 18px 24px !important;
 }
-
 .dialogContent {
   padding-top: 20px !important;
 }
@@ -327,7 +315,6 @@
   box-shadow: var(--shadow-pink) !important;
 }
 
-/* ─── MODAL SECTIONS ─────────────────────────── */
 .sectionTitle {
   font-family: var(--font-primary) !important;
   font-size: var(--font-size-aux) !important;
@@ -352,7 +339,6 @@
   gap: 14px;
 }
 
-/* Credit card */
 .creditCard {
   background: var(--color-primary-bg) !important;
   border: 1px solid var(--color-primary) !important;
@@ -379,6 +365,7 @@
   font-size: 0.7rem !important;
   border-radius: 20px !important;
   height: 22px !important;
+  padding: 3px 10px;
 }
 .creditInactive {
   background: var(--color-danger-bg) !important;
@@ -387,6 +374,7 @@
   font-size: 0.7rem !important;
   border-radius: 20px !important;
   height: 22px !important;
+  padding: 3px 10px;
 }
 .creditRow {
   display: flex;
@@ -415,7 +403,6 @@
   border-radius: 10px !important;
 }
 
-/* Activity */
 .activityCard {
   background: var(--color-surface) !important;
   border: 1px solid var(--color-border) !important;
@@ -444,7 +431,6 @@
   color: var(--color-primary-vibrant) !important;
 }
 
-/* Quick actions */
 .quickTitle {
   font-family: var(--font-primary) !important;
   font-size: 0.75rem !important;
@@ -474,7 +460,6 @@
   background: var(--color-primary-bg) !important;
 }
 
-/* Credit modal */
 .creditBanner {
   background: linear-gradient(
     135deg,
@@ -521,7 +506,6 @@
   background: var(--color-primary-bg) !important;
 }
 
-/* Empty */
 .emptyInline {
   display: flex;
   align-items: center;
@@ -533,4 +517,734 @@
   font-size: var(--font-size-aux) !important;
   font-weight: 500 !important;
   color: var(--color-text) !important;
+}
+
+@media (max-width: 900px) {
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .primaryButton {
+    width: 100%;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   CustomerCreditDialog — nuevos estilos
+   ══════════════════════════════════════════════════════════════ */
+
+/* Paper del dialog */
+.creditDialogPaper {
+  border-radius: var(--border-radius-xl) !important;
+  border: 1px solid var(--color-border) !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18) !important;
+  overflow: hidden !important;
+}
+
+/* ── Título / Header ── */
+.creditDialogTitle {
+  padding: 0 !important;
+  background: var(--color-surface) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+}
+
+.creditDialogTitleInner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px 14px;
+}
+
+.creditDialogTitleLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.creditDialogTitleIcon {
+  width: 36px;
+  height: 36px;
+  background: var(--color-primary-bg);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--border-radius-medium);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary-vibrant);
+  flex-shrink: 0;
+}
+
+.creditDialogTitleText {
+  display: block;
+  font-family: var(--font-primary);
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--color-text);
+  letter-spacing: -0.02em;
+}
+
+.creditDialogTitleSub {
+  display: block;
+  font-family: var(--font-primary);
+  font-size: 0.72rem;
+  color: var(--color-text);
+  opacity: 0.45;
+  margin-top: 1px;
+}
+
+.creditDialogCloseBtn {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-small);
+  color: var(--color-text);
+  opacity: 0.5;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.creditDialogCloseBtn:hover:not(:disabled) {
+  opacity: 1;
+  background: rgba(220, 38, 38, 0.08);
+  border-color: rgba(220, 38, 38, 0.3);
+  color: rgb(220, 38, 38);
+}
+
+/* ── Tabs ── */
+.creditDialogTabs {
+  display: flex;
+  padding: 0 20px;
+  border-top: 1px solid var(--color-border);
+}
+
+.creditDialogTab {
+  padding: 10px 16px;
+  font-family: var(--font-primary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text);
+  opacity: 0.45;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-bottom: -1px;
+}
+
+.creditDialogTab:hover {
+  opacity: 0.75;
+}
+
+.creditDialogTabActive {
+  color: var(--color-primary-vibrant);
+  opacity: 1;
+  border-bottom-color: var(--color-primary-vibrant);
+}
+
+/* ── Content ── */
+.creditDialogContent {
+  padding: 20px !important;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  will-change: scroll-position;
+}
+
+/* ── Banner de estado ── */
+.creditStatusBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-radius: var(--border-radius-large);
+  border: 1px solid transparent;
+}
+
+.creditStatusBannerLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.creditStatusIcon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.creditStatusLabel {
+  font-family: var(--font-primary);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.creditStatusPercent {
+  font-family: var(--font-primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text);
+  opacity: 0.55;
+}
+
+/* colores por estado */
+.creditStatusBanner_success {
+  background: rgba(16, 185, 129, 0.07);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+.creditStatusBanner_info {
+  background: rgba(59, 130, 246, 0.07);
+  border-color: rgba(59, 130, 246, 0.2);
+}
+.creditStatusBanner_warning {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.22);
+}
+.creditStatusBanner_danger {
+  background: rgba(239, 68, 68, 0.07);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+.creditStatusBanner_neutral {
+  background: var(--color-bg);
+  border-color: var(--color-border);
+}
+
+.creditStatusIcon_success {
+  background: rgba(16, 185, 129, 0.14);
+  color: rgb(5, 150, 105);
+}
+.creditStatusIcon_info {
+  background: rgba(59, 130, 246, 0.12);
+  color: rgb(37, 99, 235);
+}
+.creditStatusIcon_warning {
+  background: rgba(245, 158, 11, 0.14);
+  color: rgb(217, 119, 6);
+}
+.creditStatusIcon_danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: rgb(220, 38, 38);
+}
+.creditStatusIcon_neutral {
+  background: var(--color-border);
+  color: var(--color-text);
+  opacity: 0.5;
+}
+
+/* ── Métricas ── */
+.creditMetricsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.creditMetricCard {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-large);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.creditMetricCardDebt {
+  border-color: rgba(239, 68, 68, 0.2);
+}
+.creditMetricCardAvail {
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.creditMetricLabel {
+  font-family: var(--font-primary);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text);
+  opacity: 0.45;
+}
+
+.creditMetricValue {
+  font-family: var(--font-primary);
+  font-size: 1.15rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: var(--color-text);
+}
+
+.creditMetricValueDanger {
+  color: rgb(220, 38, 38);
+}
+.creditMetricValueSuccess {
+  color: rgb(5, 150, 105);
+}
+
+/* ── Barra de uso ── */
+.creditBarWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.creditBarTrack {
+  height: 6px;
+  background: var(--color-border);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.creditBarFill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.4s ease;
+}
+
+.creditBarFill_success {
+  background: rgb(16, 185, 129);
+}
+.creditBarFill_info {
+  background: rgb(59, 130, 246);
+}
+.creditBarFill_warning {
+  background: rgb(245, 158, 11);
+}
+.creditBarFill_danger {
+  background: rgb(239, 68, 68);
+}
+.creditBarFill_neutral {
+  background: var(--color-border);
+}
+
+.creditBarLabels {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-primary);
+  font-size: 0.7rem;
+  color: var(--color-text);
+  opacity: 0.45;
+}
+
+/* ── Última actividad ── */
+.creditLastActivity {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.creditSectionLabel {
+  font-family: var(--font-primary);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-text);
+  opacity: 0.4;
+}
+
+.creditLastActivityGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.creditActivityItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-medium);
+}
+
+.creditActivityIconDanger {
+  color: rgb(220, 38, 38);
+  flex-shrink: 0;
+}
+.creditActivityIconSuccess {
+  color: rgb(5, 150, 105);
+  flex-shrink: 0;
+}
+
+.creditActivityItem > div {
+  flex: 1;
+}
+
+.creditActivityType {
+  display: block;
+  font-family: var(--font-primary);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.creditActivityDate {
+  display: block;
+  font-family: var(--font-primary);
+  font-size: 0.7rem;
+  color: var(--color-text);
+  opacity: 0.45;
+  margin-top: 1px;
+}
+
+.creditActivityAmountDanger {
+  font-family: var(--font-primary);
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: rgb(220, 38, 38);
+  flex-shrink: 0;
+}
+
+.creditActivityAmountSuccess {
+  font-family: var(--font-primary);
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: rgb(5, 150, 105);
+  flex-shrink: 0;
+}
+
+/* ── Divisores de sección ── */
+.creditDivider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.creditDivider span {
+  font-family: var(--font-primary);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-text);
+  opacity: 0.4;
+  white-space: nowrap;
+}
+
+.creditDivider::before,
+.creditDivider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+/* ── Config bloque ── */
+.creditConfigBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.creditCheckboxLabel {
+  font-family: var(--font-primary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* ── Abono bloque ── */
+.creditAbonoBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.creditAbonoRow {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.creditAbonoBtn {
+  width: 100%;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  background: transparent;
+  color: var(--color-primary-vibrant);
+  border: 2px solid var(--color-primary-vibrant);
+  border-radius: var(--border-radius-medium);
+  font-family: var(--font-primary);
+  font-size: 0.85rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.creditAbonoBtn:hover:not(:disabled) {
+  background: var(--color-primary-vibrant);
+  color: #fff;
+  box-shadow: var(--shadow-pink);
+  transform: translateY(-1px);
+}
+
+.creditAbonoBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ── Ver historial botón ── */
+.creditVerHistorialBtn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 14px;
+  width: 100%;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-medium);
+  font-family: var(--font-primary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-text);
+  opacity: 0.6;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.creditVerHistorialBtn:hover {
+  opacity: 1;
+  border-color: var(--color-primary-vibrant);
+  color: var(--color-primary-vibrant);
+  background: var(--color-primary-bg);
+}
+
+.creditVerHistorialBtn svg:last-child {
+  margin-left: auto;
+}
+
+/* ── Historial ── */
+.creditHistorial {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.creditHistorialHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.creditHistorialCount {
+  font-family: var(--font-primary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-text);
+  opacity: 0.4;
+}
+
+.creditHistorialLoading,
+.creditHistorialEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 10px;
+  padding: 40px 20px;
+  color: var(--color-text);
+  opacity: 0.4;
+  font-family: var(--font-primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.creditHistorialLoading {
+  flex-direction: row;
+}
+
+/* ── Lista de movimientos ── */
+.creditMovList {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--color-border);
+  border-radius: var(--border-radius-large);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+
+.creditMovItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--color-surface);
+  transition: background 0.1s ease;
+}
+
+.creditMovItem:hover {
+  background: var(--color-bg);
+}
+
+.creditMovIcon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.creditMovIconAbono {
+  background: rgba(16, 185, 129, 0.1);
+  color: rgb(5, 150, 105);
+}
+
+.creditMovIconCompra {
+  background: rgba(239, 68, 68, 0.08);
+  color: rgb(220, 38, 38);
+}
+
+.creditMovInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.creditMovDesc {
+  display: block;
+  font-family: var(--font-primary);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.creditMovFecha {
+  display: block;
+  font-family: var(--font-primary);
+  font-size: 0.7rem;
+  color: var(--color-text);
+  opacity: 0.45;
+  margin-top: 2px;
+}
+
+.creditMovRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.creditMovMonto {
+  font-family: var(--font-primary);
+  font-size: 0.88rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.creditMovMontoAbono {
+  color: rgb(5, 150, 105);
+}
+.creditMovMontoCompra {
+  color: rgb(220, 38, 38);
+}
+
+.creditMovSaldo {
+  font-family: var(--font-primary);
+  font-size: 0.68rem;
+  color: var(--color-text);
+  opacity: 0.4;
+}
+
+/* ── Summary del historial ── */
+.creditHistorialSummary {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-large);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.creditHistorialSummaryRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-primary);
+  font-size: 0.82rem;
+  color: var(--color-text);
+  opacity: 0.7;
+}
+
+.creditHistorialSummaryRow strong {
+  font-size: 0.92rem;
+  font-weight: 800;
+  opacity: 1;
+}
+
+/* ── Footer / Actions ── */
+.creditDialogActions {
+  padding: 14px 20px !important;
+  border-top: 1px solid var(--color-border) !important;
+  gap: 8px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.creditDialogCancelBtn {
+  padding: 10px 18px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-medium);
+  font-family: var(--font-primary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text);
+  opacity: 0.6;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.creditDialogCancelBtn:hover:not(:disabled) {
+  opacity: 1;
+  background: var(--color-bg);
+}
+
+.creditDialogSaveBtn {
+  padding: 10px 20px;
+  background: var(--color-primary-vibrant);
+  border: none;
+  border-radius: var(--border-radius-medium);
+  font-family: var(--font-primary);
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: var(--shadow-pink);
+  transition: all 0.18s ease;
+}
+
+.creditDialogSaveBtn:hover:not(:disabled) {
+  background: var(--color-primary-vibrant-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(236, 19, 128, 0.35);
+}
+
+.creditDialogSaveBtn:disabled,
+.creditDialogCancelBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }

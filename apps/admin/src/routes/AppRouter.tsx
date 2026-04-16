@@ -26,6 +26,7 @@ import AdminMonitoringLogs from "@admin/pages/admin/AdminMonitoringLogs";
 import AdminMaintenanceRunner from "@admin/pages/bd-monitor/AdminMaintenanceRunner";
 import CorteCaja from "@admin/pages/admin/CorteCaja";
 import HistorialCortes from "@admin/pages/admin/HistorialCortes";
+import CustomerCreditPanel from "@admin/pages/admin/CustomCreditPanel";
 
 export const AppRouter = () => {
   return (
@@ -48,6 +49,7 @@ export const AppRouter = () => {
             <Route path="reports" element={<AdminReports />} />
             <Route path="marketing" element={<AdminMarketing />} />
             <Route path="customers" element={<AdminCustomers />} />
+            <Route path="customers/:id/credit" element={<CustomerCreditPanel />} />
             <Route path="products" element={<AdminProducts />} />
             <Route path="products/new" element={<ProductForm />} />
             <Route path="products/catalogs" element={<ProductCatalogs />} />
@@ -70,7 +72,8 @@ export const AppRouter = () => {
             <Route path="monitoring-logs" element={<AdminMonitoringLogs />} />
           </Route>
         </Route>
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        {/* <Route path="*" element={<Navigate to="/login" replace />} /> */}
+        <Route path="*" element={<h1 style={{color: 'black'}}>ERROR 404: La ruta no existe</h1>} />
       </Routes>
     </BrowserRouter>
   );

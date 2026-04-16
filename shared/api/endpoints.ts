@@ -101,6 +101,8 @@ export const API_ENDPOINTS = {
     list: "/clientes",
     byId: (id: string | number) => `/clientes/${id}`,
     credito: (id: string | number) => `/clientes/${id}/credito`,
+    movimientosCredito: (id: string | number) => `/clientes/${id}/movimientos-credito`,
+    abonoCredito: (id: string | number) => `/clientes/${id}/abonos`,
     direcciones: (id: string | number) => `/clientes/${id}/direcciones`,
     direccionPrincipal: (id: string | number, direccionId: string | number) => 
       `/clientes/${id}/direcciones/${direccionId}/principal`,

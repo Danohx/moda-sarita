@@ -15,6 +15,16 @@ export type Direccion = {
   es_principal: boolean;
 };
 
+export type MovimientoCredito = {
+  id: string | number;
+  fecha: string;
+  tipo: "compra" | "abono" | "ajuste";
+  descripcion: string;
+  monto: number;
+  saldoResultante: number;
+  metodo_pago?: string | null;
+};
+
 export type Cliente = {
   id: string | number;
   usuario_id?: string | number | null;
@@ -26,9 +36,19 @@ export type Cliente = {
   tiene_credito?: boolean;
   limite_credito?: number;
   saldo_deudor?: number;
+  fecha_activacion_credito?: string | null;
+  fecha_actualizacion_credito?: string | null;
   fecha_registro?: string;
   activo?: boolean;
+  puede_apartar?: boolean;
   direcciones?: Direccion[];
+  movimientos_credito?: MovimientoCredito[];
+};
+
+export type AbonoCreditoPayload = {
+  monto: number;
+  metodo_pago?: string;
+  referencia_externa?: string | null;
 };
 
 export type ClienteCreatePayload = {
@@ -38,6 +58,8 @@ export type ClienteCreatePayload = {
   apellido_materno?: string | null;
   telefono?: string | null;
   email?: string | null;
+  activo?: boolean;
+  puede_apartar?: boolean;
 };
 
 export type ClienteUpdatePayload = Partial<ClienteCreatePayload>;
@@ -69,9 +91,21 @@ export type ClientesResponse = {
   data: Cliente[];
 };
 
+export type ClienteDetailResponse = {
+  ok: boolean;
+  data: (Cliente & {
+    direcciones: Direccion[];
+  }) | null;
+};
+
 export type ClienteResponse = {
   ok: boolean;
   data: Cliente | null;
+};
+
+export type MovimientosCreditoResponse = {
+  ok: boolean;
+  data: MovimientoCredito[];
 };
 
 export const clientesApi = {
@@ -82,7 +116,7 @@ export const clientesApi = {
     }),
 
   getById: (id: string | number) =>
-    apiFetch<ClienteResponse>(API_ENDPOINTS.clientes.byId(id), {
+    apiFetch<ClienteDetailResponse>(API_ENDPOINTS.clientes.byId(id), {
       method: "GET",
     }),
 
@@ -101,6 +135,20 @@ export const clientesApi = {
   updateCredito: (id: string | number, payload: CreditoUpdatePayload) =>
     apiFetch<ClienteResponse>(API_ENDPOINTS.clientes.credito(id), {
       method: "PATCH",
+      body: payload,
+    }),
+
+  getMovimientosCredito: (id: string | number) =>
+    apiFetch<MovimientosCreditoResponse>(
+      API_ENDPOINTS.clientes.movimientosCredito(id),
+      {
+        method: "GET",
+      },
+    ),
+
+  abonarCredito: (id: string | number, payload: AbonoCreditoPayload) =>
+    apiFetch<ClienteResponse>(API_ENDPOINTS.clientes.abonoCredito(id), {
+      method: "POST",
       body: payload,
     }),
 
