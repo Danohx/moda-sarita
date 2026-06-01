@@ -27,6 +27,7 @@ import AdminMaintenanceRunner from "@admin/pages/bd-monitor/AdminMaintenanceRunn
 import CorteCaja from "@admin/pages/admin/CorteCaja";
 import HistorialCortes from "@admin/pages/admin/HistorialCortes";
 import CustomerCreditPanel from "@admin/pages/admin/CustomCreditPanel";
+import PrediccionesPage from "@admin/pages/admin/PrediccionesPage";
 
 export const AppRouter = () => {
   return (
@@ -70,6 +71,7 @@ export const AppRouter = () => {
             <Route path="maintenance" element={<AdminMaintenance />} />
             <Route path="maintenance/run" element={<AdminMaintenanceRunner />} />
             <Route path="monitoring-logs" element={<AdminMonitoringLogs />} />
+            <Route path="prediccion" element={<PrediccionesPage />} />
           </Route>
         </Route>
         {/* <Route path="*" element={<Navigate to="/login" replace />} /> */}

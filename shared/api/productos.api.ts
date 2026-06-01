@@ -37,6 +37,25 @@ export type Producto = {
   imagen_principal?: string | null;
 };
 
+export type VarianteProducto = {
+  id: string | number;
+  producto_id?: string | number;
+  sku?: string | null;
+  codigo_barras?: string | null;
+  precio_costo?: number | null;
+  precio_venta?: number | null;
+  stock_fisico?: number;
+  stock_apartado?: number;
+  stock_disponible?: number;
+  stock_minimo?: number;
+  activo?: boolean;
+  talla_id?: string | number | null;
+  talla_nombre?: string | null;
+  color_id?: string | number | null;
+  color_nombre?: string | null;
+  color_hex?: string | null;
+};
+
 export type ProductoCreatePayload = {
   nombre: string;
   descripcion?: string | null;
@@ -58,6 +77,26 @@ export type ProductoUpdatePayload = Partial<{
   activo: boolean;
 }>;
 
+export type Temporada = {
+  id: string | number;
+  nombre: string;
+  descripcion?: string | null;
+  activo?: boolean;
+  mes_inicio?: number | null;
+  dia_inicio?: number | null;
+  mes_fin?: number | null;
+  dia_fin?: number | null;
+};
+
+type ProductoTemporadasResponse = {
+  ok: boolean;
+  data: Temporada[];
+};
+
+type SaveProductoTemporadasPayload = {
+  temporada_ids: Array<string | number>;
+};
+
 type ProductosResponse = {
   ok: boolean;
   data: Producto[];
@@ -68,11 +107,17 @@ type ProductoResponse = {
   data: Producto | null;
 };
 
+type VariantesResponse = {
+  ok: boolean;
+  data: VarianteProducto[];
+};
+
 type ProductoFilters = {
   q?: string;
   categoriaId?: string | number;
   destacado?: boolean;
   activo?: boolean;
+  temporadaId?: string | number;
 };
 
 export const productosApi = {
@@ -117,4 +162,28 @@ export const productosApi = {
       method: "PATCH",
       body: { destacado },
     }),
+
+  getVariantesAdmin: (id: string | number) =>
+    apiFetch<VariantesResponse>(API_ENDPOINTS.productos.variantesAdmin(id), {
+      method: "GET",
+    }),
+
+  getTemporadas: (id: string | number) =>
+    apiFetch<ProductoTemporadasResponse>(API_ENDPOINTS.productos.temporadas(id), {
+      method: "GET",
+    }),
+
+  saveTemporadas: (id: string | number, payload: SaveProductoTemporadasPayload) =>
+    apiFetch<ProductoTemporadasResponse>(API_ENDPOINTS.productos.temporadas(id), {
+      method: "POST",
+      body: payload,
+    }),
+
+  removeTemporada: (productoId: string | number, temporadaId: string | number) =>
+    apiFetch<{ ok: boolean; msg?: string }>(
+      API_ENDPOINTS.productos.temporadaById(productoId, temporadaId),
+      {
+        method: "DELETE",
+      },
+    ),
 };

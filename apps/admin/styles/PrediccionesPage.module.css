@@ -1,0 +1,296 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 0;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.title {
+  font-size: 2rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.03em !important;
+  color: var(--color-text) !important;
+}
+
+.subtitle {
+  margin-top: 6px !important;
+  color: var(--color-text-secondary) !important;
+  font-size: 0.95rem !important;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filtersCard,
+.summaryCard,
+.tableCard,
+.statusCard,
+.emptyCard {
+  border-radius: 18px !important;
+  box-shadow: 0 10px 30px rgba(34, 16, 25, 0.08) !important;
+  border: 1px solid rgba(34, 16, 25, 0.08);
+  padding: 20px;
+}
+
+.filtersIntro,
+.summaryHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.sectionTitle {
+  font-size: 1.2rem !important;
+  font-weight: 700 !important;
+  color: var(--color-text) !important;
+}
+
+.helperText {
+  margin-top: 4px !important;
+  color: var(--color-text-secondary) !important;
+  font-size: 0.9rem !important;
+  line-height: 1.5 !important;
+}
+
+.filtersGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.fullWidthField {
+  grid-column: 1 / -1;
+}
+
+.fieldWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.actionsRow {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.calcButton {
+  min-width: 220px !important;
+  border-radius: 12px !important;
+  background: var(--color-primary-vibrant) !important;
+  color: var(--color-text-on-vibrant) !important;
+  font-weight: 800 !important;
+  text-transform: none !important;
+  box-shadow: var(--shadow-pink) !important;
+}
+
+.calcButton:disabled {
+  box-shadow: none !important;
+  opacity: 0.65;
+}
+
+.statusCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--color-text-secondary);
+}
+
+.emptyCard {
+  background: rgba(34, 16, 25, 0.025) !important;
+}
+
+.contextGrid,
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.contextGrid {
+  margin-bottom: 18px;
+}
+
+.contextItem,
+.metricCard {
+  border-radius: 16px;
+  background: rgba(34, 16, 25, 0.035);
+  border: 1px solid rgba(34, 16, 25, 0.06);
+  padding: 14px;
+}
+
+.contextItem span,
+.metricCard span {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+
+.contextItem strong,
+.metricCard strong {
+  display: block;
+  color: var(--color-text);
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.metricCard strong {
+  font-size: 1.45rem;
+  letter-spacing: -0.03em;
+}
+
+.metricCard small {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-text-secondary);
+  font-size: 0.78rem;
+}
+
+.formulaBox {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 18px;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(236, 19, 128, 0.08);
+  border: 1px solid rgba(236, 19, 128, 0.16);
+}
+
+.formulaBox span {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #ec1380;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.formulaBox strong {
+  color: var(--color-text);
+  font-size: 1rem;
+}
+
+.metricsHeaderRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.chartButton {
+  font-weight: 800 !important;
+  border-radius: 10px !important;
+  text-transform: none !important;
+}
+
+.chartWrapper {
+  width: 100%;
+  height: 400px;
+  margin-top: 20px;
+}
+
+.simpleTable {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tableRow {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.3fr) minmax(110px, 0.7fr) minmax(120px, 0.7fr) minmax(120px, 0.8fr) minmax(220px, 1.5fr);
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(34, 16, 25, 0.03);
+  color: var(--color-text);
+  font-size: 0.9rem;
+  align-items: center;
+}
+
+.tableHead {
+  background: rgba(236, 19, 128, 0.1);
+  font-weight: 800;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #ec1380;
+}
+
+.labelHist {
+  color: #ec1380;
+  font-weight: 800;
+}
+
+.labelProj {
+  color: #221019;
+  font-weight: 800;
+}
+
+@media (max-width: 980px) {
+  .contextGrid,
+  .metricsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tableRow {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .tableHead {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .header,
+  .filtersIntro,
+  .summaryHeader,
+  .metricsHeaderRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filtersGrid,
+  .contextGrid,
+  .metricsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .actionsRow {
+    justify-content: stretch;
+  }
+
+  .calcButton {
+    width: 100%;
+  }
+
+  .tableRow {
+    grid-template-columns: 1fr;
+  }
+}

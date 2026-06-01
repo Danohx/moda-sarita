@@ -42,7 +42,11 @@ export const API_ENDPOINTS = {
     byId: (id: string | number) => `/tallas/${id}`,
     status: (id: string | number) => `/tallas/${id}/status`,
   },
-
+  temporadas: {
+    list: "/temporadas",
+    byId: (id: string | number) => `/temporadas/${id}`,
+    status: (id: string | number) => `/temporadas/${id}/status`,
+  },
   productos: {
     list: "/productos",
     adminList: "/productos/admin/list",
@@ -60,8 +64,16 @@ export const API_ENDPOINTS = {
       `/productos/${productoId}/imagenes/${imagenId}`,
     imagenReorder: (productoId: string | number) =>
       `/productos/${productoId}/imagenes/reorder`,
+    temporadas: (id: string | number) => `/productos/${id}/temporadas`,
+    temporadaById: (
+      productoId: string | number,
+      temporadaId: string | number,
+    ) => `/productos/${productoId}/temporadas/${temporadaId}`,
   },
-
+  predicciones: {
+    producto: (productoId: string | number) =>
+      `/predicciones/producto/${productoId}`,
+  },
   variantes: {
     byId: (id: string | number) => `/variantes/${id}`,
     status: (id: string | number) => `/variantes/${id}/status`,
@@ -101,12 +113,13 @@ export const API_ENDPOINTS = {
     list: "/clientes",
     byId: (id: string | number) => `/clientes/${id}`,
     credito: (id: string | number) => `/clientes/${id}/credito`,
-    movimientosCredito: (id: string | number) => `/clientes/${id}/movimientos-credito`,
+    movimientosCredito: (id: string | number) =>
+      `/clientes/${id}/movimientos-credito`,
     abonoCredito: (id: string | number) => `/clientes/${id}/abonos`,
     direcciones: (id: string | number) => `/clientes/${id}/direcciones`,
-    direccionPrincipal: (id: string | number, direccionId: string | number) => 
+    direccionPrincipal: (id: string | number, direccionId: string | number) =>
       `/clientes/${id}/direcciones/${direccionId}/principal`,
-    direccionById: (id: string | number, direccionId: string | number) => 
+    direccionById: (id: string | number, direccionId: string | number) =>
       `/clientes/${id}/direcciones/${direccionId}`,
   },
   ventas: {
@@ -114,7 +127,7 @@ export const API_ENDPOINTS = {
     apartados: "/ventas/apartados",
     abonos: (id: string | number) => `/ventas/apartados/${id}/abonos`,
     liquidar: (id: string | number) => `/ventas/apartados/${id}/liquidar`,
-    cancelar: (id: string | number) => `/ventas/apartados/${id}/cancelar`,
+    cancelar: (id: string | number) => `/ven1tas/apartados/${id}/cancelar`,
     abrirCorte: "/ventas/corte/abrir",
     corteActual: "/ventas/corte/actual",
     cerrarCorte: (id: string | number) => `/ventas/corte/${id}/cerrar`,

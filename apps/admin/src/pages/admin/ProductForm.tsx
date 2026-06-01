@@ -8,7 +8,13 @@ import { useBreadcrumbContext } from "@shared/hooks/useBreadcrumbContext";
 import AdminBreadcrumbs from "@admin/components/layout/AdminBreadcrumbs";
 import type { BreadcrumbItem } from "@admin/components/layout/AdminBreadcrumbs";
 
+// 1. Agregamos el tipo para el catálogo de temporadas
 type CategoriaItem = {
+  id: string | number;
+  nombre: string;
+};
+
+type TemporadaItem = {
   id: string | number;
   nombre: string;
 };
@@ -18,6 +24,7 @@ type UpdateProductoPayload = Parameters<typeof productosService.update>[1];
 type ProductoResponse = Awaited<ReturnType<typeof productosService.getById>>;
 type VarianteBasePayload = CreateProductoPayload["variante_base"];
 
+// 2. Añadimos `temporada_ids` al estado del formulario
 type ProductFormState = {
   nombre: string;
   descripcion: string;
@@ -27,6 +34,7 @@ type ProductFormState = {
   activo: boolean;
   destacado: boolean;
   maneja_variantes: boolean;
+  temporada_ids: Array<string | number>; // Nuevo campo
   variante_base: VarianteBasePayload;
 };
 
@@ -39,6 +47,7 @@ const initialForm: ProductFormState = {
   activo: true,
   destacado: false,
   maneja_variantes: true,
+  temporada_ids: [], // Inicializado como arreglo vacío
   variante_base: {
     sku: "",
     codigo_barras: "",
@@ -100,6 +109,9 @@ const ProductForm: React.FC = () => {
           ];
 
   const [categories, setCategories] = useState<CategoriaItem[]>([]);
+  // 3. Estado para guardar el catálogo de temporadas disponibles
+  const [temporadasCatalog, setTemporadasCatalog] = useState<TemporadaItem[]>([]);
+  
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -122,9 +134,7 @@ const ProductForm: React.FC = () => {
 
   useEffect(() => {
     if (!form.nombre.trim()) {
-      if (!slugTouched) {
-        setForm((prev) => ({ ...prev, slug: "" }));
-      }
+      if (!slugTouched) setForm((prev) => ({ ...prev, slug: "" }));
       if (!isEdit && !skuTouched) {
         setForm((prev) => ({
           ...prev,
@@ -157,20 +167,32 @@ const ProductForm: React.FC = () => {
         setLoading(true);
         setError(null);
 
-        const categorias = await categoriaService.getCategorias();
+        // 4. Cargamos categorías y el catálogo de temporadas al mismo tiempo
+        const [categoriasReq, temporadasReq] = await Promise.all([
+          categoriaService.getCategorias(),
+          productosService.getTemporadasCatalog()
+        ]);
+
         if (!cancelled) {
           setCategories(
-            (categorias ?? []).map((categoria) => ({
+            (categoriasReq ?? []).map((categoria) => ({
               id: categoria.id,
               nombre: categoria.nombre,
             })),
           );
+          setTemporadasCatalog(
+            (temporadasReq ?? []).map((temporada: any) => ({
+              id: temporada.id,
+              nombre: temporada.nombre,
+            }))
+          );
         }
 
         if (isEdit && id) {
-          const product = (await productosService.getById(
-            id,
-          )) as ProductoResponse;
+          const [product, productTemporadas] = await Promise.all([
+            productosService.getById(id) as Promise<ProductoResponse>,
+            productosService.getProductoTemporadas(id)
+          ]);
 
           if (!cancelled && product) {
             setForm((prev) => ({
@@ -183,6 +205,7 @@ const ProductForm: React.FC = () => {
               activo: product.activo ?? true,
               destacado: product.destacado ?? false,
               maneja_variantes: product.maneja_variantes ?? true,
+              temporada_ids: productTemporadas?.map((t: any) => t.id) ?? []
             }));
             setSlugTouched(Boolean(product.slug));
             setSkuTouched(true);
@@ -227,35 +250,29 @@ const ProductForm: React.FC = () => {
     }));
   };
 
+  // 6. Función para manejar los checkboxes de temporadas
+  const handleTemporadaToggle = (temporadaId: string | number) => {
+    setForm((prev) => {
+      const isSelected = prev.temporada_ids.includes(temporadaId);
+      return {
+        ...prev,
+        temporada_ids: isSelected
+          ? prev.temporada_ids.filter((id) => id !== temporadaId) // Si existe, lo quita
+          : [...prev.temporada_ids, temporadaId], // Si no existe, lo agrega
+      };
+    });
+  };
+
   const validateCreate = () => {
     if (!form.nombre.trim() || form.nombre.trim().length < 2) {
       return "El nombre debe tener al menos 2 caracteres.";
     }
-
-    if (!form.variante_base.sku.trim()) {
-      return "El SKU inicial es requerido.";
-    }
-
-    if (Number(form.variante_base.precio_venta ?? 0) < 0) {
-      return "El precio de venta debe ser mayor o igual a 0.";
-    }
-
-    if (Number(form.variante_base.precio_costo ?? 0) < 0) {
-      return "El precio de costo debe ser mayor o igual a 0.";
-    }
-
-    if (Number(form.variante_base.stock_fisico ?? 0) < 0) {
-      return "El stock físico debe ser mayor o igual a 0.";
-    }
-
-    if (Number(form.variante_base.stock_apartado ?? 0) < 0) {
-      return "El stock apartado debe ser mayor o igual a 0.";
-    }
-
-    if (Number(form.variante_base.stock_minimo ?? 0) < 0) {
-      return "El stock mínimo debe ser mayor o igual a 0.";
-    }
-
+    if (!form.variante_base.sku.trim()) return "El SKU inicial es requerido.";
+    if (Number(form.variante_base.precio_venta ?? 0) < 0) return "El precio de venta debe ser mayor o igual a 0.";
+    if (Number(form.variante_base.precio_costo ?? 0) < 0) return "El precio de costo debe ser mayor o igual a 0.";
+    if (Number(form.variante_base.stock_fisico ?? 0) < 0) return "El stock físico debe ser mayor o igual a 0.";
+    if (Number(form.variante_base.stock_apartado ?? 0) < 0) return "El stock apartado debe ser mayor o igual a 0.";
+    if (Number(form.variante_base.stock_minimo ?? 0) < 0) return "El stock mínimo debe ser mayor o igual a 0.";
     return null;
   };
 
@@ -263,7 +280,6 @@ const ProductForm: React.FC = () => {
     if (!form.nombre.trim() || form.nombre.trim().length < 2) {
       return "El nombre debe tener al menos 2 caracteres.";
     }
-
     return null;
   };
 
@@ -312,14 +328,24 @@ const ProductForm: React.FC = () => {
     try {
       setSaving(true);
 
+      // 7. Actualizamos la lógica de guardado
       if (isEdit && id) {
+        // Ejecutamos las llamadas de actualización
         await productosService.update(id, buildUpdatePayload());
         await Promise.all([
           productosService.changeStatus(id, form.activo),
           productosService.changeFeatured(id, form.destacado),
+          // Guardamos las temporadas relacionadas
+          productosService.saveProductoTemporadas(id, { temporada_ids: form.temporada_ids })
         ]);
       } else {
-        await productosService.create(buildCreatePayload());
+        // Creamos el producto nuevo
+        const newProduct = await productosService.create(buildCreatePayload());
+        
+        // Asumiendo que `newProduct` regresa el objeto con un `id`, le enlazamos las temporadas
+        if (newProduct && newProduct.id) {
+          await productosService.saveProductoTemporadas(newProduct.id, { temporada_ids: form.temporada_ids });
+        }
       }
 
       navigate("/products");
@@ -353,10 +379,7 @@ const ProductForm: React.FC = () => {
 
       <form className={styles.formPage} onSubmit={handleSubmit}>
         <section className={styles.card}>
-          <h2
-            className={styles.title}
-            style={{ fontSize: "1.2rem", margin: 0 }}
-          >
+          <h2 className={styles.title} style={{ fontSize: "1.2rem", margin: 0 }}>
             Datos generales
           </h2>
           <p className={styles.subtitle} style={{ marginTop: "-12px" }}>
@@ -411,14 +434,29 @@ const ProductForm: React.FC = () => {
                 onChange={(e) => handleChange("descripcion", e.target.value)}
               />
             </div>
+
+            {temporadasCatalog.length > 0 && (
+              <div className={`${styles.field} ${styles.full}`}>
+                <label>Temporadas</label>
+                <div className={styles.checkboxGroup}>
+                  {temporadasCatalog.map((temporada) => (
+                    <label key={temporada.id} className={styles.checkboxLabel}>
+                      <input
+                        type="checkbox"
+                        checked={form.temporada_ids.includes(temporada.id)}
+                        onChange={() => handleTemporadaToggle(temporada.id)}
+                      />
+                      {temporada.nombre}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </section>
 
         <section className={styles.card}>
-          <h2
-            className={styles.title}
-            style={{ fontSize: "1.2rem", margin: 0 }}
-          >
+          <h2 className={styles.title} style={{ fontSize: "1.2rem", margin: 0 }}>
             Configuración del producto
           </h2>
           <p className={styles.subtitle} style={{ marginTop: "-12px" }}>
@@ -448,15 +486,11 @@ const ProductForm: React.FC = () => {
 
         {!isEdit ? (
           <section className={styles.card}>
-            <h2
-              className={styles.title}
-              style={{ fontSize: "1.2rem", margin: 0 }}
-            >
+            <h2 className={styles.title} style={{ fontSize: "1.2rem", margin: 0 }}>
               Información comercial inicial
             </h2>
             <p className={styles.subtitle} style={{ marginTop: "-12px" }}>
-              Registra la variante base con sus datos esenciales para venta y
-              control.
+              Registra la variante base con sus datos esenciales para venta y control.
             </p>
 
             <div className={styles.grid}>
@@ -517,66 +551,10 @@ const ProductForm: React.FC = () => {
         ) : (
           <section className={styles.card}>
             <div className={styles.stateBox} style={{ minHeight: 0 }}>
-              Los precios, SKU, stock y atributos se administran desde el módulo
-              de variantes.
+              Los precios, SKU, stock y atributos se administran desde el módulo de variantes.
             </div>
           </section>
         )}
-
-        {/* {!isEdit ? (
-          <section className={styles.card}>
-            <h2 className={styles.title} style={{ fontSize: "1.2rem", margin: 0 }}>
-              Inventario inicial
-            </h2>
-            <p className={styles.subtitle} style={{ marginTop: "-12px" }}>
-              Define el stock con el que inicia esta variante base dentro del sistema.
-            </p>
-
-            <div className={styles.grid}>
-              <div className={styles.field}>
-                <label htmlFor="stock_fisico">Stock físico inicial</label>
-                <input
-                  id="stock_fisico"
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={form.variante_base.stock_fisico}
-                  onChange={(e) =>
-                    handleVariantChange("stock_fisico", Number(e.target.value))
-                  }
-                />
-              </div>
-
-              <div className={styles.field}>
-                <label htmlFor="stock_apartado">Stock apartado</label>
-                <input
-                  id="stock_apartado"
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={form.variante_base.stock_apartado}
-                  onChange={(e) =>
-                    handleVariantChange("stock_apartado", Number(e.target.value))
-                  }
-                />
-              </div>
-
-              <div className={styles.field}>
-                <label htmlFor="stock_minimo">Stock mínimo</label>
-                <input
-                  id="stock_minimo"
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={form.variante_base.stock_minimo}
-                  onChange={(e) =>
-                    handleVariantChange("stock_minimo", Number(e.target.value))
-                  }
-                />
-              </div>
-            </div>
-          </section>
-        ) : null} */}
 
         <div className={styles.footer}>
           {isEdit && id ? (

@@ -183,6 +183,44 @@
   }
 }
 
+/* Estilos para el grupo de temporadas */
+.checkboxGroup {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.checkboxLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--color-background);
+  border: 2px solid var(--color-primary);
+  border-radius: var(--border-radius-medium);
+  font-family: var(--font-primary);
+  font-weight: 700;
+  font-size: var(--font-size-aux);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.checkboxLabel:hover {
+  border-color: var(--color-primary-vibrant);
+  background: var(--color-primary-bg);
+}
+
+.checkboxLabel input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary-vibrant);
+  cursor: pointer;
+  margin: 0;
+}
+
 @media (max-width: 768px) {
   .grid {
     grid-template-columns: 1fr;

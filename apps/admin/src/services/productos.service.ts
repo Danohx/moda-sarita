@@ -1,15 +1,22 @@
 import { productosApi } from "../../../../shared/api/productos.api";
 import { productoDetalleApi } from "@shared/api/productoDetalle.api";
+import { temporadasApi } from "../../../../shared/api/temporadas.api";
+import type { VarianteProducto } from "../../../../shared/api/productos.api";
 
 type ProductoFilters = {
   q?: string;
   categoriaId?: string | number;
   destacado?: boolean;
   activo?: boolean;
+  temporadaId?: string | number;
 };
 
 type CreateProductoPayload = Parameters<typeof productosApi.create>[0];
 type UpdateProductoPayload = Parameters<typeof productosApi.update>[1];
+
+type SaveProductoTemporadasPayload = {
+  temporada_ids: Array<string | number>;
+};
 
 export const productosService = {
   async getList(filters?: ProductoFilters) {
@@ -37,6 +44,11 @@ export const productosService = {
     return response.data;
   },
 
+  async getVariantesAdmin(id: string | number): Promise<VarianteProducto[]> {
+    const response = await productosApi.getVariantesAdmin(id);
+    return response.data ?? [];
+  },
+
   async create(payload: CreateProductoPayload) {
     const response = await productosApi.create(payload);
     return response.data;
@@ -57,9 +69,26 @@ export const productosService = {
     return response.data;
   },
 
-  async save(
-    payload: CreateProductoPayload | (UpdateProductoPayload & { id: string | number }),
-  ) {
+  async getTemporadasCatalog() {
+    const response = await temporadasApi.getAll();
+    return response.data ?? [];
+  },
+
+  async getProductoTemporadas(id: string | number) {
+    const response = await productosApi.getTemporadas(id);
+    return response.data ?? [];
+  },
+
+  async saveProductoTemporadas(id: string | number, payload: SaveProductoTemporadasPayload) {
+    const response = await productosApi.saveTemporadas(id, payload);
+    return response.data ?? [];
+  },
+
+  async removeProductoTemporada(productoId: string | number, temporadaId: string | number) {
+    return productosApi.removeTemporada(productoId, temporadaId);
+  },
+
+  async save(payload: CreateProductoPayload | (UpdateProductoPayload & { id: string | number })) {
     if ("id" in payload) {
       const { id, ...rest } = payload;
       return this.update(id, rest);
