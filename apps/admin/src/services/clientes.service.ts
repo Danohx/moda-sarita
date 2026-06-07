@@ -77,4 +77,9 @@ export const clientesService = {
     const response = await clientesApi.deleteDireccion(id, direccionId);
     return response.data;
   },
+
+  async changePuedeApartar(id: string | number, puede_apartar: boolean) {
+    const response = await clientesApi.changePuedeApartar(id, puede_apartar);
+    return response.data;
+  },
 };

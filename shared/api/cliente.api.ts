@@ -93,9 +93,11 @@ export type ClientesResponse = {
 
 export type ClienteDetailResponse = {
   ok: boolean;
-  data: (Cliente & {
-    direcciones: Direccion[];
-  }) | null;
+  data:
+    | (Cliente & {
+        direcciones: Direccion[];
+      })
+    | null;
 };
 
 export type ClienteResponse = {
@@ -173,4 +175,10 @@ export const clientesApi = {
         method: "DELETE",
       },
     ),
+
+  changePuedeApartar: (id: string | number, puede_apartar: boolean) =>
+    apiFetch<ClienteResponse>(API_ENDPOINTS.clientes.puedeApartar(id), {
+      method: "PATCH",
+      body: { puede_apartar },
+    }),
 };

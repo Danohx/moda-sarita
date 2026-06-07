@@ -51,6 +51,7 @@ type GetOrdersDataParams = {
   q?: string;
   webEstado?: WebEstadoFilter;
   apartadoEstado?: ApartadoEstadoFilter;
+  cliente_id?: string;
 };
 
 function toNumber(value: string | number | null | undefined) {
@@ -135,6 +136,7 @@ export const pedidosService = {
       pedidosApi.getAll({
         tipo: "WEB",
         estado: webEstado,
+        cliente_id: params.cliente_id,
         q,
         limit: 100,
         offset: 0,
@@ -142,6 +144,7 @@ export const pedidosService = {
       pedidosApi.getAll({
         tipo: "APARTADO",
         estado: apartadoEstado,
+        cliente_id: params.cliente_id,
         q,
         limit: 100,
         offset: 0,

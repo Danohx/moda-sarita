@@ -109,6 +109,7 @@ export const API_ENDPOINTS = {
       `/clientes/${id}/direcciones/${direccionId}/principal`,
     direccionById: (id: string | number, direccionId: string | number) =>
       `/clientes/${id}/direcciones/${direccionId}`,
+    puedeApartar: (id: string | number) => `/clientes/${id}/puede-apartar`,
   },
   ventas: {
     pos: "/ventas/pos",

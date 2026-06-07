@@ -122,6 +122,7 @@ export type PedidoPago = {
 export type PedidosFilters = {
   tipo?: PedidoTipo;
   estado?: PedidoEstado;
+  cliente_id?: string;
   q?: string;
   limit?: number;
   offset?: number;

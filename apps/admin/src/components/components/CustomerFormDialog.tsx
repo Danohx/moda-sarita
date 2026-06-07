@@ -4,11 +4,14 @@ import {
   Button,
   Card,
   CardContent,
+  Chip,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Divider,
+  FormControlLabel,
+  Switch,
   TextField,
   Typography,
 } from "@mui/material";
@@ -37,6 +40,7 @@ interface ClienteBackend {
   saldo_actual?: string | number;
   saldo_deudor?: string | number;
   activo?: boolean;
+  puede_apartar?: boolean;
   fecha_registro?: string;
   total_compras?: string | number;
   total_apartados?: string | number;
@@ -50,7 +54,8 @@ type Props = {
   isEditMode: boolean;
   formatMoneda: (valor: number) => string;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (mensaje: string) => void;
+  onError: (mensaje: string, titulo?: string) => void;
 };
 
 const CustomerFormDialog: React.FC<Props> = ({
@@ -60,6 +65,7 @@ const CustomerFormDialog: React.FC<Props> = ({
   formatMoneda,
   onClose,
   onSuccess,
+  onError,
 }) => {
   const navigate = useNavigate();
   const title = customer
@@ -89,6 +95,9 @@ const CustomerFormDialog: React.FC<Props> = ({
     limiteCredito: 0,
     saldo: 0,
   });
+
+  const [puedeApartar, setPuedeApartar] = useState(false);
+  const [originalPuedeApartar, setOriginalPuedeApartar] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -123,6 +132,10 @@ const CustomerFormDialog: React.FC<Props> = ({
           )) as ClienteBackend;
 
           if (dataBD) {
+            const puedeApartarValue = Boolean(dataBD.puede_apartar);
+            setOriginalPuedeApartar(puedeApartarValue);
+
+            setPuedeApartar(puedeApartarValue);
             const dirs = dataBD.direcciones || [];
             const dirPrincipal =
               dirs.find((d) => d.es_principal) || dirs[0] || {};
@@ -158,6 +171,9 @@ const CustomerFormDialog: React.FC<Props> = ({
                   0,
               ),
             });
+          } else {
+            setPuedeApartar(false);
+            setOriginalPuedeApartar(false);
           }
         } catch (error) {
           console.error(error);
@@ -193,6 +209,11 @@ const CustomerFormDialog: React.FC<Props> = ({
       let clienteId = customer?.id;
 
       if (clienteId) {
+        if (puedeApartar !== originalPuedeApartar) {
+          await clientesService.changePuedeApartar(clienteId, puedeApartar);
+          setOriginalPuedeApartar(puedeApartar);
+        }
+
         const updatePayload: Parameters<typeof clientesService.update>[1] & {
           id: string | number;
         } = {
@@ -235,14 +256,31 @@ const CustomerFormDialog: React.FC<Props> = ({
           await clientesService.setDireccionPrincipal(clienteId, nuevaDirId);
         }
       }
+      const esNuevo = !customer?.id;
+      const cambioApartado = puedeApartar !== originalPuedeApartar;
 
-      onSuccess();
+      const mensaje = esNuevo
+        ? "El cliente fue registrado exitosamente."
+        : cambioApartado
+          ? `Cliente actualizado. Apartados ${puedeApartar ? "habilitados" : "deshabilitados"}.`
+          : "Los datos del cliente fueron actualizados.";
+
+      onSuccess(mensaje);
       onClose();
-    } catch (error: unknown) {
-      console.error(error);
-      alert(
-        "Hubo un error al guardar los datos del cliente. Revisa la consola.",
-      );
+    } catch (err: unknown) {
+      console.error(err);
+
+      setPuedeApartar(originalPuedeApartar);
+
+      const raw = err instanceof Error ? err.message : "";
+      const mensaje = raw.toLowerCase().includes("apartado")
+        ? "No se puede quitar el permiso porque este cliente tiene apartados activos."
+        : raw.toLowerCase().includes("email") ||
+            raw.toLowerCase().includes("correo")
+          ? "El correo electrónico ya está registrado con otro cliente."
+          : "No se pudieron guardar los cambios. Verifica los datos e intenta de nuevo.";
+
+      onError(mensaje, "No se pudo guardar");
     } finally {
       setSaving(false);
     }
@@ -272,6 +310,7 @@ const CustomerFormDialog: React.FC<Props> = ({
                 }
                 fullWidth
                 InputProps={{ readOnly }}
+                className={readOnly ? styles.fieldReadOnly : ""}
               />
               <div style={{ display: "flex", gap: "16px" }}>
                 <TextField
@@ -285,6 +324,7 @@ const CustomerFormDialog: React.FC<Props> = ({
                   }
                   fullWidth
                   InputProps={{ readOnly }}
+                  className={readOnly ? styles.fieldReadOnly : ""}
                 />
                 <TextField
                   label="Apellido materno"
@@ -297,6 +337,7 @@ const CustomerFormDialog: React.FC<Props> = ({
                   }
                   fullWidth
                   InputProps={{ readOnly }}
+                  className={readOnly ? styles.fieldReadOnly : ""}
                 />
               </div>
               <div style={{ display: "flex", gap: "16px" }}>
@@ -308,6 +349,7 @@ const CustomerFormDialog: React.FC<Props> = ({
                   }
                   fullWidth
                   InputProps={{ readOnly }}
+                  className={readOnly ? styles.fieldReadOnly : ""}
                 />
                 <TextField
                   label="Teléfono"
@@ -317,6 +359,7 @@ const CustomerFormDialog: React.FC<Props> = ({
                   }
                   fullWidth
                   InputProps={{ readOnly }}
+                  className={readOnly ? styles.fieldReadOnly : ""}
                 />
               </div>
 
@@ -331,6 +374,7 @@ const CustomerFormDialog: React.FC<Props> = ({
                 }
                 fullWidth
                 InputProps={{ readOnly }}
+                className={readOnly ? styles.fieldReadOnly : ""}
               />
               <div style={{ display: "flex", gap: "16px" }}>
                 <TextField
@@ -341,6 +385,7 @@ const CustomerFormDialog: React.FC<Props> = ({
                   }
                   fullWidth
                   InputProps={{ readOnly }}
+                  className={readOnly ? styles.fieldReadOnly : ""}
                 />
                 <TextField
                   label="Estado"
@@ -350,6 +395,7 @@ const CustomerFormDialog: React.FC<Props> = ({
                   }
                   fullWidth
                   InputProps={{ readOnly }}
+                  className={readOnly ? styles.fieldReadOnly : ""}
                 />
                 <TextField
                   label="C.P."
@@ -363,6 +409,7 @@ const CustomerFormDialog: React.FC<Props> = ({
                   fullWidth
                   InputProps={{ readOnly }}
                   sx={{ width: "40%" }}
+                  className={readOnly ? styles.fieldReadOnly : ""}
                 />
               </div>
             </div>
@@ -431,14 +478,56 @@ const CustomerFormDialog: React.FC<Props> = ({
                   </div>
                 </CardContent>
               </Card>
+
+              <Card className={styles.sideCard}>
+                <CardContent>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      marginBottom: 8,
+                    }}
+                  >
+                    <Typography className={styles.sideCardTitle}>
+                      Apartados
+                    </Typography>
+                    <Chip
+                      label={puedeApartar ? "Autorizado" : "No autorizado"}
+                      size="small"
+                      className={
+                        puedeApartar ? styles.activeChip : styles.inactiveChip
+                      }
+                    />
+                  </div>
+
+                  <Typography
+                    className={styles.permissionDescription}
+                    sx={{ mb: 2 }}
+                  >
+                    Permite que este cliente pueda realizar apartados físicos en
+                    punto de venta.
+                  </Typography>
+
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={puedeApartar}
+                        disabled={readOnly || saving}
+                        onChange={(e) => setPuedeApartar(e.target.checked)}
+                      />
+                    }
+                    label="Puede realizar apartados"
+                  />
+                </CardContent>
+              </Card>
             </Grid>
           )}
         </Grid>
 
-        <Divider sx={{ my: 3 }} />
-
-        {customer && (
+        {customer && !isEditMode && (
           <>
+            <Divider sx={{ my: 3 }} />
             <Typography className={styles.quickTitle}>
               Acciones rápidas
             </Typography>
@@ -446,15 +535,8 @@ const CustomerFormDialog: React.FC<Props> = ({
               <Button
                 variant="outlined"
                 className={styles.quickBtn}
-                onClick={() => navigate(`/orders?cliente_id=${customer.id}`)}
-              >
-                Ver historial
-              </Button>
-              <Button
-                variant="outlined"
-                className={styles.quickBtn}
                 onClick={() =>
-                  navigate(`/orders?cliente_id=${customer.id}&tipo=APARTADO`)
+                  navigate(`/orders?tipo=APARTADO&cliente_id=${customer.id}`)
                 }
               >
                 Ver apartados

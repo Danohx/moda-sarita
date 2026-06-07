@@ -7,6 +7,8 @@ import CustomerFiltersBar from "@admin/components/components/CustomerFiltersBar"
 import CustomersTableSection from "@admin/components/components/CustomersTableSection";
 import CustomerFormDialog from "@admin/components/components/CustomerFormDialog";
 import { clientesService } from "@admin/services/clientes.service";
+import { useErrorAlert } from "@admin/components/layout/useErrorAlert";
+import ErrorAlert from "@admin/components/layout/ErrorAlert";
 
 export type CustomerStatus = "active" | "inactive";
 
@@ -51,6 +53,8 @@ const AdminCustomers: React.FC = () => {
   const [debtFilter, setDebtFilter] = useState<
     "all" | "with_debt" | "without_debt"
   >("all");
+
+  const { state: alertState, hide: hideAlert, showError, showSuccess } = useErrorAlert();
 
   const load = useCallback(async () => {
     try {
@@ -216,7 +220,22 @@ const AdminCustomers: React.FC = () => {
         isEditMode={isEditMode}
         formatMoneda={formatMoneda}
         onClose={handleCloseCustomerModal}
-        onSuccess={() => void load()}
+        onSuccess={(mensaje) => {
+          void load();
+          showSuccess(mensaje);
+        }}
+        onError={(mensaje, titulo) => {
+          showError(mensaje, titulo);
+        }}
+      />
+
+      <ErrorAlert
+        open={alertState.open}
+        title={alertState.title}
+        message={alertState.message}
+        severity={alertState.severity}
+        onClose={hideAlert}
+        autoCloseDuration={5000}
       />
     </Box>
   );

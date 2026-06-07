@@ -44,6 +44,7 @@ import {
 import type { MetodoPago, PedidoDetalleAdmin } from "@shared/api/pedidos.api";
 import OrderDetailModal from "@admin/components/components/OrderDetailModal";
 import ApartadoActionModals from "@admin/components/components/ApartadoActionsModal";
+import { useSearchParams } from "react-router-dom";
 
 function formatMoneda(valor: number) {
   return new Intl.NumberFormat("es-MX", {
@@ -169,6 +170,11 @@ const OrdersManager: React.FC = () => {
 
   const [ticketLoading, setTicketLoading] = useState(false);
 
+  const [searchParams] = useSearchParams();
+
+  const clienteIdParam = searchParams.get("cliente_id");
+  const tipoParam = searchParams.get("tipo");
+
   const load = useCallback(async () => {
     try {
       setLoading(true);
@@ -177,6 +183,7 @@ const OrdersManager: React.FC = () => {
         q: searchTerm,
         webEstado: webEstadoFilter,
         apartadoEstado: apartadoEstadoFilter,
+        cliente_id: clienteIdParam ?? undefined,
       });
 
       setOrders(resp.orders);
@@ -188,11 +195,22 @@ const OrdersManager: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, webEstadoFilter, apartadoEstadoFilter]);
+  }, [searchTerm, webEstadoFilter, apartadoEstadoFilter, clienteIdParam]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (tipoParam === "APARTADO") {
+      setTabValue(1);
+      return;
+    }
+
+    if (tipoParam === "WEB") {
+      setTabValue(0);
+    }
+  }, [tipoParam]);
 
   const handleOpenDetail = async (id: string) => {
     try {
