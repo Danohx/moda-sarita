@@ -1,72 +1,55 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Avatar,
   Box,
-  Paper,
-  Typography,
   Button,
-  Tabs,
-  Tab,
   Card,
   CardContent,
   Chip,
-  LinearProgress,
   IconButton,
-  Avatar,
+  LinearProgress,
+  Paper,
   Skeleton,
+  Tab,
+  Tabs,
+  Typography,
+  FormControl,
+  InputAdornment,
+  MenuItem,
+  Select,
+  TextField,
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import {
-  ShoppingBag,
-  LocalShipping,
-  Schedule,
-  Visibility,
-  Edit,
-  Cancel,
   AttachMoney,
+  Cancel,
+  Edit,
+  LocalShipping,
   Person,
+  Schedule,
+  ShoppingBag,
+  Visibility,
   Warning,
+  Search,
 } from "@mui/icons-material";
 import styles from "../../../styles/OrdersManager.module.css";
-
-type OrderStatus = "Por Enviar" | "En Proceso" | "Completado" | "Cancelado";
-
-type Order = {
-  id: number;
-  orderId: string;
-  customer: string;
-  items: number;
-  total: number;
-  status: OrderStatus;
-  time: string;
-};
-
-type Apartado = {
-  id: number;
-  customer: string;
-  total: number;
-  paid: number;
-  remaining: number;
-  deadline: string; // ej "25 Nov" (lo ideal: ISO date)
-  progress: number; // 0..100
-};
-
-type OrdersData = {
-  orders: Order[];
-  apartados: Apartado[];
-};
+import {
+  pedidosService,
+  type Apartado,
+  type ApartadoEstadoFilter,
+  type Order,
+  type OrderStatus,
+  type WebEstadoFilter,
+} from "@admin/services/pedidos.service";
+import type { MetodoPago, PedidoDetalleAdmin } from "@shared/api/pedidos.api";
+import OrderDetailModal from "@admin/components/components/OrderDetailModal";
+import ApartadoActionModals from "@admin/components/components/ApartadoActionsModal";
 
 function formatMoneda(valor: number) {
-  return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(valor);
-}
-
-/**
- * Placeholder API: cuando conectes backend lo sustituyes por axios/fetch.
- * - GET /api/admin/pedidos?tipo=web
- * - GET /api/admin/apartados
- */
-async function fetchOrdersData(signal?: AbortSignal): Promise<OrdersData> {
-  void signal;
-  return { orders: [], apartados: [] }; // ✅ vacío
+  return new Intl.NumberFormat("es-MX", {
+    style: "currency",
+    currency: "MXN",
+  }).format(valor);
 }
 
 function a11yProps(index: number) {
@@ -90,22 +73,63 @@ function TabPanel({ value, index, children }: TabPanelProps) {
       id={`orders-tabpanel-${index}`}
       aria-labelledby={`orders-tab-${index}`}
     >
-      {value === index ? <Box className={styles.tabPanel}>{children}</Box> : null}
+      {value === index ? (
+        <Box className={styles.tabPanel}>{children}</Box>
+      ) : null}
     </div>
   );
 }
 
 function getStatusVariant(status: OrderStatus) {
   switch (status) {
-    case "Por Enviar":
+    case "PENDIENTE":
       return styles.statusPending;
-    case "En Proceso":
+
+    case "PAGADO":
+    case "ENVIADO":
       return styles.statusProcessing;
-    case "Completado":
+
+    case "ENTREGADO":
       return styles.statusDone;
-    case "Cancelado":
+
+    case "CANCELADO":
+    case "DEVUELTO":
     default:
       return styles.statusDefault;
+  }
+}
+
+function getOrderStatusLabel(status: OrderStatus) {
+  switch (status) {
+    case "PENDIENTE":
+      return "Pendiente";
+    case "PAGADO":
+      return "Pagado";
+    case "ENVIADO":
+      return "Enviado";
+    case "ENTREGADO":
+      return "Entregado";
+    case "CANCELADO":
+      return "Cancelado";
+    case "DEVUELTO":
+      return "Devuelto";
+    default:
+      return status;
+  }
+}
+
+function getApartadoStatusLabel(status: Apartado["estado"]) {
+  switch (status) {
+    case "ACTIVO":
+      return "Activo";
+    case "LIQUIDADO":
+      return "Liquidado";
+    case "CANCELADO":
+      return "Cancelado";
+    case "VENCIDO":
+      return "Vencido";
+    default:
+      return status;
   }
 }
 
@@ -116,28 +140,235 @@ const OrdersManager: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [apartados, setApartados] = useState<Apartado[]>([]);
 
+  const [webEstadoFilter, setWebEstadoFilter] =
+    useState<WebEstadoFilter>("TODOS");
+  const [apartadoEstadoFilter, setApartadoEstadoFilter] =
+    useState<ApartadoEstadoFilter>("TODOS");
+
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [selectedDetail, setSelectedDetail] =
+    useState<PedidoDetalleAdmin | null>(null);
+
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const [abonoOpen, setAbonoOpen] = useState(false);
+  const [liquidarOpen, setLiquidarOpen] = useState(false);
+  const [cancelarOpen, setCancelarOpen] = useState(false);
+
+  const [selectedApartado, setSelectedApartado] = useState<Apartado | null>(
+    null,
+  );
+
+  const [abonoMonto, setAbonoMonto] = useState("");
+  const [metodoPago, setMetodoPago] = useState<MetodoPago>("EFECTIVO");
+  const [referenciaExterna, setReferenciaExterna] = useState("");
+  const [motivoCancelacion, setMotivoCancelacion] = useState("");
+
+  const [ticketLoading, setTicketLoading] = useState(false);
+
   const load = useCallback(async () => {
-    const controller = new AbortController();
     try {
       setLoading(true);
-      const resp = await fetchOrdersData(controller.signal);
+
+      const resp = await pedidosService.getOrdersData({
+        q: searchTerm,
+        webEstado: webEstadoFilter,
+        apartadoEstado: apartadoEstadoFilter,
+      });
+
       setOrders(resp.orders);
       setApartados(resp.apartados);
-    } catch {
+    } catch (err) {
+      console.error("Error cargando pedidos:", err);
       setOrders([]);
       setApartados([]);
     } finally {
       setLoading(false);
     }
-    return () => controller.abort();
-  }, []);
+  }, [searchTerm, webEstadoFilter, apartadoEstadoFilter]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
+  const handleOpenDetail = async (id: string) => {
+    try {
+      setDetailOpen(true);
+      setDetailLoading(true);
+      setSelectedDetail(null);
+
+      const data = await pedidosService.getById(id);
+      setSelectedDetail(data);
+    } catch (err) {
+      console.error("Error cargando detalle:", err);
+      setSelectedDetail(null);
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const handleCloseDetail = () => {
+    setDetailOpen(false);
+    setSelectedDetail(null);
+  };
+
   const skeletonRows = useMemo(() => Array.from({ length: 3 }), []);
   const skeletonCards = useMemo(() => Array.from({ length: 6 }), []);
+
+  const openAbonoModal = (apartado: Apartado) => {
+    setSelectedApartado(apartado);
+    setAbonoMonto("");
+    setMetodoPago("EFECTIVO");
+    setReferenciaExterna("");
+    setAbonoOpen(true);
+  };
+
+  const openLiquidarModal = (apartado: Apartado) => {
+    setSelectedApartado(apartado);
+    setMetodoPago("EFECTIVO");
+    setReferenciaExterna("");
+    setLiquidarOpen(true);
+  };
+
+  const openCancelarModal = (apartado: Apartado) => {
+    setSelectedApartado(apartado);
+    setMotivoCancelacion("");
+    setCancelarOpen(true);
+  };
+
+  const closeActionModals = () => {
+    if (actionLoading) return;
+
+    setAbonoOpen(false);
+    setLiquidarOpen(false);
+    setCancelarOpen(false);
+    setSelectedApartado(null);
+    setAbonoMonto("");
+    setReferenciaExterna("");
+    setMotivoCancelacion("");
+  };
+
+  const handleRegistrarAbono = async () => {
+    if (!selectedApartado) return;
+
+    const monto = Number(abonoMonto);
+
+    if (!Number.isFinite(monto) || monto <= 0) {
+      alert("Ingresa un monto válido.");
+      return;
+    }
+
+    try {
+      setActionLoading(true);
+
+      const response = await pedidosService.registrarAbono(
+        selectedApartado.id,
+        {
+          monto,
+          metodo: metodoPago,
+          referencia_externa: referenciaExterna.trim() || null,
+        },
+      );
+
+      if (response.pago_generado?.id) {
+        await pedidosService.abrirTicketPagoPdf(
+          selectedApartado.id,
+          response.pago_generado.id,
+        );
+      }
+
+      setAbonoOpen(false);
+      setSelectedApartado(null);
+      await load();
+    } catch (err) {
+      console.error("Error registrando abono:", err);
+      alert("No se pudo registrar el abono.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleLiquidarApartado = async () => {
+    if (!selectedApartado) return;
+
+    try {
+      setActionLoading(true);
+
+      const response = await pedidosService.liquidar(selectedApartado.id, {
+        metodo: metodoPago,
+        referencia_externa: referenciaExterna.trim() || null,
+      });
+
+      if (response.pago_generado?.id) {
+        await pedidosService.abrirTicketPagoPdf(
+          selectedApartado.id,
+          response.pago_generado.id,
+        );
+      }
+
+      setLiquidarOpen(false);
+      setSelectedApartado(null);
+      await load();
+    } catch (err) {
+      console.error("Error liquidando apartado:", err);
+      alert("No se pudo liquidar el apartado.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCancelarApartado = async () => {
+    if (!selectedApartado) return;
+
+    const motivo = motivoCancelacion.trim();
+
+    if (motivo.length < 3) {
+      alert("Escribe un motivo de cancelación.");
+      return;
+    }
+
+    try {
+      setActionLoading(true);
+
+      await pedidosService.cancelar(selectedApartado.id, motivo);
+
+      setCancelarOpen(false);
+      setSelectedApartado(null);
+      await load();
+    } catch (err) {
+      console.error("Error cancelando apartado:", err);
+      alert("No se pudo cancelar el apartado.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleOpenTicketPdf = async (id: string | number) => {
+    try {
+      setTicketLoading(true);
+      await pedidosService.abrirTicketPdf(id);
+    } catch (err) {
+      console.error("Error abriendo ticket PDF:", err);
+      alert("No se pudo abrir el ticket PDF.");
+    } finally {
+      setTicketLoading(false);
+    }
+  };
+
+  const handleOpenPagoTicketPdf = async (pedidoId: string, pagoId: string) => {
+    try {
+      setTicketLoading(true);
+      await pedidosService.abrirTicketPagoPdf(pedidoId, pagoId);
+    } catch (err) {
+      console.error("Error abriendo ticket de pago:", err);
+      alert("No se pudo abrir el ticket de pago.");
+    } finally {
+      setTicketLoading(false);
+    }
+  };
 
   return (
     <Box className={styles.root}>
@@ -145,7 +376,6 @@ const OrdersManager: React.FC = () => {
         Gestión de Pedidos
       </Typography>
 
-      {/* Tabs */}
       <Paper className={styles.tabsPaper}>
         <Tabs
           value={tabValue}
@@ -169,8 +399,42 @@ const OrdersManager: React.FC = () => {
         </Tabs>
       </Paper>
 
-      {/* TAB 1: PEDIDOS WEB */}
       <TabPanel value={tabValue} index={0}>
+        <Paper className={styles.filtersPaper}>
+          <TextField
+            fullWidth
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="Buscar por folio o cliente"
+            className={styles.searchInput}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search className={styles.searchIcon} />
+                </InputAdornment>
+              ),
+            }}
+          />
+
+          <FormControl fullWidth className={styles.filterControl}>
+            <Select
+              value={webEstadoFilter}
+              onChange={(event) =>
+                setWebEstadoFilter(event.target.value as WebEstadoFilter)
+              }
+              displayEmpty
+            >
+              <MenuItem value="TODOS">Todos los estados</MenuItem>
+              <MenuItem value="PENDIENTE">Pendiente</MenuItem>
+              <MenuItem value="PAGADO">Pagado</MenuItem>
+              <MenuItem value="ENVIADO">Enviado</MenuItem>
+              <MenuItem value="ENTREGADO">Entregado</MenuItem>
+              <MenuItem value="CANCELADO">Cancelado</MenuItem>
+              <MenuItem value="DEVUELTO">Devuelto</MenuItem>
+            </Select>
+          </FormControl>
+        </Paper>
+
         <Grid container spacing={3}>
           {loading ? (
             skeletonRows.map((_, idx) => (
@@ -209,12 +473,15 @@ const OrdersManager: React.FC = () => {
                     <Box className={styles.orderRow}>
                       <Box className={styles.orderLeft}>
                         <Box className={styles.orderTitleRow}>
-                          <Typography variant="h6" className={styles.orderTitle}>
+                          <Typography
+                            variant="h6"
+                            className={styles.orderTitle}
+                          >
                             Orden {order.orderId}
                           </Typography>
 
                           <Chip
-                            label={order.status}
+                            label={getOrderStatusLabel(order.status)}
                             size="small"
                             className={`${styles.statusChip} ${getStatusVariant(order.status)}`}
                           />
@@ -225,19 +492,28 @@ const OrdersManager: React.FC = () => {
                             <Person className={styles.customerAvatarIcon} />
                           </Avatar>
 
-                          <Typography variant="body2" className={styles.orderCustomerText}>
+                          <Typography
+                            variant="body2"
+                            className={styles.orderCustomerText}
+                          >
                             Cliente: {order.customer} • {order.items} artículos
                           </Typography>
                         </Box>
 
-                        <Typography variant="caption" className={styles.orderTime}>
+                        <Typography
+                          variant="caption"
+                          className={styles.orderTime}
+                        >
                           {order.time}
                         </Typography>
                       </Box>
 
                       <Box className={styles.orderRight}>
                         <Box className={styles.orderRightTop}>
-                          <Typography variant="h5" className={styles.orderAmount}>
+                          <Typography
+                            variant="h5"
+                            className={styles.orderAmount}
+                          >
                             {formatMoneda(order.total)}
                           </Typography>
 
@@ -246,17 +522,30 @@ const OrdersManager: React.FC = () => {
                             variant="outlined"
                             startIcon={<Visibility />}
                             className={styles.viewBtn}
+                            onClick={() => void handleOpenDetail(order.id)}
                           >
                             Ver detalles
                           </Button>
                         </Box>
 
-                        {order.status !== "Completado" ? (
+                        {order.status !== "ENTREGADO" ? (
                           <Box className={styles.orderActions}>
-                            <IconButton size="small" className={styles.actionPink}>
+                            <IconButton
+                              size="small"
+                              className={styles.actionPink}
+                              onClick={() => {
+                                alert("Deshabilitado");
+                              }}
+                            >
                               <Edit />
                             </IconButton>
-                            <IconButton size="small" className={styles.actionBlue}>
+                            <IconButton
+                              size="small"
+                              className={styles.actionBlue}
+                              onClick={() => {
+                                alert("Deshabilitado");
+                              }}
+                            >
                               <LocalShipping />
                             </IconButton>
                           </Box>
@@ -273,11 +562,11 @@ const OrdersManager: React.FC = () => {
                 <Box className={styles.emptyRow}>
                   <Warning fontSize="small" />
                   <Typography className={styles.emptyText}>
-                    Sin pedidos web (pendiente de API).
+                    Sin pedidos web.
                   </Typography>
                 </Box>
                 <Typography className={styles.emptyHint}>
-                  Cuando conectes backend, aquí se listarán los pedidos.
+                  Cuando existan pedidos web, aquí se listarán automáticamente.
                 </Typography>
               </Paper>
             </Grid>
@@ -285,8 +574,42 @@ const OrdersManager: React.FC = () => {
         </Grid>
       </TabPanel>
 
-      {/* TAB 2: APARTADOS FÍSICOS */}
       <TabPanel value={tabValue} index={1}>
+        <Paper className={styles.filtersPaper}>
+          <TextField
+            fullWidth
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="Buscar por folio o cliente"
+            className={styles.searchInput}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search className={styles.searchIcon} />
+                </InputAdornment>
+              ),
+            }}
+          />
+
+          <FormControl fullWidth className={styles.filterControl}>
+            <Select
+              value={apartadoEstadoFilter}
+              onChange={(event) =>
+                setApartadoEstadoFilter(
+                  event.target.value as ApartadoEstadoFilter,
+                )
+              }
+              displayEmpty
+            >
+              <MenuItem value="TODOS">Todos los apartados</MenuItem>
+              <MenuItem value="ACTIVO">Apartados activos</MenuItem>
+              <MenuItem value="LIQUIDADO">Apartados liquidados</MenuItem>
+              <MenuItem value="CANCELADO">Apartados cancelados</MenuItem>
+              <MenuItem value="VENCIDO">Apartados vencidos</MenuItem>
+            </Select>
+          </FormControl>
+        </Paper>
+
         <Grid container spacing={3}>
           {loading ? (
             skeletonCards.map((_, idx) => (
@@ -323,6 +646,7 @@ const OrdersManager: React.FC = () => {
 
                     <Skeleton width="60%" />
                     <Skeleton height={14} />
+
                     <Box className={styles.apartadoBtns}>
                       <Skeleton height={40} />
                       <Skeleton height={40} />
@@ -336,7 +660,6 @@ const OrdersManager: React.FC = () => {
               <Grid size={{ xs: 12, md: 6, lg: 4 }} key={apartado.id}>
                 <Card className={styles.apartadoCard}>
                   <CardContent>
-                    {/* Header */}
                     <Box className={styles.apartadoHeader}>
                       <Box className={styles.apartadoHeaderLeft}>
                         <Avatar className={styles.apartadoAvatar}>
@@ -344,27 +667,48 @@ const OrdersManager: React.FC = () => {
                         </Avatar>
 
                         <Box className={styles.apartadoHeaderText}>
-                          <Typography variant="subtitle1" className={styles.apartadoCustomer}>
+                          <Typography
+                            variant="subtitle1"
+                            className={styles.apartadoCustomer}
+                          >
                             {apartado.customer}
                           </Typography>
-                          <Typography variant="caption" className={styles.apartadoId}>
-                            ID: APT-00{apartado.id}
+                          <Typography
+                            variant="caption"
+                            className={styles.apartadoId}
+                          >
+                            Folio: APT-{apartado.folio}
                           </Typography>
                         </Box>
                       </Box>
 
-                      <Chip
-                        label={`Vence: ${apartado.deadline}`}
-                        size="small"
-                        className={styles.deadlineChip}
-                      />
+                      <Box
+                        display="flex"
+                        gap={1}
+                        flexWrap="wrap"
+                        justifyContent="flex-end"
+                      >
+                        <Chip
+                          label={getApartadoStatusLabel(apartado.estado)}
+                          size="small"
+                          className={styles.deadlineChip}
+                        />
+
+                        <Chip
+                          label={`Vence: ${apartado.deadline}`}
+                          size="small"
+                          className={styles.deadlineChip}
+                        />
+                      </Box>
                     </Box>
 
-                    {/* Estadísticas */}
                     <Box className={styles.apartadoStatsBox}>
                       <Grid container spacing={2}>
                         <Grid size={{ xs: 4 }}>
-                          <Typography variant="caption" className={styles.statLabel}>
+                          <Typography
+                            variant="caption"
+                            className={styles.statLabel}
+                          >
                             Total
                           </Typography>
                           <Typography variant="h6" className={styles.statValue}>
@@ -373,32 +717,49 @@ const OrdersManager: React.FC = () => {
                         </Grid>
 
                         <Grid size={{ xs: 4 }}>
-                          <Typography variant="caption" className={styles.statLabel}>
+                          <Typography
+                            variant="caption"
+                            className={styles.statLabel}
+                          >
                             Abonado
                           </Typography>
-                          <Typography variant="h6" className={`${styles.statValue} ${styles.statGreen}`}>
+                          <Typography
+                            variant="h6"
+                            className={`${styles.statValue} ${styles.statGreen}`}
+                          >
                             {formatMoneda(apartado.paid)}
                           </Typography>
                         </Grid>
 
                         <Grid size={{ xs: 4 }}>
-                          <Typography variant="caption" className={styles.statLabel}>
+                          <Typography
+                            variant="caption"
+                            className={styles.statLabel}
+                          >
                             Resta
                           </Typography>
-                          <Typography variant="h6" className={`${styles.statValue} ${styles.statRed}`}>
+                          <Typography
+                            variant="h6"
+                            className={`${styles.statValue} ${styles.statRed}`}
+                          >
                             {formatMoneda(apartado.remaining)}
                           </Typography>
                         </Grid>
                       </Grid>
                     </Box>
 
-                    {/* Progreso */}
                     <Box className={styles.progressWrap}>
                       <Box className={styles.progressTopRow}>
-                        <Typography variant="caption" className={styles.progressLabel}>
+                        <Typography
+                          variant="caption"
+                          className={styles.progressLabel}
+                        >
                           Progreso de pago
                         </Typography>
-                        <Typography variant="caption" className={styles.progressPercent}>
+                        <Typography
+                          variant="caption"
+                          className={styles.progressPercent}
+                        >
                           {apartado.progress}%
                         </Typography>
                       </Box>
@@ -410,25 +771,50 @@ const OrdersManager: React.FC = () => {
                       />
                     </Box>
 
-                    {/* Acciones */}
                     <Box className={styles.apartadoBtns}>
                       <Button
                         fullWidth
-                        variant="contained"
-                        startIcon={<AttachMoney />}
-                        className={styles.primaryButton}
+                        variant="outlined"
+                        startIcon={<Visibility />}
+                        className={styles.viewBtn}
+                        onClick={() => void handleOpenDetail(apartado.id)}
                       >
-                        Abonar
+                        Ver detalle
                       </Button>
 
-                      <Button
-                        fullWidth
-                        variant="outlined"
-                        startIcon={<Cancel />}
-                        className={styles.dangerButton}
-                      >
-                        Cancelar
-                      </Button>
+                      <Box className={styles.apartadoBtnsActions}>
+                        <Button
+                          fullWidth
+                          variant="contained"
+                          startIcon={<AttachMoney />}
+                          className={styles.primaryButton}
+                          disabled={apartado.estado !== "ACTIVO"}
+                          onClick={() => openAbonoModal(apartado)}
+                        >
+                          Abonar
+                        </Button>
+
+                        <Button
+                          fullWidth
+                          variant="contained"
+                          className={styles.primaryButton}
+                          disabled={apartado.estado !== "ACTIVO"}
+                          onClick={() => openLiquidarModal(apartado)}
+                        >
+                          Liquidar
+                        </Button>
+
+                        <Button
+                          fullWidth
+                          variant="outlined"
+                          startIcon={<Cancel />}
+                          className={styles.dangerButton}
+                          disabled={apartado.estado !== "ACTIVO"}
+                          onClick={() => openCancelarModal(apartado)}
+                        >
+                          Cancelar
+                        </Button>
+                      </Box>
                     </Box>
                   </CardContent>
                 </Card>
@@ -440,17 +826,50 @@ const OrdersManager: React.FC = () => {
                 <Box className={styles.emptyRow}>
                   <Warning fontSize="small" />
                   <Typography className={styles.emptyText}>
-                    Sin apartados físicos (pendiente de API).
+                    Sin apartados físicos.
                   </Typography>
                 </Box>
                 <Typography className={styles.emptyHint}>
-                  Cuando conectes backend, aquí se listarán los apartados.
+                  Cuando existan apartados, aquí se listarán automáticamente.
                 </Typography>
               </Paper>
             </Grid>
           )}
         </Grid>
       </TabPanel>
+
+      <OrderDetailModal
+        open={detailOpen}
+        onClose={handleCloseDetail}
+        loading={detailLoading}
+        detail={selectedDetail}
+        ticketLoading={ticketLoading}
+        onOpenTicketPdf={(id) => void handleOpenTicketPdf(id)}
+        onOpenPagoTicketPdf={(pedidoId, pagoId) =>
+          void handleOpenPagoTicketPdf(pedidoId, pagoId)
+        }
+      />
+
+      <ApartadoActionModals
+        apartadoFolio={selectedApartado?.folio ?? null}
+        apartadoRemaining={selectedApartado?.remaining ?? 0}
+        abonoOpen={abonoOpen}
+        abonoMonto={abonoMonto}
+        onAbonoMontoChange={setAbonoMonto}
+        liquidarOpen={liquidarOpen}
+        cancelarOpen={cancelarOpen}
+        motivoCancelacion={motivoCancelacion}
+        onMotivoCancelacionChange={setMotivoCancelacion}
+        metodoPago={metodoPago}
+        onMetodoPagoChange={setMetodoPago}
+        referenciaExterna={referenciaExterna}
+        onReferenciaExternaChange={setReferenciaExterna}
+        actionLoading={actionLoading}
+        onClose={closeActionModals}
+        onRegistrarAbono={() => void handleRegistrarAbono()}
+        onLiquidarApartado={() => void handleLiquidarApartado()}
+        onCancelarApartado={() => void handleCancelarApartado()}
+      />
     </Box>
   );
 };

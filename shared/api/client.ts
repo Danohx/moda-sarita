@@ -25,7 +25,11 @@ function buildUrl(endpoint: string, query?: QueryParams): string {
 
     if (typeof value === "object") {
       Object.entries(value).forEach(([nestedKey, nestedValue]) => {
-        if (nestedValue !== undefined && nestedValue !== null && nestedValue !== "") {
+        if (
+          nestedValue !== undefined &&
+          nestedValue !== null &&
+          nestedValue !== ""
+        ) {
           url.searchParams.append(`${key}.${nestedKey}`, String(nestedValue));
         }
       });
@@ -119,6 +123,76 @@ async function request<T>(
   });
 }
 
+async function requestBlob(
+  endpoint: string,
+  options: ApiRequestOptions = {},
+  retryOn401 = true,
+): Promise<Blob> {
+  const {
+    method = "GET",
+    body,
+    headers = {},
+    signal,
+    isFormData = false,
+    withAuth = true,
+    query,
+  } = options;
+
+  const finalHeaders = new Headers(headers);
+
+  if (!isFormData && body !== undefined) {
+    finalHeaders.set("Content-Type", "application/json");
+  }
+
+  const accessToken = withAuth ? tokenStorage.getAccessToken() : null;
+
+  if (accessToken) {
+    finalHeaders.set(
+      API_CONFIG.authHeaderName,
+      `${API_CONFIG.bearerPrefix} ${accessToken}`,
+    );
+  }
+
+  const response = await fetch(buildUrl(endpoint, query), {
+    method,
+    headers: finalHeaders,
+    body:
+      body === undefined
+        ? undefined
+        : isFormData
+          ? (body as BodyInit)
+          : JSON.stringify(body),
+    credentials: API_CONFIG.withCredentials ? "include" : "same-origin",
+    signal,
+  });
+
+  if (response.ok) {
+    return response.blob();
+  }
+
+  const parsed = await parseResponse(response);
+
+  if (
+    response.status === 401 &&
+    retryOn401 &&
+    withAuth &&
+    endpoint !== API_ENDPOINTS.auth.refreshToken &&
+    endpoint !== API_ENDPOINTS.auth.login
+  ) {
+    const refreshed = await tryRefreshToken();
+
+    if (refreshed) {
+      return requestBlob(endpoint, options, false);
+    }
+  }
+
+  throw new ApiError({
+    message: extractErrorMessage(parsed, `Error HTTP ${response.status}`),
+    status: response.status,
+    payload: (parsed ?? null) as never,
+  });
+}
+
 async function tryRefreshToken(): Promise<string | null> {
   if (!refreshPromise) {
     refreshPromise = (async () => {
@@ -160,8 +234,10 @@ async function tryRefreshToken(): Promise<string | null> {
 }
 
 export const apiClient = {
-  get: <T>(endpoint: string, options?: Omit<ApiRequestOptions, "method" | "body">) =>
-    request<T>(endpoint, { ...options, method: "GET" }),
+  get: <T>(
+    endpoint: string,
+    options?: Omit<ApiRequestOptions, "method" | "body">,
+  ) => request<T>(endpoint, { ...options, method: "GET" }),
 
   post: <T>(
     endpoint: string,
@@ -181,8 +257,10 @@ export const apiClient = {
     options?: Omit<ApiRequestOptions, "method" | "body">,
   ) => request<T>(endpoint, { ...options, method: "PATCH", body }),
 
-  delete: <T>(endpoint: string, options?: Omit<ApiRequestOptions, "method" | "body">) =>
-    request<T>(endpoint, { ...options, method: "DELETE" }),
+  delete: <T>(
+    endpoint: string,
+    options?: Omit<ApiRequestOptions, "method" | "body">,
+  ) => request<T>(endpoint, { ...options, method: "DELETE" }),
 };
 
 export async function apiFetch<T>(
@@ -190,4 +268,11 @@ export async function apiFetch<T>(
   options: ApiRequestOptions = {},
 ): Promise<T> {
   return request<T>(endpoint, options);
+}
+
+export async function apiFetchBlob(
+  endpoint: string,
+  options: ApiRequestOptions = {},
+): Promise<Blob> {
+  return requestBlob(endpoint, options);
 }

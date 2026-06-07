@@ -101,12 +101,13 @@ export const API_ENDPOINTS = {
     list: "/clientes",
     byId: (id: string | number) => `/clientes/${id}`,
     credito: (id: string | number) => `/clientes/${id}/credito`,
-    movimientosCredito: (id: string | number) => `/clientes/${id}/movimientos-credito`,
+    movimientosCredito: (id: string | number) =>
+      `/clientes/${id}/movimientos-credito`,
     abonoCredito: (id: string | number) => `/clientes/${id}/abonos`,
     direcciones: (id: string | number) => `/clientes/${id}/direcciones`,
-    direccionPrincipal: (id: string | number, direccionId: string | number) => 
+    direccionPrincipal: (id: string | number, direccionId: string | number) =>
       `/clientes/${id}/direcciones/${direccionId}/principal`,
-    direccionById: (id: string | number, direccionId: string | number) => 
+    direccionById: (id: string | number, direccionId: string | number) =>
       `/clientes/${id}/direcciones/${direccionId}`,
   },
   ventas: {
@@ -120,5 +121,15 @@ export const API_ENDPOINTS = {
     cerrarCorte: (id: string | number) => `/ventas/corte/${id}/cerrar`,
     historialCortes: "/ventas/corte/historial",
     corteById: (id: string | number) => `/ventas/corte/${id}`,
+  },
+  pedidos: {
+    list: "/pedidos",
+    byId: (id: string | number) => `/pedidos/${id}`,
+    abonos: (id: string | number) => `/pedidos/${id}/abonos`,
+    cancelar: (id: string | number) => `/pedidos/${id}/cancelar`,
+    liquidar: (id: string | number) => `/pedidos/${id}/liquidar`,
+    ticketPdf: (id: string | number) => `/pedidos/${id}/ticket`,
+    pagoTicketPdf: (id: string | number, pagoId: string | number) =>
+      `/pedidos/${id}/pagos/${pagoId}/ticket`,
   },
 } as const;

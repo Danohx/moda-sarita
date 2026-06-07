@@ -1,0 +1,608 @@
+/* OrderDetailModal.module.css */
+
+/* ─── Dialog ─────────────────────────────────── */
+.paper {
+  border-radius: var(--border-radius-large) !important;
+  box-shadow: var(--shadow-md) !important;
+  border: 1px solid var(--color-border) !important;
+  background: var(--color-surface) !important;
+  overflow: hidden;
+}
+
+/* ─── Header ─────────────────────────────────── */
+.dialogTitle {
+  padding: 18px 22px 14px !important;
+  background: var(--color-surface) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.titleLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.titleRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.tipoChip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: var(--color-primary-bg);
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary-vibrant);
+}
+
+.tipoLabel {
+  font-family: var(--font-primary) !important;
+  font-weight: 700 !important;
+  font-size: 0.7rem !important;
+  letter-spacing: 0.03em !important;
+  text-transform: uppercase !important;
+  color: var(--color-primary-vibrant) !important;
+}
+
+.titleText {
+  font-family: var(--font-primary) !important;
+  font-weight: 800 !important;
+  font-size: var(--font-size-base) !important;
+  letter-spacing: -0.02em !important;
+  color: var(--color-text) !important;
+}
+
+.estadoChip {
+  font-family: var(--font-primary) !important;
+  font-weight: 700 !important;
+  font-size: 0.7rem !important;
+  border-radius: 20px !important;
+  height: 24px !important;
+}
+
+.estadoSuccess {
+  background: var(--color-success-bg) !important;
+  color: var(--color-success) !important;
+}
+.estadoInfo {
+  background: var(--color-info-bg) !important;
+  color: var(--color-info) !important;
+}
+.estadoDanger {
+  background: var(--color-danger-bg, rgba(220, 38, 38, 0.08)) !important;
+  color: var(--color-danger) !important;
+}
+.estadoDefault {
+  background: var(--color-primary-bg) !important;
+  color: var(--color-text) !important;
+  opacity: 0.6;
+}
+
+.closeBtn {
+  color: var(--color-text) !important;
+  opacity: 0.45;
+  border-radius: var(--border-radius-small) !important;
+}
+.closeBtn:hover {
+  opacity: 1;
+  background: var(--color-primary-bg) !important;
+}
+
+/* ─── Content ────────────────────────────────── */
+.content {
+  padding: 0 !important;
+  background: var(--color-surface) !important;
+}
+
+.body {
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ─── Cliente ────────────────────────────────── */
+.clienteSection {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.clienteAvatar {
+  background: var(--color-primary-vibrant) !important;
+  width: 46px !important;
+  height: 46px !important;
+  flex-shrink: 0;
+}
+
+.clienteInfo {
+  flex: 1;
+  min-width: 140px;
+}
+
+.clienteNombre {
+  font-family: var(--font-primary) !important;
+  font-weight: 800 !important;
+  font-size: var(--font-size-base) !important;
+  color: var(--color-text) !important;
+  letter-spacing: -0.02em !important;
+}
+
+.clienteMeta {
+  font-size: 0.78rem !important;
+  color: var(--color-text) !important;
+  opacity: 0.5;
+  margin-top: 2px !important;
+}
+
+.fechasBox {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.fechaItem {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.fechaLabel {
+  font-size: 0.65rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  color: var(--color-text) !important;
+  opacity: 0.4;
+  font-weight: 700 !important;
+}
+
+.fechaValue {
+  font-size: 0.78rem !important;
+  font-family: var(--font-primary) !important;
+  font-weight: 600 !important;
+  color: var(--color-text) !important;
+}
+
+.fechaWarning {
+  color: var(--color-warning) !important;
+}
+
+/* ─── Finanzas ───────────────────────────────── */
+.finanzasSection {
+  background: var(--color-primary-bg);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--border-radius-medium);
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.statCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-medium);
+  padding: 10px 12px;
+}
+
+.statCardTotal {
+  border-color: var(--color-primary) !important;
+  background: var(--color-primary-soft) !important;
+}
+
+.statCardPaid {
+  border-color: var(--color-success, #16a34a) !important;
+  background: var(--color-success-bg) !important;
+}
+
+.statCardPending {
+  border-color: var(--color-danger, #dc2626) !important;
+  background: var(--color-danger-bg, rgba(220, 38, 38, 0.06)) !important;
+}
+
+.statCardDiscount {
+  border-color: var(--color-warning, #d97706) !important;
+  background: var(--color-warning-bg) !important;
+}
+
+.statLabel {
+  font-size: 0.65rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  color: var(--color-text) !important;
+  opacity: 0.5;
+  font-weight: 700 !important;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.statValue {
+  font-family: var(--font-primary) !important;
+  font-weight: 800 !important;
+  font-size: var(--font-size-base) !important;
+  letter-spacing: -0.02em !important;
+  color: var(--color-text) !important;
+}
+
+.statTotal {
+  color: var(--color-primary-vibrant) !important;
+}
+.statPaid {
+  color: var(--color-success, #16a34a) !important;
+}
+.statPending {
+  color: var(--color-danger, #dc2626) !important;
+}
+.statDiscount {
+  color: var(--color-warning, #d97706) !important;
+}
+
+/* ─── Progress ───────────────────────────────── */
+.progressWrap {
+  margin-top: 14px;
+}
+
+.progressRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.progressLabel {
+  font-size: 0.72rem !important;
+  color: var(--color-text) !important;
+  opacity: 0.5;
+}
+
+.progressPct {
+  font-family: var(--font-primary) !important;
+  font-weight: 700 !important;
+  font-size: 0.8rem !important;
+  color: var(--color-primary-vibrant) !important;
+}
+
+.progress {
+  height: 6px !important;
+  border-radius: 10px !important;
+  background: var(--color-primary-bg) !important;
+}
+
+.progress :global(.MuiLinearProgress-bar) {
+  background: var(--color-primary-vibrant) !important;
+  border-radius: 10px !important;
+}
+
+/* ─── Divider ────────────────────────────────── */
+.divider {
+  border-color: var(--color-border) !important;
+  margin: 4px 0 20px !important;
+}
+
+/* ─── Secciones (Productos / Pagos) ─────────── */
+.section {
+  margin-bottom: 20px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.sectionIcon {
+  color: var(--color-primary-vibrant) !important;
+  font-size: 18px !important;
+}
+
+.sectionTitle {
+  font-family: var(--font-primary) !important;
+  font-weight: 800 !important;
+  font-size: var(--font-size-base) !important;
+  color: var(--color-text) !important;
+  flex: 1;
+}
+
+.countChip {
+  background: var(--color-primary-bg) !important;
+  color: var(--color-primary-vibrant) !important;
+  font-weight: 700 !important;
+  font-size: 0.7rem !important;
+  border-radius: 20px !important;
+  height: 20px !important;
+}
+
+/* ─── Productos ──────────────────────────────── */
+.productosList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.productoRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--border-radius-medium);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  transition: border-color 0.15s ease;
+}
+
+.productoRow:hover {
+  border-color: var(--color-primary);
+}
+
+.productoNum {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-vibrant);
+  font-family: var(--font-primary);
+  font-weight: 800;
+  font-size: 0.72rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.productoInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.productoNombre {
+  font-family: var(--font-primary) !important;
+  font-weight: 700 !important;
+  font-size: 0.85rem !important;
+  color: var(--color-text) !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.productoMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.metaChip {
+  background: var(--color-primary-bg) !important;
+  color: var(--color-primary-vibrant) !important;
+  font-weight: 600 !important;
+  font-size: 0.65rem !important;
+  height: 18px !important;
+  border-radius: 4px !important;
+}
+
+.productoCantidad {
+  font-family: var(--font-primary) !important;
+  font-weight: 800 !important;
+  font-size: 0.78rem !important;
+  color: var(--color-text) !important;
+}
+
+.productoUnitPrice {
+  font-size: 0.72rem !important;
+  color: var(--color-text) !important;
+  opacity: 0.4;
+}
+
+.productoImporte {
+  font-family: var(--font-primary) !important;
+  font-weight: 800 !important;
+  font-size: 0.95rem !important;
+  color: var(--color-primary-vibrant) !important;
+  letter-spacing: -0.02em !important;
+  flex-shrink: 0;
+}
+
+/* ─── Pagos ──────────────────────────────────── */
+.pagosList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pagoRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--border-radius-medium);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  transition: border-color 0.15s ease;
+}
+
+.pagoRow:hover {
+  border-color: var(--color-primary);
+}
+
+.pagoLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.pagoEstadoDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* reuse estado classes for dot bg */
+.pagoEstadoDot.estadoSuccess {
+  background: var(--color-success, #16a34a) !important;
+}
+.pagoEstadoDot.estadoInfo {
+  background: var(--color-info, #2563eb) !important;
+}
+.pagoEstadoDot.estadoDanger {
+  background: var(--color-danger, #dc2626) !important;
+}
+.pagoEstadoDot.estadoDefault {
+  background: var(--color-text) !important;
+  opacity: 0.4;
+}
+
+.pagoConcepto {
+  font-family: var(--font-primary) !important;
+  font-weight: 700 !important;
+  font-size: 0.85rem !important;
+  color: var(--color-text) !important;
+}
+
+.pagoMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+}
+
+.metodoPill {
+  background: var(--color-info-bg) !important;
+  color: var(--color-info) !important;
+  font-weight: 700 !important;
+  font-size: 0.65rem !important;
+  height: 18px !important;
+  border-radius: 4px !important;
+}
+
+.pagoEstadoText {
+  font-size: 0.72rem !important;
+  color: var(--color-text) !important;
+  opacity: 0.4;
+}
+
+.pagoMonto {
+  font-family: var(--font-primary) !important;
+  font-weight: 800 !important;
+  font-size: 0.95rem !important;
+  color: var(--color-success, #16a34a) !important;
+  letter-spacing: -0.02em !important;
+  flex-shrink: 0;
+}
+
+.pagoRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.ticketSmallBtn {
+  border-color: #bfdbfe !important;
+  color: #2563eb !important;
+  border-radius: 999px !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  padding: 3px 12px !important;
+  text-transform: none !important;
+}
+
+.ticketSmallBtn:hover {
+  background: #eff6ff !important;
+  border-color: #93c5fd !important;
+}
+
+.pagoUsuarioText {
+  color: var(--color-text-muted) !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+.pagoReferenciaText {
+  color: var(--color-text-muted) !important;
+  font-size: 12px !important;
+  margin-top: 4px !important;
+}
+
+/* ─── Notas / Observaciones ──────────────────── */
+.notaBox {
+  padding: 12px 14px;
+  border-radius: var(--border-radius-medium);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  margin-bottom: 10px;
+}
+
+.notaDanger {
+  border-color: rgba(220, 38, 38, 0.3) !important;
+  background: var(--color-danger-bg, rgba(220, 38, 38, 0.04)) !important;
+}
+
+.notaLabel {
+  font-size: 0.65rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  color: var(--color-text) !important;
+  opacity: 0.45;
+  font-weight: 700 !important;
+  margin-bottom: 4px !important;
+}
+
+.notaText {
+  font-size: 0.85rem !important;
+  color: var(--color-text) !important;
+  line-height: 1.5 !important;
+}
+
+/* ─── Error ──────────────────────────────────── */
+.errorBox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 24px;
+  opacity: 0.45;
+}
+
+.errorIcon {
+  color: var(--color-danger) !important;
+}
+
+.errorText {
+  font-size: 0.9rem !important;
+  color: var(--color-text) !important;
+}
+
+/* ─── Responsive ─────────────────────────────── */
+@media (max-width: 600px) {
+  .clienteSection {
+    flex-direction: column;
+  }
+  .fechasBox {
+    flex-direction: row;
+    justify-content: flex-start;
+  }
+  .fechaItem {
+    align-items: flex-start;
+  }
+  .body {
+    padding: 16px;
+  }
+}

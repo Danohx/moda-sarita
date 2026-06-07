@@ -3,7 +3,6 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--section-gap);
   font-family: var(--font-primary);
 }
 
@@ -13,6 +12,7 @@
   letter-spacing: -0.03em !important;
   color: var(--color-text) !important;
   font-family: var(--font-primary) !important;
+  margin-bottom: 16px !important;
 }
 
 /* ─── TABS ───────────────────────────────────── */
@@ -53,7 +53,7 @@
 
 /* ─── PANELS ─────────────────────────────────── */
 .tabPanel {
-  padding: 20px 0 0;
+  padding: 18px 0 0;
 }
 
 /* ─── EMPTY STATE ────────────────────────────── */
@@ -364,8 +364,15 @@
 }
 
 .apartadoBtns {
-  display: flex;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.apartadoBtnsActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
 }
 
 .primaryButton {
@@ -399,6 +406,67 @@
   background: var(--color-danger-bg) !important;
 }
 
+/* ─── FILTERS ────────────────────────────────── */
+.filtersPaper {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(220px, 280px);
+  gap: 14px;
+  align-items: center;
+  padding: 18px 20px !important;
+  margin-bottom: 24px;
+  border-radius: var(--border-radius-large) !important;
+  box-shadow: var(--shadow-sm) !important;
+  border: 1px solid var(--color-border) !important;
+  background: var(--color-surface) !important;
+}
+
+.searchInput :global(.MuiOutlinedInput-root),
+.filterControl :global(.MuiOutlinedInput-root) {
+  border-radius: var(--border-radius-medium) !important;
+  background: #fff !important;
+  font-family: var(--font-primary) !important;
+}
+
+.searchInput :global(.MuiOutlinedInput-notchedOutline),
+.filterControl :global(.MuiOutlinedInput-notchedOutline) {
+  border-color: var(--color-primary) !important;
+}
+
+.searchInput :global(.MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline),
+.filterControl :global(.MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline) {
+  border-color: var(--color-primary-vibrant) !important;
+}
+
+.searchInput :global(.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline),
+.filterControl :global(.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline) {
+  border-width: 1px !important;
+  border-color: var(--color-primary-vibrant) !important;
+}
+
+.searchInput :global(.MuiInputBase-input),
+.filterControl :global(.MuiSelect-select) {
+  font-family: var(--font-primary) !important;
+  font-size: var(--font-size-aux) !important;
+  color: var(--color-text) !important;
+  padding: 13px 14px !important;
+}
+
+.searchInput :global(.MuiInputBase-input::placeholder) {
+  color: var(--color-text) !important;
+  opacity: 0.45 !important;
+}
+
+.searchIcon {
+  color: var(--color-text) !important;
+  opacity: 0.45;
+  font-size: 20px !important;
+}
+
+.filterControl :global(.MuiSvgIcon-root) {
+  color: var(--color-text) !important;
+  opacity: 0.6;
+}
+
 @media (max-width: 900px) {
   .orderRow {
     flex-direction: column;
@@ -412,5 +480,9 @@
   }
   .orderActions {
     flex-direction: row;
+  }
+  .filtersPaper {
+    grid-template-columns: 1fr;
+    padding: 14px !important;
   }
 }
