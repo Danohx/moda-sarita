@@ -1,11 +1,14 @@
-import { inventarioApi, type MovimientoInventario } from "../../../../shared/api/inventario.api";
+import { inventarioApi, type MovimientoInventario, type ExistenciasParams } from "../../../../shared/api/inventario.api";
 
 type CreateMovementPayload = Parameters<typeof inventarioApi.createMovement>[0]
 
 export const inventarioService = {
-  async getExistencias() {
-    const response = await inventarioApi.getExistencias();
-    return response.data ?? [];
+  async getExistencias(params?: ExistenciasParams) {
+    const response = await inventarioApi.getExistencias(params);
+    return {
+      items: response.data ?? [],
+      pagination: response.pagination,
+    };
   },
 
   async getVariantStock(id: string | number) {

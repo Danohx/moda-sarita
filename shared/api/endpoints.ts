@@ -133,4 +133,7 @@ export const API_ENDPOINTS = {
     pagoTicketPdf: (id: string | number, pagoId: string | number) =>
       `/pedidos/${id}/pagos/${pagoId}/ticket`,
   },
+  dashboard: {
+    data: "/dashboard",
+  },
 } as const;

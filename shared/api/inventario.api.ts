@@ -49,10 +49,28 @@ export type CrearMovimientoInventarioPayload = {
   motivo: string;
 };
 
-type ExistenciasResponse = {
+export type ExistenciasParams = {
+  q?: string;
+  limit?: number;
+  offset?: number;
+  categoriaId?: number;
+  soloBajoStock?: boolean;
+  varianteId?: string | number;
+  productoId?: string | number;
+};
+
+// Agrega este tipo para la respuesta paginada
+export type ExistenciasResponse = {
   ok: boolean;
   data: ExistenciaItem[];
+  pagination: {
+    total: number;
+    limit: number;
+    offset: number;
+    hasMore: boolean;
+  };
 };
+
 
 type MovimientosResponse = {
   ok: boolean;
@@ -74,9 +92,10 @@ type CrearMovimientoResponse = {
 
 
 export const inventarioApi = {
-  getExistencias: () =>
+  getExistencias: (params?: ExistenciasParams) =>
     apiFetch<ExistenciasResponse>(API_ENDPOINTS.inventario.existencias, {
       method: "GET",
+      query: params,
     }),
 
   getVariantStock: (id: string | number) =>

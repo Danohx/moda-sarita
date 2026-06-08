@@ -1,4 +1,10 @@
-import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+  useCallback,
+  useRef,
+} from "react";
 import {
   AlertTriangle,
   ArrowRightLeft,
@@ -15,7 +21,9 @@ import InventoryAlertsModal, {
   type AlertItem,
 } from "@admin/components/components/InventoryAlertsModal";
 import AdminBreadcrumbs from "@admin/components/layout/AdminBreadcrumbs";
+import { useSearchParams } from "react-router-dom";
 
+// Interfaces sin cambios
 interface InventoryRow {
   id: string;
   producto: string;
@@ -40,74 +48,175 @@ interface VariantOption {
   stockMinimo: number;
 }
 
+const PAGE_SIZE = 50;
+
 const Inventory: React.FC = () => {
   const [items, setItems] = useState<InventoryRow[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "ok" | "bajo" | "agotado">("all");
+
+  // Dos estados para búsqueda: lo que ve el input (inmediato) y lo que va al servidor (debounced)
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "ok" | "bajo" | "agotado"
+  >("all");
   const [isMovementModalOpen, setIsMovementModalOpen] = useState(false);
-  const [selectedMovementRow, setSelectedMovementRow] = useState<InventoryRow | null>(null);
+  const [selectedMovementRow, setSelectedMovementRow] =
+    useState<InventoryRow | null>(null);
   const [isAlertsModalOpen, setIsAlertsModalOpen] = useState(false);
 
-  const loadInventory = useCallback(async (isRefresh = false) => {
-    try {
-      setError(null);
-      if(isRefresh) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [searchParams] = useSearchParams();
+
+  const varianteIdFromUrl = searchParams.get("varianteId") ?? undefined;
+  const productoIdFromUrl = searchParams.get("productoId") ?? undefined;
+
+  // ── Carga principal ───────────────────────────────────────────────────────
+
+  const loadInventory = useCallback(
+    async (
+      opts: {
+        q?: string;
+        p?: number;
+        isRefresh?: boolean;
+        varianteId?: string;
+        productoId?: string;
+      } = {},
+    ) => {
+      const {
+        q = searchQuery,
+        p = page,
+        isRefresh = false,
+        varianteId,
+        productoId,
+      } = opts;
+
+      try {
+        setError(null);
+        if (isRefresh) {
+          setRefreshing(true);
+        } else {
+          setLoading(true);
+        }
+
+        const result = await inventarioService.getExistencias({
+          q: q.trim() || undefined,
+          limit: PAGE_SIZE,
+          offset: p * PAGE_SIZE,
+          varianteId,
+          productoId,
+        });
+
+        const mapped = (result.items ?? []).map((item) => {
+          const stockFisico = Number(item.stock_fisico ?? 0);
+          const stockApartado = Number(item.stock_apartado ?? 0);
+          const stockDisponible = Number(item.stock_disponible ?? 0);
+          const stockMinimo = Number(item.stock_minimo ?? 0);
+          const bajoStock = Boolean(item.bajo_stock);
+
+          const varianteParts = [
+            item.talla_nombre ?? null,
+            item.color_nombre ?? null,
+          ].filter(Boolean);
+
+          let estado: "ok" | "bajo" | "agotado" = "ok";
+          if (stockDisponible <= 0) estado = "agotado";
+          else if (bajoStock || stockDisponible <= stockMinimo) estado = "bajo";
+
+          return {
+            id: String(item.variante_id),
+            producto: item.producto_nombre ?? "",
+            variante:
+              varianteParts.length > 0
+                ? varianteParts.join(" / ")
+                : "Variante base",
+            sku: item.sku ?? "",
+            categoria: item.categoria_nombre ?? "Sin categoría",
+            stockFisico,
+            stockApartado,
+            stockDisponible,
+            stockMinimo,
+            estado,
+          };
+        });
+
+        setItems(mapped);
+        setTotal(result.pagination.total);
+      } catch (err) {
+        console.error(err);
+        setItems([]);
+        setError("No se pudieron cargar las existencias.");
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
       }
+    },
+    [searchQuery, page],
+  );
 
-      const rows = await inventarioService.getExistencias();
-
-      const mapped = (rows ?? []).map((item) => {
-        const stockFisico     = Number(item.stock_fisico ?? 0);
-        const stockApartado   = Number(item.stock_apartado ?? 0);
-        const stockDisponible = Number(item.stock_disponible ?? 0);
-        const stockMinimo     = Number(item.stock_minimo ?? 0);
-        const bajoStock       = Boolean(item.bajo_stock);
-
-        const varianteParts = [item.talla_nombre ?? null, item.color_nombre ?? null].filter(Boolean);
-
-        let estado: "ok" | "bajo" | "agotado" = "ok";
-        if (stockDisponible <= 0) estado = "agotado";
-        else if (bajoStock || stockDisponible <= stockMinimo) estado = "bajo";
-
-        return {
-          id: String(item.variante_id),
-          producto: item.producto_nombre ?? "",
-          variante: varianteParts.length > 0 ? varianteParts.join(" / ") : "Variante base",
-          sku: item.sku ?? "",
-          categoria: item.categoria_nombre ?? "Sin categoría",
-          stockFisico,
-          stockApartado,
-          stockDisponible,
-          stockMinimo,
-          estado,
-        };
-      });
-
-      setItems(mapped);
-    } catch (err) {
-      console.error(err);
-      setItems([]);
-      setError("No se pudieron cargar las existencias.");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+  // Carga inicial
+  useEffect(() => {
+    void loadInventory({
+      varianteId: varianteIdFromUrl,
+      productoId: productoIdFromUrl,
+      p: 0,
+    });
   }, []);
 
-  // Ref para handleRefresh estable — evita que los modales reciban
-  // nuevas referencias de props en cada render
+  // ── Búsqueda con debounce ─────────────────────────────────────────────────
+
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearchInput(value); // actualiza el input visualmente de inmediato
+
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+
+      debounceRef.current = setTimeout(() => {
+        setSearchQuery(value);
+        setPage(0);
+        void loadInventory({ q: value, p: 0 }); // consulta al servidor con el nuevo término
+      }, 350);
+    },
+    [loadInventory],
+  );
+
+  // ── Paginación ────────────────────────────────────────────────────────────
+
+  const goToPage = useCallback(
+    (p: number) => {
+      setPage(p);
+      void loadInventory({ p });
+    },
+    [loadInventory],
+  );
+
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  // Genera hasta 5 números de página centrados en la actual
+  const pageNumbers = useMemo(() => {
+    const start = Math.max(0, page - 2);
+    const end = Math.min(totalPages, page + 3);
+    return Array.from({ length: end - start }, (_, i) => start + i);
+  }, [page, totalPages]);
+
+  // ── Refresh ───────────────────────────────────────────────────────────────
+
   const loadInventoryRef = useRef(loadInventory);
-  useEffect(() => { loadInventoryRef.current = loadInventory; }, [loadInventory]);
+  useEffect(() => {
+    loadInventoryRef.current = loadInventory;
+  }, [loadInventory]);
 
   const handleRefresh = useCallback(() => {
-    void loadInventoryRef.current(true);
+    void loadInventoryRef.current({ isRefresh: true });
   }, []);
+
+  // ── Modales ───────────────────────────────────────────────────────────────
 
   const handleOpenMovementModal = useCallback((row?: InventoryRow | null) => {
     setSelectedMovementRow(row ?? null);
@@ -129,21 +238,19 @@ const Inventory: React.FC = () => {
     [items, handleOpenMovementModal],
   );
 
-  const handleCloseAlertsModal = useCallback(() => setIsAlertsModalOpen(false), []);
+  const handleCloseAlertsModal = useCallback(
+    () => setIsAlertsModalOpen(false),
+    [],
+  );
 
+  // ── Datos derivados ───────────────────────────────────────────────────────
+
+  // El filtro de estado se aplica solo sobre la página actual (es local)
+  // La búsqueda por texto va siempre al servidor
   const filteredItems = useMemo(() => {
-    return items.filter((item) => {
-      const term = search.trim().toLowerCase();
-      const matchesSearch =
-        !term ||
-        item.producto.toLowerCase().includes(term) ||
-        item.variante.toLowerCase().includes(term) ||
-        item.sku.toLowerCase().includes(term) ||
-        item.categoria.toLowerCase().includes(term);
-      const matchesStatus = statusFilter === "all" || item.estado === statusFilter;
-      return matchesSearch && matchesStatus;
-    });
-  }, [items, search, statusFilter]);
+    if (statusFilter === "all") return items;
+    return items.filter((item) => item.estado === statusFilter);
+  }, [items, statusFilter]);
 
   const alertItems = useMemo(
     () =>
@@ -174,17 +281,25 @@ const Inventory: React.FC = () => {
     [items],
   );
 
+  // Stats sobre TODOS los registros del servidor (total), no solo la página
   const stats = useMemo(() => {
-    const stockFisico     = items.reduce((acc, item) => acc + item.stockFisico, 0);
-    const stockDisponible = items.reduce((acc, item) => acc + item.stockDisponible, 0);
-    const lowStock  = items.filter((item) => item.estado === "bajo").length;
-    const agotados  = items.filter((item) => item.estado === "agotado").length;
-    return { totalVariantes: items.length, stockFisico, stockDisponible, lowStock, agotados };
-  }, [items]);
+    const stockFisico = items.reduce((acc, i) => acc + i.stockFisico, 0);
+    const stockDisponible = items.reduce(
+      (acc, i) => acc + i.stockDisponible,
+      0,
+    );
+    const lowStock = items.filter((i) => i.estado === "bajo").length;
+    const agotados = items.filter((i) => i.estado === "agotado").length;
+    return {
+      totalVariantes: total,
+      stockFisico,
+      stockDisponible,
+      lowStock,
+      agotados,
+    };
+  }, [items, total]);
 
-  useEffect(() => {
-    void loadInventory();
-  }, [loadInventory]);
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <section className={styles.inventory}>
@@ -193,7 +308,8 @@ const Inventory: React.FC = () => {
           <AdminBreadcrumbs items={[{ label: "Inventario" }]} />
           <h1 className={styles.title}>Inventario</h1>
           <p className={styles.subtitle}>
-            Consulta el inventario por variante, disponible, apartado y estado actual.
+            Consulta el inventario por variante, disponible, apartado y estado
+            actual.
           </p>
         </div>
 
@@ -225,7 +341,10 @@ const Inventory: React.FC = () => {
             className={styles.secondaryBtn}
             onClick={handleRefresh}
           >
-            <RefreshCw size={18} className={refreshing ? styles.spinning : ""} />
+            <RefreshCw
+              size={18}
+              className={refreshing ? styles.spinning : ""}
+            />
             Actualizar
           </button>
         </div>
@@ -266,16 +385,22 @@ const Inventory: React.FC = () => {
         <div className={styles.searchBox}>
           <Search size={18} />
           <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={searchInput}
+            onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Buscar por producto, variante, SKU o categoría"
           />
+          {/* Indicador de búsqueda activa */}
+          {loading && searchInput && (
+            <RefreshCw size={15} className={styles.spinning} />
+          )}
         </div>
 
         <select
           className={styles.select}
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as "all" | "ok" | "bajo" | "agotado")}
+          onChange={(e) =>
+            setStatusFilter(e.target.value as typeof statusFilter)
+          }
         >
           <option value="all">Todos los estados</option>
           <option value="ok">En rango</option>
@@ -288,7 +413,11 @@ const Inventory: React.FC = () => {
         {loading ? (
           <div className={styles.centerState}>Cargando existencias...</div>
         ) : filteredItems.length === 0 ? (
-          <div className={styles.centerState}>No hay existencias para mostrar.</div>
+          <div className={styles.centerState}>
+            {searchInput
+              ? `Sin resultados para "${searchInput}"`
+              : "No hay existencias para mostrar."}
+          </div>
         ) : (
           <div className={styles.tableWrapper}>
             <table className={styles.table}>
@@ -357,6 +486,47 @@ const Inventory: React.FC = () => {
             </table>
           </div>
         )}
+
+        {/* ── Paginación ── */}
+        {totalPages > 1 && (
+          <div className={styles.pagination}>
+            <span className={styles.paginationInfo}>
+              {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, total)}{" "}
+              de {total} variantes
+            </span>
+
+            <div className={styles.paginationButtons}>
+              <button
+                type="button"
+                className={styles.pageBtn}
+                disabled={page === 0}
+                onClick={() => goToPage(page - 1)}
+              >
+                ← Anterior
+              </button>
+
+              {pageNumbers.map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  className={`${styles.pageBtn} ${n === page ? styles.pageBtnActive : ""}`}
+                  onClick={() => goToPage(n)}
+                >
+                  {n + 1}
+                </button>
+              ))}
+
+              <button
+                type="button"
+                className={styles.pageBtn}
+                disabled={page >= totalPages - 1}
+                onClick={() => goToPage(page + 1)}
+              >
+                Siguiente →
+              </button>
+            </div>
+          </div>
+        )}
       </section>
 
       <InventoryAlertsModal
@@ -369,7 +539,11 @@ const Inventory: React.FC = () => {
       <InventoryMovementModal
         isOpen={isMovementModalOpen}
         onClose={handleCloseMovementModal}
-        title={selectedMovementRow ? "Registrar movimiento" : "Registrar movimiento global"}
+        title={
+          selectedMovementRow
+            ? "Registrar movimiento"
+            : "Registrar movimiento global"
+        }
         subtitle={
           selectedMovementRow
             ? "Realiza un movimiento rápido sobre la variante seleccionada."

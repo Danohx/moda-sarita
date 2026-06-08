@@ -10,7 +10,7 @@ import {
   Truck,
   BarChart3,
   Menu,
-  Database,
+  // Database,
   Tag,
   DollarSign,
 } from "lucide-react";
@@ -127,10 +127,10 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ role }) => {
               {!collapsed && <span>Ajustes</span>}
             </Link>
 
-            <Link to="/bd-monitor" className={getLinkClass("/bd-monitor")}>
+            {/* <Link to="/bd-monitor" className={getLinkClass("/bd-monitor")}>
               <Database size={20} className={styles.icon} />
               {!collapsed && <span>Monitoreo BD</span>}
-            </Link>
+            </Link> */}
           </>
         )}
       </nav>

@@ -508,6 +508,60 @@
   flex-wrap: wrap;
 }
 
+/* ─── PAGINACIÓN ──────────────────────────────── */
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  border-top: 1px solid var(--color-border);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.paginationInfo {
+  font-size: 0.78rem;
+  color: rgba(92, 75, 87, 0.55);
+  font-weight: 600;
+}
+
+.paginationButtons {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.pageBtn {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.pageBtn:hover:not(:disabled) {
+  border-color: rgba(236, 19, 128, 0.3);
+  background: rgba(236, 19, 128, 0.05);
+}
+
+.pageBtn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.pageBtnActive {
+  background: var(--color-primary-vibrant) !important;
+  color: var(--color-text-on-vibrant) !important;
+  border-color: var(--color-primary-vibrant) !important;
+}
+
 @media (max-width: 900px) {
   .filtersCard {
     grid-template-columns: 1fr;

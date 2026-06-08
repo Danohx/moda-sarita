@@ -19,11 +19,11 @@ import ProductVariantsManager from "../pages/admin/ProductVariantsManager";
 import ProductImagesManager from "../pages/admin/ProductImagesManager";
 import ProductCatalogs from "../pages/admin/ProductCategorias";
 import InventoryMovements from "../pages/admin/InventoryMovements";
-import AdminDatabaseMonitoring from "../pages/bd-monitor/AdminDatabaseMonitoring";
-import AdminBackups from "@admin/pages/admin/AdminBackups";
-import AdminMaintenance from "@admin/pages/admin/AdminMaintenance";
-import AdminMonitoringLogs from "@admin/pages/admin/AdminMonitoringLogs";
-import AdminMaintenanceRunner from "@admin/pages/bd-monitor/AdminMaintenanceRunner";
+// import AdminDatabaseMonitoring from "../pages/bd-monitor/AdminDatabaseMonitoring";
+// import AdminBackups from "@admin/pages/admin/AdminBackups";
+// import AdminMaintenance from "@admin/pages/admin/AdminMaintenance";
+// import AdminMonitoringLogs from "@admin/pages/admin/AdminMonitoringLogs";
+// import AdminMaintenanceRunner from "@admin/pages/bd-monitor/AdminMaintenanceRunner";
 import CorteCaja from "@admin/pages/admin/CorteCaja";
 import HistorialCortes from "@admin/pages/admin/HistorialCortes";
 import CustomerCreditPanel from "@admin/pages/admin/CustomCreditPanel";
@@ -65,11 +65,11 @@ export const AppRouter = () => {
             />
             <Route path="inventory" element={<Inventory />} />
             <Route path="inventory/variants/:id/movements" element={<InventoryMovements />} />
-            <Route path="bd-monitor" element={<AdminDatabaseMonitoring />} />
-            <Route path="backups" element={<AdminBackups />} />
+            {/* <Route path="bd-monitor" element={<AdminDatabaseMonitoring />} /> */}
+            {/* <Route path="backups" element={<AdminBackups />} />
             <Route path="maintenance" element={<AdminMaintenance />} />
             <Route path="maintenance/run" element={<AdminMaintenanceRunner />} />
-            <Route path="monitoring-logs" element={<AdminMonitoringLogs />} />
+            <Route path="monitoring-logs" element={<AdminMonitoringLogs />} /> */}
           </Route>
         </Route>
         {/* <Route path="*" element={<Navigate to="/login" replace />} /> */}
