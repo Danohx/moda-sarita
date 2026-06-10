@@ -361,6 +361,7 @@ export const Dashboard: React.FC = () => {
     return dashboard?.ventasUltimos7Dias ?? [];
   }, [dashboard]);
 
+  const hasSalesData = salesData.some((item) => item.totalIngresos > 0);
   const useCompactChart = salesData.length > 14;
 
   const maxSalesValue = useMemo(() => {
@@ -526,7 +527,7 @@ export const Dashboard: React.FC = () => {
                 <p>{error}</p>
                 <span>Verifica la sesión o el endpoint del dashboard.</span>
               </div>
-            ) : salesData.length > 0 ? (
+            ) : hasSalesData ? (
               useCompactChart ? (
                 <CompactSalesLineChart
                   data={salesData}
@@ -663,7 +664,7 @@ export const Dashboard: React.FC = () => {
               <EmptyRow
                 icon={Check}
                 title="Sin alertas activas"
-                description="No hay apartados vencidos ni productos críticos."
+                description="Todo está en orden: no hay apartados vencidos ni alertas urgentes de inventario."
               />
             )}
           </div>
@@ -719,7 +720,7 @@ export const Dashboard: React.FC = () => {
               <EmptyRow
                 icon={Check}
                 title="Inventario en buen estado"
-                description="No hay productos sin stock, sin imagen o sin categoría."
+                description="No hay productos sin stock, sin imagen, sin categoría o con datos incompletos."
               />
             )}
           </div>
@@ -766,7 +767,7 @@ export const Dashboard: React.FC = () => {
               <EmptyRow
                 icon={TrendingUp}
                 title="Sin productos vendidos"
-                description="Aún no hay ventas confirmadas en este periodo."
+                description="No hay productos vendidos en el periodo seleccionado. Registra una venta desde Punto de Venta."
               />
             )}
           </div>
@@ -806,7 +807,7 @@ export const Dashboard: React.FC = () => {
               <EmptyRow
                 icon={Megaphone}
                 title="Sin actividad reciente"
-                description="No hay eventos operativos para mostrar."
+                description="Cuando se registren ventas, pagos, clientes o movimientos de inventario aparecerán aquí."
               />
             )}
           </div>
