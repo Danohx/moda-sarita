@@ -19,6 +19,7 @@ import { inventarioService } from "@admin/services/inventario.service";
 import InventoryMovementModal from "@admin/components/components/InventoryMovementsModal";
 import InventoryAlertsModal, {
   type AlertItem,
+  type StockAlertItem,
 } from "@admin/components/components/InventoryAlertsModal";
 import AdminBreadcrumbs from "@admin/components/layout/AdminBreadcrumbs";
 import { useSearchParams } from "react-router-dom";
@@ -50,6 +51,57 @@ interface VariantOption {
 
 const PAGE_SIZE = 50;
 
+function buildAlertItems(
+    data: Awaited<ReturnType<typeof inventarioService.getAlertas>>,
+  ): AlertItem[] {
+    const bajoStock: AlertItem[] = data.bajo_stock.map((item) => {
+      const stockDisponible = Number(item.stock_disponible ?? 0);
+      const stockMinimo = Number(item.stock_minimo ?? 0);
+
+      return {
+        id: `bajo-stock-${item.variante_id}`,
+        type: "bajo_stock",
+        varianteId: String(item.variante_id),
+        productoId: String(item.producto_id),
+        title: [
+          item.producto_nombre,
+          item.talla_nombre ? `Talla ${item.talla_nombre}` : null,
+          item.color_nombre ? `Color ${item.color_nombre}` : null,
+        ]
+          .filter(Boolean)
+          .join(" • "),
+        nombre: item.producto_nombre,
+        message: `${item.producto_nombre} tiene ${stockDisponible} disponibles. Mínimo configurado: ${stockMinimo}.`,
+        stockDisponible,
+        stockMinimo,
+        estado: stockDisponible <= 0 ? "agotado" : "bajo",
+        href: `/inventory/variants/${item.variante_id}/movements`,
+      };
+    });
+
+    const sinImagen: AlertItem[] = data.productos_sin_imagen.map((item) => ({
+      id: `sin-imagen-${item.producto_id}`,
+      type: "sin_imagen",
+      productoId: String(item.producto_id),
+      title: item.nombre,
+      message: "Este producto no tiene imagen principal asignada.",
+      href: `/products/${item.producto_id}/images`,
+    }));
+
+    const sinCategoria: AlertItem[] = data.productos_sin_categoria.map(
+      (item) => ({
+        id: `sin-categoria-${item.producto_id}`,
+        type: "sin_categoria",
+        productoId: String(item.producto_id),
+        title: item.nombre,
+        message: "Este producto no tiene categoría asignada.",
+        href: `/products/${item.producto_id}/edit`,
+      }),
+    );
+
+    return [...bajoStock, ...sinImagen, ...sinCategoria];
+  }
+
 const Inventory: React.FC = () => {
   const [items, setItems] = useState<InventoryRow[]>([]);
   const [total, setTotal] = useState(0);
@@ -58,9 +110,11 @@ const Inventory: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [, setError] = useState<string | null>(null);
 
-  // Dos estados para búsqueda: lo que ve el input (inmediato) y lo que va al servidor (debounced)
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+
+  const [alerts, setAlerts] = useState<AlertItem[]>([]);
+  const [alertsCount, setAlertsCount] = useState(0);
 
   const [statusFilter, setStatusFilter] = useState<
     "all" | "ok" | "bajo" | "agotado"
@@ -78,6 +132,20 @@ const Inventory: React.FC = () => {
   const productoIdFromUrl = searchParams.get("productoId") ?? undefined;
 
   // ── Carga principal ───────────────────────────────────────────────────────
+
+  const loadAlerts = useCallback(async () => {
+    try {
+      const data = await inventarioService.getAlertas(20);
+      const items = buildAlertItems(data);
+
+      setAlerts(items);
+      setAlertsCount(data.resumen.total);
+    } catch (err) {
+      console.error("Error cargando alertas de inventario:", err);
+      setAlerts([]);
+      setAlertsCount(0);
+    }
+  }, []);
 
   const loadInventory = useCallback(
     async (
@@ -167,7 +235,8 @@ const Inventory: React.FC = () => {
       productoId: productoIdFromUrl,
       p: 0,
     });
-  }, []);
+    void loadAlerts();
+  }, [loadInventory, productoIdFromUrl, varianteIdFromUrl, loadAlerts]);
 
   // ── Búsqueda con debounce ─────────────────────────────────────────────────
 
@@ -198,7 +267,6 @@ const Inventory: React.FC = () => {
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
-  // Genera hasta 5 números de página centrados en la actual
   const pageNumbers = useMemo(() => {
     const start = Math.max(0, page - 2);
     const end = Math.min(totalPages, page + 3);
@@ -214,7 +282,8 @@ const Inventory: React.FC = () => {
 
   const handleRefresh = useCallback(() => {
     void loadInventoryRef.current({ isRefresh: true });
-  }, []);
+    void loadAlerts()
+  }, [loadAlerts]);
 
   // ── Modales ───────────────────────────────────────────────────────────────
 
@@ -230,7 +299,7 @@ const Inventory: React.FC = () => {
   }, [handleRefresh]);
 
   const handleRegisterFromAlert = useCallback(
-    (alertItem: AlertItem) => {
+    (alertItem: StockAlertItem) => {
       const row = items.find((i) => i.id === alertItem.id) ?? null;
       setIsAlertsModalOpen(false);
       handleOpenMovementModal(row);
@@ -251,20 +320,6 @@ const Inventory: React.FC = () => {
     if (statusFilter === "all") return items;
     return items.filter((item) => item.estado === statusFilter);
   }, [items, statusFilter]);
-
-  const alertItems = useMemo(
-    () =>
-      items
-        .filter((i) => i.estado === "bajo" || i.estado === "agotado")
-        .map((i) => ({
-          id: i.id,
-          nombre: `${i.producto} / ${i.variante}`,
-          stockDisponible: i.stockDisponible,
-          stockMinimo: i.stockMinimo,
-          estado: i.estado as "bajo" | "agotado",
-        })),
-    [items],
-  );
 
   const variantOptions = useMemo<VariantOption[]>(
     () =>
@@ -318,13 +373,12 @@ const Inventory: React.FC = () => {
             type="button"
             className={styles.alertsBtn}
             onClick={() => setIsAlertsModalOpen(true)}
-            disabled={alertItems.length === 0}
           >
             <AlertTriangle size={18} />
             Alertas
-            {alertItems.length > 0 && (
-              <span className={styles.alertsBadge}>{alertItems.length}</span>
-            )}
+            {alertsCount > 0 ? (
+              <span className={styles.alertBadge}>{alertsCount}</span>
+            ) : null}
           </button>
 
           <button
@@ -531,7 +585,7 @@ const Inventory: React.FC = () => {
 
       <InventoryAlertsModal
         open={isAlertsModalOpen}
-        alerts={alertItems}
+        alerts={alerts}
         onClose={handleCloseAlertsModal}
         onRegisterMovement={handleRegisterFromAlert}
       />

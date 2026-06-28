@@ -7,7 +7,7 @@ import Inventory from "../pages/admin/Inventory";
 import OrdersManager from "../pages/admin/OrdersManager";
 import AdminUsers from "../pages/admin/AdminUsers";
 import AdminSettings from "../pages/admin/AdminSettings";
-import { AdminReports } from "../pages/admin/AdminReports";
+import AdminReports  from "../pages/admin/AdminReports";
 import AdminMarketing from "../pages/admin/AdminMarketing";
 import AdminCustomers from "../pages/admin/AdminCustomers";
 import AdminRoute from "../guards/AdminRoute";
@@ -27,6 +27,7 @@ import InventoryMovements from "../pages/admin/InventoryMovements";
 import CorteCaja from "@admin/pages/admin/CorteCaja";
 import HistorialCortes from "@admin/pages/admin/HistorialCortes";
 import CustomerCreditPanel from "@admin/pages/admin/CustomCreditPanel";
+import HistorialVentasPOS from "@admin/pages/admin/HistorialVentas";
 
 export const AppRouter = () => {
   return (
@@ -40,6 +41,7 @@ export const AppRouter = () => {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="pos" element={<POS />} />
+            <Route path="historial-ventas" element={<HistorialVentasPOS />} />
             <Route path="corte" element={<CorteCaja />} />
             <Route path="orders" element={<OrdersManager />} />
             <Route path="corte/history/" element={<HistorialCortes />} />

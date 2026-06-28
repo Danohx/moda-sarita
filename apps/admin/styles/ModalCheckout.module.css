@@ -26,10 +26,23 @@
   will-change: transform;
 }
 
-@keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes overlayIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
 @keyframes modalIn {
-  from { opacity: 0; transform: scale(0.94) translateY(12px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 /* ── Header ── */
@@ -106,8 +119,13 @@
   gap: 18px;
 }
 
-.body::-webkit-scrollbar { width: 4px; }
-.body::-webkit-scrollbar-thumb { background: var(--color-primary); border-radius: 10px; }
+.body::-webkit-scrollbar {
+  width: 4px;
+}
+.body::-webkit-scrollbar-thumb {
+  background: var(--color-primary);
+  border-radius: 10px;
+}
 
 /* Resumen de items */
 .resumenItems {
@@ -134,8 +152,13 @@
   text-overflow: ellipsis;
 }
 
-.resumenVariante { opacity: 0.55; }
-.resumenCantidad { font-weight: 700; opacity: 0.5; }
+.resumenVariante {
+  opacity: 0.55;
+}
+.resumenCantidad {
+  font-weight: 700;
+  opacity: 0.5;
+}
 
 .resumenPrecio {
   font-size: 0.8rem;
@@ -207,7 +230,8 @@
   transition: all 0.15s ease;
 }
 
-.metodoBtn:hover, .metodoBtn.metodoActivo {
+.metodoBtn:hover,
+.metodoBtn.metodoActivo {
   border-color: var(--color-primary-vibrant);
   background: var(--color-primary-soft);
 }
@@ -371,4 +395,22 @@
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+}
+
+.errorText {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-danger);
+  margin: 0;
+}
+
+.creditInfo {
+  font-size: 0.82rem;
+  color: var(--color-text);
+  opacity: 0.7;
+  margin: 0;
+  padding: 10px 14px;
+  background: var(--color-primary-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-medium);
 }

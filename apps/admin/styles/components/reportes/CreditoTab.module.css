@@ -1,0 +1,298 @@
+.creditoTab {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px;
+}
+
+.metricCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-large);
+  padding: 18px;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.metricCard:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(236, 19, 128, 0.16);
+}
+
+.metricLabel {
+  margin: 0;
+  color: var(--color-text);
+  opacity: 0.55;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.metricValue {
+  display: block;
+  margin-top: 9px;
+  color: var(--color-text);
+  font-size: clamp(1.2rem, 2vw, 1.55rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+}
+
+.metricHelper {
+  display: block;
+  margin-top: 8px;
+  color: var(--color-text);
+  opacity: 0.45;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-large);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.cardHeader {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-soft);
+}
+
+.cardTitle {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 1.02rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.cardSubtitle {
+  margin: 4px 0 0;
+  color: var(--color-text);
+  opacity: 0.55;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.cardBody {
+  padding: 20px;
+}
+
+.tableWrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 920px;
+}
+
+.table th {
+  text-align: left;
+  padding: 12px 14px;
+  color: var(--color-text);
+  opacity: 0.5;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 14px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.table tbody tr {
+  transition: background 0.15s ease;
+}
+
+.table tbody tr:hover {
+  background: var(--color-primary-bg);
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.clientCell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 280px;
+}
+
+.avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--gradient-primary-soft);
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary-vibrant);
+  display: grid;
+  place-items: center;
+  font-size: 0.8rem;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
+.clientName {
+  color: var(--color-text);
+  font-weight: 900;
+}
+
+.clientMeta {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-text);
+  opacity: 0.5;
+  font-size: 0.75rem;
+}
+
+.tableStrong {
+  color: var(--color-text);
+  font-weight: 900;
+}
+
+.debtText {
+  color: var(--color-danger);
+  font-weight: 900;
+}
+
+.availableText {
+  color: var(--color-success);
+  font-weight: 900;
+}
+
+.progressCell {
+  min-width: 180px;
+}
+
+.progressTrack {
+  width: 100%;
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-primary-bg);
+  border: 1px solid var(--color-border);
+}
+
+.progressBar {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--gradient-primary);
+}
+
+.progressMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 6px;
+  color: var(--color-text);
+  opacity: 0.55;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.badgeDanger {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.badgeWarning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.badgeOk {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.summaryStrip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.summaryItem {
+  padding: 14px;
+  border-radius: var(--border-radius-medium);
+  border: 1px solid var(--color-border);
+  background: var(--color-background);
+  transition: border-color 0.2s ease;
+}
+
+.summaryItem:hover {
+  border-color: rgba(236, 19, 128, 0.2);
+}
+
+.summaryLabel {
+  margin: 0;
+  color: var(--color-text);
+  opacity: 0.55;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.summaryValue {
+  display: block;
+  margin-top: 7px;
+  color: var(--color-text);
+  font-size: 1.15rem;
+  font-weight: 900;
+}
+
+.emptyState {
+  padding: 30px 26px;
+  text-align: center;
+  color: var(--color-text);
+  opacity: 0.55;
+  font-weight: 700;
+  background: var(--color-primary-bg);
+  border-radius: var(--border-radius-medium);
+  border: 1px dashed var(--color-border);
+}
+
+.loadingState {
+  padding: 26px;
+  color: var(--color-text);
+  opacity: 0.65;
+  font-weight: 700;
+}
+
+@media (max-width: 720px) {
+  .metricsGrid {
+    grid-template-columns: 1fr;
+  }
+}

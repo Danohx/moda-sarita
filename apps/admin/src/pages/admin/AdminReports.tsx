@@ -1,397 +1,492 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { reportesApi } from "@shared/api/reportes.api";
+import ReporteMetricCard from "@admin/components/components/reportes/ReporteMetricCard";
 import {
-  TrendingUp,
-  DollarSign,
-  Users,
-  Package,
-  Calendar,
-  Download,
-  FileText,
-  BarChart3,
-  PieChart,
-  ShoppingBag,
-  CreditCard,
-} from "lucide-react";
-import type { LucideProps } from "lucide-react";
+  addDaysYmd,
+  formatMoney,
+  formatNumber,
+  todayYmd,
+} from "@admin/utils/reportesFormat";
+import type {
+  ReporteFiltros,
+  ReporteGroupBy,
+  ReporteResumenGeneral,
+  ReporteTabData,
+  ReporteExportable,
+} from "@admin/types/reportes.types";
+import VentasTab from "@admin/components/components/reportes/VentasTab";
+import ProductosTab from "@admin/components/components/reportes/ProductosTab";
+import InventarioTab from "@admin/components/components/reportes/InventarioTab";
+import ClientesTab from "@admin/components/components/reportes/ClientesTab";
+import CreditoTab from "@admin/components/components/reportes/CreditoTab";
+import ApartadosTab from "@admin/components/components/reportes/ApartadosTab";
+import FinancieroTab from "@admin/components/components/reportes/FinancieroTab";
+import CortesTab from "@admin/components/components/reportes/CortesTab";
+import type {
+  VentasTabData,
+  ProductosTabData,
+  InventarioTabData,
+  ClientesTabData,
+  CreditoTabData,
+  ApartadosTabData,
+  FinancieroTabData,
+  CortesTabData,
+} from "@admin/types/reportes.types";
 import styles from "../../../styles/AdminReports.module.css";
 
-type ReportType = "ventas" | "inventario" | "clientes" | "financiero";
-type Period = "hoy" | "semana" | "mes" | "año";
+type ActiveTab =
+  | "ventas"
+  | "productos"
+  | "inventario"
+  | "clientes"
+  | "credito"
+  | "apartados"
+  | "financiero"
+  | "cortes";
 
-interface SummaryCard {
-  label: string;
-  value: string;
-  change: number;
-  icon: React.ComponentType<LucideProps>;
+type PeriodPreset = "7d" | "30d" | "month" | "custom";
+
+const TABS: { id: ActiveTab; label: string }[] = [
+  { id: "ventas", label: "Ventas" },
+  { id: "productos", label: "Productos" },
+  { id: "inventario", label: "Inventario" },
+  { id: "clientes", label: "Clientes" },
+  { id: "credito", label: "Crédito" },
+  { id: "apartados", label: "Apartados" },
+  { id: "financiero", label: "Financiero" },
+  { id: "cortes", label: "Cortes" },
+];
+
+const PERIODS: { id: PeriodPreset; label: string }[] = [
+  { id: "7d", label: "7 días" },
+  { id: "30d", label: "30 días" },
+  { id: "month", label: "Mes actual" },
+  { id: "custom", label: "Personalizado" },
+];
+
+function parseGroupBy(value: string): ReporteGroupBy {
+  if (value === "week") return "week";
+  if (value === "month") return "month";
+  return "day";
 }
 
-interface TopProduct {
-  id: string;
-  nombre: string;
-  ventas: number;
-  ingresos: number;
+function firstDayOfMonthYmd() {
+  const date = new Date();
+  date.setDate(1);
+  return date.toISOString().slice(0, 10);
 }
 
-interface TopCustomer {
-  id: string;
-  nombre: string;
-  compras: number;
-  total: number;
+function applyPeriodPreset(
+  preset: PeriodPreset,
+  setFrom: (value: string) => void,
+  setTo: (value: string) => void,
+) {
+  if (preset === "7d") {
+    setFrom(addDaysYmd(-7));
+    setTo(todayYmd());
+    return;
+  }
+
+  if (preset === "30d") {
+    setFrom(addDaysYmd(-30));
+    setTo(todayYmd());
+    return;
+  }
+
+  if (preset === "month") {
+    setFrom(firstDayOfMonthYmd());
+    setTo(todayYmd());
+  }
 }
 
-type ReportsData = {
-  summaryCards: SummaryCard[];
-  topProducts: TopProduct[];
-  topCustomers: TopCustomer[];
-};
+async function getTabData(
+  activeTab: ActiveTab,
+  filters: ReporteFiltros,
+): Promise<ReporteTabData> {
+  if (activeTab === "ventas") return reportesApi.getVentasTab(filters);
+  if (activeTab === "productos") return reportesApi.getProductosTab(filters);
+  if (activeTab === "inventario") return reportesApi.getInventarioTab(filters);
+  if (activeTab === "clientes") return reportesApi.getClientesTab(filters);
+  if (activeTab === "credito") return reportesApi.getCreditoTab(filters);
+  if (activeTab === "apartados") return reportesApi.getApartadosTab(filters);
+  if (activeTab === "financiero") return reportesApi.getFinancieroTab(filters);
 
-/**
- * Placeholder API
- * Reemplazar luego por endpoints de reportes reales.
- */
-async function fetchReportsData(
-  _reportType: ReportType,
-  _period: Period,
-  signal?: AbortSignal
-): Promise<ReportsData> {
-  void signal;
-
-  return {
-    summaryCards: [],
-    topProducts: [],
-    topCustomers: [],
-  };
+  return reportesApi.getCortesTab(filters);
 }
 
-export const AdminReports: React.FC = () => {
-  const [reportType, setReportType] = useState<ReportType>("ventas");
-  const [period, setPeriod] = useState<Period>("mes");
-  const [loading, setLoading] = useState(true);
+function isVentasTabData(data: ReporteTabData | null): data is VentasTabData {
+  return (
+    data !== null &&
+    "resumen" in data &&
+    "tendencia" in data &&
+    "metodosPago" in data &&
+    "empleados" in data
+  );
+}
 
-  const [summaryCards, setSummaryCards] = useState<SummaryCard[]>([]);
-  const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
-  const [topCustomers, setTopCustomers] = useState<TopCustomer[]>([]);
+function isProductosTabData(
+  data: ReporteTabData | null,
+): data is ProductosTabData {
+  return (
+    data !== null &&
+    "masVendidos" in data &&
+    "menosVendidos" in data &&
+    "sinVentas" in data
+  );
+}
 
-  const load = useCallback(async () => {
-    const controller = new AbortController();
+function isInventarioTabData(
+  data: ReporteTabData | null,
+): data is InventarioTabData {
+  return (
+    data !== null &&
+    "resumen" in data &&
+    "critico" in data &&
+    "movimientos" in data
+  );
+}
 
+function isClientesTabData(
+  data: ReporteTabData | null,
+): data is ClientesTabData {
+  return (
+    data !== null &&
+    "resumen" in data &&
+    "tendencia" in data &&
+    "frecuentes" in data
+  );
+}
+
+function isCreditoTabData(data: ReporteTabData | null): data is CreditoTabData {
+  return data !== null && "resumen" in data && "cuentasCobrar" in data;
+}
+
+function isApartadosTabData(
+  data: ReporteTabData | null,
+): data is ApartadosTabData {
+  return data !== null && "resumen" in data && "detalle" in data;
+}
+
+function isFinancieroTabData(
+  data: ReporteTabData | null,
+): data is FinancieroTabData {
+  return data !== null && "resumen" in data && "metodosPago" in data;
+}
+
+function isCortesTabData(data: ReporteTabData | null): data is CortesTabData {
+  return data !== null && "resumen" in data && "detalle" in data;
+}
+
+function getReporteExportable(tab: ActiveTab): ReporteExportable {
+  return tab;
+}
+
+export default function AdminReportes() {
+  const [activeTab, setActiveTab] = useState<ActiveTab>("ventas");
+  const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("30d");
+  const [from, setFrom] = useState(addDaysYmd(-30));
+  const [to, setTo] = useState(todayYmd());
+  const [groupBy, setGroupBy] = useState<ReporteGroupBy>("day");
+
+  const [loading, setLoading] = useState(false);
+  const [resumen, setResumen] = useState<ReporteResumenGeneral | null>(null);
+  const [tabData, setTabData] = useState<ReporteTabData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const [exporting, setExporting] = useState<"pdf" | "excel" | null>(null);
+
+  const filters = useMemo<ReporteFiltros>(
+    () => ({
+      from,
+      to,
+      groupBy,
+      limit: 20,
+      offset: 0,
+    }),
+    [from, to, groupBy],
+  );
+
+  async function loadAll() {
     try {
       setLoading(true);
-      const data = await fetchReportsData(reportType, period, controller.signal);
-      setSummaryCards(data.summaryCards ?? []);
-      setTopProducts(data.topProducts ?? []);
-      setTopCustomers(data.topCustomers ?? []);
-    } catch {
-      setSummaryCards([]);
-      setTopProducts([]);
-      setTopCustomers([]);
+      setError(null);
+
+      const [resumenResponse, tabResponse] = await Promise.all([
+        reportesApi.getResumen(filters),
+        getTabData(activeTab, filters),
+      ]);
+
+      setResumen(resumenResponse);
+      setTabData(tabResponse);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error cargando reportes");
     } finally {
       setLoading(false);
     }
+  }
 
-    return () => controller.abort();
-  }, [reportType, period]);
+  function handlePeriodChange(preset: PeriodPreset) {
+    setPeriodPreset(preset);
+
+    if (preset !== "custom") {
+      applyPeriodPreset(preset, setFrom, setTo);
+    }
+  }
+
+  async function handleExportPdf() {
+    try {
+      setExporting("pdf");
+      await reportesApi.exportPdf(getReporteExportable(activeTab), filters);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error exportando PDF");
+    } finally {
+      setExporting(null);
+    }
+  }
+
+  async function handleExportExcel() {
+    try {
+      setExporting("excel");
+      await reportesApi.exportExcel(getReporteExportable(activeTab), filters);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error exportando Excel");
+    } finally {
+      setExporting(null);
+    }
+  }
 
   useEffect(() => {
-    void load();
-  }, [load]);
-
-  const formatMoneda = (valor: number) => {
-    return new Intl.NumberFormat("es-MX", {
-      style: "currency",
-      currency: "MXN",
-    }).format(valor);
-  };
-
-  const exportarPDF = () => {
-    // TODO: conectar exportación real
-  };
-
-  const exportarExcel = () => {
-    // TODO: conectar exportación real
-  };
-
-  const reportTypes = useMemo(
-    () => [
-      { value: "ventas", label: "Ventas", icon: TrendingUp },
-      { value: "inventario", label: "Inventario", icon: Package },
-      { value: "clientes", label: "Clientes", icon: Users },
-      { value: "financiero", label: "Financiero", icon: DollarSign },
-    ],
-    []
-  );
-
-  const periods = useMemo(
-    () => [
-      { value: "hoy", label: "Hoy" },
-      { value: "semana", label: "Esta Semana" },
-      { value: "mes", label: "Este Mes" },
-      { value: "año", label: "Este Año" },
-    ],
-    []
-  );
+    void loadAll();
+  }, [activeTab, filters]);
 
   return (
-    <div className={styles.reports}>
-      <div className={styles.header}>
+    <main className={styles.reports}>
+      <header className={styles.header}>
         <div>
-          <h1 className={styles.title}>Reportes y Análisis</h1>
-          <p className={styles.subtitle}>Análisis detallado del desempeño de tu negocio</p>
-        </div>
-      </div>
-
-      <div className={styles.reportTypeSection}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>
-            <BarChart3 size={20} />
-            Tipo de Reporte
-          </h2>
+          <h1 className={styles.title}>Reportes</h1>
+          <p className={styles.subtitle}>
+            Consulta el rendimiento de ventas, inventario, clientes y operación.
+          </p>
         </div>
 
-        <div className={styles.reportTypes}>
-          {reportTypes.map((type) => (
-            <button
-              key={type.value}
-              className={`${styles.reportTypeBtn} ${
-                reportType === type.value ? styles.reportTypeActive : ""
-              }`}
-              onClick={() => setReportType(type.value as ReportType)}
-              type="button"
-            >
-              <div className={styles.reportTypeIcon}>
-                <type.icon size={24} />
-              </div>
-              <span className={styles.reportTypeLabel}>{type.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
+        <button
+          type="button"
+          onClick={() => void loadAll()}
+          disabled={loading}
+          className={styles.primaryAction}
+        >
+          {loading ? "Cargando..." : "Actualizar"}
+        </button>
+      </header>
 
-      <div className={styles.filtersCard}>
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel}>
-            <Calendar size={18} />
-            Período
+      <section className={styles.filtersCard}>
+        <div className={styles.filterControls}>
+          <div className={styles.filterField}>
+            <span className={styles.filterLabel}>Periodo</span>
+
+            <div className={styles.periodButtons}>
+              {PERIODS.map((period) => (
+                <button
+                  key={period.id}
+                  type="button"
+                  onClick={() => handlePeriodChange(period.id)}
+                  className={`${styles.periodBtn} ${
+                    periodPreset === period.id ? styles.periodActive : ""
+                  }`}
+                >
+                  {period.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <label className={styles.filterField}>
+            <span className={styles.filterLabel}>Desde</span>
+            <input
+              className={styles.input}
+              type="date"
+              value={from}
+              onChange={(event) => {
+                setFrom(event.target.value);
+                setPeriodPreset("custom");
+              }}
+            />
           </label>
 
-          <div className={styles.periodButtons}>
-            {periods.map((p) => (
-              <button
-                key={p.value}
-                className={`${styles.periodBtn} ${
-                  period === p.value ? styles.periodActive : ""
-                }`}
-                onClick={() => setPeriod(p.value as Period)}
-                type="button"
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
+          <label className={styles.filterField}>
+            <span className={styles.filterLabel}>Hasta</span>
+            <input
+              className={styles.input}
+              type="date"
+              value={to}
+              onChange={(event) => {
+                setTo(event.target.value);
+                setPeriodPreset("custom");
+              }}
+            />
+          </label>
+
+          <label className={styles.filterField}>
+            <span className={styles.filterLabel}>Agrupar</span>
+            <select
+              className={styles.select}
+              value={groupBy}
+              onChange={(event) => setGroupBy(parseGroupBy(event.target.value))}
+            >
+              <option value="day">Día</option>
+              <option value="week">Semana</option>
+              <option value="month">Mes</option>
+            </select>
+          </label>
         </div>
 
         <div className={styles.exportButtons}>
-          <button className={styles.exportBtn} onClick={exportarPDF} type="button">
-            <FileText size={18} />
-            Exportar PDF
+          <button
+            type="button"
+            className={styles.exportBtn}
+            onClick={() => void handleExportPdf()}
+            disabled={exporting !== null}
+          >
+            {exporting === "pdf" ? "Generando PDF..." : "PDF"}
           </button>
-          <button className={styles.exportBtn} onClick={exportarExcel} type="button">
-            <Download size={18} />
-            Exportar Excel
+
+          <button
+            type="button"
+            className={styles.exportBtn}
+            onClick={() => void handleExportExcel()}
+            disabled={exporting !== null}
+          >
+            {exporting === "excel" ? "Generando Excel..." : "Excel"}
           </button>
         </div>
-      </div>
+      </section>
 
-      <div className={styles.summaryGrid}>
-        {loading ? (
-          Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className={styles.summaryCard}>
-              <div className={styles.skeleton}></div>
-              <div className={styles.skeleton}></div>
-              <div className={styles.skeleton}></div>
-            </div>
-          ))
-        ) : summaryCards.length > 0 ? (
-          summaryCards.map((card, i) => (
-            <div key={i} className={styles.summaryCard}>
-              <div className={styles.summaryIcon}>
-                <card.icon size={24} />
-              </div>
-              <div className={styles.summaryContent}>
-                <p className={styles.summaryLabel}>{card.label}</p>
-                <h3 className={styles.summaryValue}>{card.value}</h3>
-                <div
-                  className={`${styles.summaryChange} ${
-                    card.change >= 0 ? styles.changePositive : styles.changeNegative
-                  }`}
-                >
-                  <TrendingUp size={16} />
-                  <span>{Math.abs(card.change)}%</span>
-                </div>
-              </div>
-            </div>
-          ))
-        ) : (
-          [
-            { label: "Ventas Totales", icon: DollarSign },
-            { label: "Transacciones", icon: ShoppingBag },
-            { label: "Ticket Promedio", icon: CreditCard },
-            { label: "Productos Vendidos", icon: Package },
-          ].map((item, i) => (
-            <div key={i} className={styles.summaryCard}>
-              <div className={styles.summaryIcon}>
-                <item.icon size={24} />
-              </div>
-              <div className={styles.summaryContent}>
-                <p className={styles.summaryLabel}>{item.label}</p>
-                <h3 className={styles.summaryValue}>—</h3>
-                <div className={styles.summaryChange}>
-                  <span>Pendiente de API</span>
-                </div>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
+      {error ? <section className={styles.errorBox}>{error}</section> : null}
 
-      <div className={styles.chartCard}>
-        <div className={styles.chartHeader}>
-          <h2 className={styles.chartTitle}>
-            <PieChart size={20} />
-            Tendencia de Ventas
+      <section className={styles.summaryGrid}>
+        <ReporteMetricCard
+          title="Ventas totales"
+          value={formatMoney(resumen?.ventas_totales)}
+          helper="Total vendido en el periodo"
+          icon="VT"
+        />
+
+        <ReporteMetricCard
+          title="Ingresos confirmados"
+          value={formatMoney(resumen?.ingresos_confirmados)}
+          helper="Pagos confirmados"
+          icon="IC"
+        />
+
+        <ReporteMetricCard
+          title="Ticket promedio"
+          value={formatMoney(resumen?.ticket_promedio)}
+          helper="Promedio por venta"
+          icon="TP"
+        />
+
+        <ReporteMetricCard
+          title="Productos vendidos"
+          value={formatNumber(resumen?.productos_vendidos)}
+          helper="Unidades vendidas"
+          icon="PV"
+        />
+
+        <ReporteMetricCard
+          title="Bajo stock"
+          value={formatNumber(resumen?.productos_bajo_stock)}
+          helper="Productos/variantes críticas"
+          icon="BS"
+        />
+
+        <ReporteMetricCard
+          title="Cuentas por cobrar"
+          value={formatMoney(resumen?.saldo_deudor_total)}
+          helper="Saldo pendiente de clientes"
+          icon="CC"
+        />
+      </section>
+
+      <nav className={styles.tabs}>
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTab(tab.id)}
+            className={`${styles.tabButton} ${
+              activeTab === tab.id ? styles.tabActive : ""
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </nav>
+
+      <section className={styles.contentCard}>
+        <header className={styles.contentHeader}>
+          <h2 className={styles.contentTitle}>
+            {TABS.find((tab) => tab.id === activeTab)?.label}
           </h2>
-          <div className={styles.chartLegend}>
-            <div className={styles.legendItem}>
-              <span className={styles.legendDot}></span>
-              <span>Ventas</span>
-            </div>
-          </div>
+        </header>
+
+        <div className={styles.contentBody}>
+          {activeTab === "ventas" ? (
+            <VentasTab
+              data={isVentasTabData(tabData) ? tabData : null}
+              loading={loading}
+            />
+          ) : null}
+
+          {activeTab === "productos" ? (
+            <ProductosTab
+              data={isProductosTabData(tabData) ? tabData : null}
+              loading={loading}
+            />
+          ) : null}
+
+          {activeTab === "inventario" ? (
+            <InventarioTab
+              data={isInventarioTabData(tabData) ? tabData : null}
+              loading={loading}
+            />
+          ) : null}
+
+          {activeTab === "clientes" ? (
+            <ClientesTab
+              data={isClientesTabData(tabData) ? tabData : null}
+              loading={loading}
+            />
+          ) : null}
+
+          {activeTab === "credito" ? (
+            <CreditoTab
+              data={isCreditoTabData(tabData) ? tabData : null}
+              loading={loading}
+            />
+          ) : null}
+
+          {activeTab === "apartados" ? (
+            <ApartadosTab
+              data={isApartadosTabData(tabData) ? tabData : null}
+              loading={loading}
+            />
+          ) : null}
+
+          {activeTab === "financiero" ? (
+            <FinancieroTab
+              data={isFinancieroTabData(tabData) ? tabData : null}
+              loading={loading}
+            />
+          ) : null}
+
+          {activeTab === "cortes" ? (
+            <CortesTab
+              data={isCortesTabData(tabData) ? tabData : null}
+              loading={loading}
+            />
+          ) : null}
         </div>
-
-        {loading ? (
-          <div className={styles.chartSkeleton}></div>
-        ) : (
-          <div className={styles.chartPlaceholder}>
-            <BarChart3 size={64} />
-            <p>Gráfico pendiente de datos reales</p>
-            <span className={styles.chartHint}>
-              Conecta el backend para visualizar información del reporte.
-            </span>
-          </div>
-        )}
-      </div>
-
-      <div className={styles.tablesGrid}>
-        <div className={styles.tableCard}>
-          <div className={styles.tableHeader}>
-            <h3 className={styles.tableTitle}>
-              <Package size={20} />
-              Productos Más Vendidos
-            </h3>
-          </div>
-
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Producto</th>
-                  <th>Ventas</th>
-                  <th>Ingresos</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {loading ? (
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <tr key={i}>
-                      <td><div className={styles.skeletonSmall}></div></td>
-                      <td><div className={styles.skeleton}></div></td>
-                      <td><div className={styles.skeletonSmall}></div></td>
-                      <td><div className={styles.skeleton}></div></td>
-                    </tr>
-                  ))
-                ) : topProducts.length > 0 ? (
-                  topProducts.map((product, index) => (
-                    <tr key={product.id}>
-                      <td className={styles.rankCell}>
-                        <div className={`${styles.rankBadge} ${index < 3 ? styles.rankTop : ""}`}>
-                          {index + 1}
-                        </div>
-                      </td>
-                      <td className={styles.productCell}>{product.nombre}</td>
-                      <td className={styles.numberCell}>{product.ventas}</td>
-                      <td className={styles.moneyCell}>{formatMoneda(product.ingresos)}</td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={4} className={styles.productCell}>
-                      Sin datos de productos (pendiente de API).
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className={styles.tableCard}>
-          <div className={styles.tableHeader}>
-            <h3 className={styles.tableTitle}>
-              <Users size={20} />
-              Mejores Clientes
-            </h3>
-          </div>
-
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Cliente</th>
-                  <th>Compras</th>
-                  <th>Total</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {loading ? (
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <tr key={i}>
-                      <td><div className={styles.skeletonSmall}></div></td>
-                      <td><div className={styles.skeleton}></div></td>
-                      <td><div className={styles.skeletonSmall}></div></td>
-                      <td><div className={styles.skeleton}></div></td>
-                    </tr>
-                  ))
-                ) : topCustomers.length > 0 ? (
-                  topCustomers.map((customer, index) => (
-                    <tr key={customer.id}>
-                      <td className={styles.rankCell}>
-                        <div className={`${styles.rankBadge} ${index < 3 ? styles.rankTop : ""}`}>
-                          {index + 1}
-                        </div>
-                      </td>
-                      <td className={styles.productCell}>{customer.nombre}</td>
-                      <td className={styles.numberCell}>{customer.compras}</td>
-                      <td className={styles.moneyCell}>{formatMoneda(customer.total)}</td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={4} className={styles.productCell}>
-                      Sin datos de clientes (pendiente de API).
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
-};
-
-export default AdminReports;
+}

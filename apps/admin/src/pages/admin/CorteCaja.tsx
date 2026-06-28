@@ -23,9 +23,31 @@ const fmt = (v: number) =>
   new Intl.NumberFormat("es-MX", {
     style: "currency",
     currency: "MXN",
-  }).format(v);
+  }).format(Number(v || 0));
+
+const toNumber = (value: number | string | null | undefined) => {
+  const n = Number(value ?? 0);
+  return Number.isFinite(n) ? n : 0;
+};
 
 type EstadoCorte = "sin_corte" | "abierto" | "cerrado";
+
+interface CorteMetodoDesglose {
+  codigo: string;
+  nombre: string;
+  total: number | string;
+  operaciones?: number | string;
+  afecta_caja: boolean;
+  permite_cambio?: boolean;
+  es_credito?: boolean;
+  activo_pos?: boolean;
+}
+
+interface CorteTotalesMetodos {
+  total_caja?: number | string;
+  total_pagos?: number | string;
+  efectivo_esperado?: number | string;
+}
 
 interface CorteResumen {
   fondo_inicial?: number | string;
@@ -47,6 +69,8 @@ interface CorteData {
   total_real: number | string | null;
   observaciones: string | null;
   resumen?: CorteResumen;
+  desglose_metodos?: CorteMetodoDesglose[];
+  totales_metodos?: CorteTotalesMetodos;
 }
 
 interface ApiError {
@@ -57,6 +81,24 @@ interface ApiError {
     };
   };
   message?: string;
+}
+
+function getMetodoIcon(codigo: string) {
+  const code = String(codigo || "").toUpperCase();
+
+  if (code === "EFECTIVO" || code.includes("EFECTIVO")) {
+    return <Banknote size={14} style={{ verticalAlign: "middle", marginRight: 6 }} />;
+  }
+
+  if (code.includes("TARJETA") || code.includes("CARD")) {
+    return <CreditCard size={14} style={{ verticalAlign: "middle", marginRight: 6 }} />;
+  }
+
+  if (code.includes("TRANSFERENCIA") || code.includes("BANCO")) {
+    return <Landmark size={14} style={{ verticalAlign: "middle", marginRight: 6 }} />;
+  }
+
+  return <CircleDollarSign size={14} style={{ verticalAlign: "middle", marginRight: 6 }} />;
 }
 
 export default function CorteCaja() {
@@ -137,24 +179,62 @@ export default function CorteCaja() {
   const isClosed = estado === "cerrado";
   const hasNoShift = estado === "sin_corte";
 
-  const fondoInicialActual = Number(
+  const fondoInicialActual = toNumber(
     corteActual?.resumen?.fondo_inicial ?? corteActual?.fondo_inicial ?? 0,
   );
 
-  const totalEfectivo = Number(corteActual?.resumen?.total_efectivo ?? 0);
+  const hasDesgloseDinamico = Boolean(corteActual?.desglose_metodos?.length);
 
-  const totalEsperadoVista = Number(
-    corteActual?.resumen?.efectivo_esperado ??
+  const fallbackMetodos: CorteMetodoDesglose[] = [
+    {
+      codigo: "EFECTIVO",
+      nombre: "Efectivo",
+      total: corteActual?.resumen?.total_efectivo ?? 0,
+      operaciones: 0,
+      afecta_caja: true,
+    },
+    {
+      codigo: "TARJETA",
+      nombre: "Tarjeta",
+      total: corteActual?.resumen?.total_tarjeta ?? 0,
+      operaciones: 0,
+      afecta_caja: false,
+    },
+    {
+      codigo: "TRANSFERENCIA",
+      nombre: "Transferencia",
+      total: corteActual?.resumen?.total_transferencia ?? 0,
+      operaciones: 0,
+      afecta_caja: false,
+    },
+  ];
+
+  const metodosCorte = hasDesgloseDinamico
+    ? corteActual?.desglose_metodos ?? []
+    : fallbackMetodos;
+
+  const totalEfectivo = toNumber(
+    corteActual?.totales_metodos?.total_caja ??
+      corteActual?.resumen?.total_efectivo ??
+      metodosCorte
+        .filter((m) => m.afecta_caja)
+        .reduce((acc, m) => acc + toNumber(m.total), 0),
+  );
+
+  const totalEsperadoVista = toNumber(
+    corteActual?.totales_metodos?.efectivo_esperado ??
+      corteActual?.resumen?.efectivo_esperado ??
+      corteActual?.total_sistema ??
       fondoInicialActual + totalEfectivo,
   );
-  const totalTarjeta = Number(corteActual?.resumen?.total_tarjeta ?? 0);
-  const totalTransferencia = Number(
-    corteActual?.resumen?.total_transferencia ?? 0,
+
+  const totalPagos = toNumber(
+    corteActual?.totales_metodos?.total_pagos ??
+      corteActual?.resumen?.total_pagos ??
+      metodosCorte.reduce((acc, m) => acc + toNumber(m.total), 0),
   );
-  const totalPagos = Number(corteActual?.resumen?.total_pagos ?? 0);
-  const efectivoEsperado = Number(
-    corteActual?.resumen?.efectivo_esperado ?? corteActual?.total_sistema ?? 0,
-  );
+
+  const efectivoEsperado = totalEsperadoVista;
   const totalRealNumber = Number(
     isClosed ? corteActual?.total_real || 0 : montoContado || 0,
   );
@@ -425,42 +505,41 @@ export default function CorteCaja() {
               </div>
 
               <div className={styles.methodGrid}>
-                <div className={styles.methodCard}>
-                  <span>
-                    <Banknote
-                      size={14}
-                      style={{ verticalAlign: "middle", marginRight: 6 }}
-                    />
-                    Efectivo esperado
-                  </span>
-                  <strong>{fmt(totalEsperadoVista)}</strong>
-                </div>
-
-                <div className={styles.methodCard}>
-                  <span>
-                    <CreditCard
-                      size={14}
-                      style={{ verticalAlign: "middle", marginRight: 6 }}
-                    />
-                    Tarjeta
-                  </span>
-                  <strong>{fmt(totalTarjeta)}</strong>
-                </div>
-
-                <div className={styles.methodCard}>
-                  <span>
-                    <Landmark
-                      size={14}
-                      style={{ verticalAlign: "middle", marginRight: 6 }}
-                    />
-                    Transferencia
-                  </span>
-                  <strong>{fmt(totalTransferencia)}</strong>
-                </div>
+                {metodosCorte.map((metodo) => (
+                  <div key={metodo.codigo} className={styles.methodCard}>
+                    <span>
+                      {getMetodoIcon(metodo.codigo)}
+                      {metodo.nombre}
+                    </span>
+                    <strong>{fmt(toNumber(metodo.total))}</strong>
+                    <small
+                      style={{
+                        display: "block",
+                        marginTop: 4,
+                        opacity: 0.62,
+                        fontSize: "0.72rem",
+                      }}
+                    >
+                      {metodo.afecta_caja
+                        ? "Afecta caja física"
+                        : "Solo referencia"}
+                    </small>
+                  </div>
+                ))}
 
                 <div className={styles.methodCard}>
                   <span>Total cobrado</span>
                   <strong>{fmt(totalPagos)}</strong>
+                  <small
+                    style={{
+                      display: "block",
+                      marginTop: 4,
+                      opacity: 0.62,
+                      fontSize: "0.72rem",
+                    }}
+                  >
+                    Todos los métodos
+                  </small>
                 </div>
               </div>
             </div>
@@ -616,9 +695,8 @@ export default function CorteCaja() {
                     }}
                   >
                     El cierre compara únicamente el efectivo esperado contra el
-                    efectivo contado. Los pagos con tarjeta y transferencia se
-                    muestran como referencia y no forman parte del dinero físico
-                    en caja.
+                    efectivo contado. Los métodos marcados como referencia no forman
+                    parte del dinero físico en caja.
                   </div>
 
                   <div className={styles.actions}>
@@ -669,17 +747,18 @@ export default function CorteCaja() {
             <strong>{fmt(fondoInicialActual)}</strong>
           </div>
           <div className={styles.printRow}>
-            <span>Ventas en efectivo</span>
+            <span>Ventas que afectan caja</span>
             <strong>{fmt(totalEfectivo)}</strong>
           </div>
-          <div className={styles.printRow}>
-            <span>Tarjeta</span>
-            <strong>{fmt(totalTarjeta)}</strong>
-          </div>
-          <div className={styles.printRow}>
-            <span>Transferencia</span>
-            <strong>{fmt(totalTransferencia)}</strong>
-          </div>
+          {metodosCorte.map((metodo) => (
+            <div key={metodo.codigo} className={styles.printRow}>
+              <span>
+                {metodo.nombre}
+                {metodo.afecta_caja ? "" : " (referencia)"}
+              </span>
+              <strong>{fmt(toNumber(metodo.total))}</strong>
+            </div>
+          ))}
           <div className={styles.printRow}>
             <span>Total cobrado</span>
             <strong>{fmt(totalPagos)}</strong>

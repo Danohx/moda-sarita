@@ -16,7 +16,19 @@ export const API_ENDPOINTS = {
   security: {
     setup2FA: "/security/2fa/setup",
     enable2FA: "/security/2fa/enable",
+    empleados: "/security/empleados",
+    empleadoById: (usuarioId: string | number) =>
+      `/security/empleados/${usuarioId}`,
+    empleadoStatus: (usuarioId: string | number) =>
+      `/security/empleados/${usuarioId}/status`,
+    sessions: "/security/sessions",
+    sessionRevoke: (sessionId: string | number) =>
+      `/security/sessions/${sessionId}/revoke`,
+    revokeOtherSessions: "/security/sessions/revoke-others",
+    status: "/security/status",
     roles: "/security/roles",
+    roleById: (rolId: string | number) => `/security/roles/${rolId}`,
+    roleStatus: (rolId: string | number) => `/security/roles/${rolId}/status`,
     permisos: "/security/permisos",
     permisosByRol: (rolId: string | number) =>
       `/security/roles/${rolId}/permisos`,
@@ -70,6 +82,7 @@ export const API_ENDPOINTS = {
 
   inventario: {
     existencias: "/inventario/existencias",
+    alertas: "/inventario/alertas",
     variantStock: (id: string | number) => `/inventario/variantes/${id}/stock`,
     variantMovements: (id: string | number) =>
       `/inventario/variantes/${id}/movimientos`,
@@ -113,6 +126,8 @@ export const API_ENDPOINTS = {
   },
   ventas: {
     pos: "/ventas/pos",
+    historial: "/ventas/historial",
+    historialById: (id: string | number) => `/ventas/historial/${id}`,
     apartados: "/ventas/apartados",
     abonos: (id: string | number) => `/ventas/apartados/${id}/abonos`,
     liquidar: (id: string | number) => `/ventas/apartados/${id}/liquidar`,
@@ -122,6 +137,7 @@ export const API_ENDPOINTS = {
     cerrarCorte: (id: string | number) => `/ventas/corte/${id}/cerrar`,
     historialCortes: "/ventas/corte/historial",
     corteById: (id: string | number) => `/ventas/corte/${id}`,
+    ventaTicketPdf: (id: string | number) => `/ventas/pos/${id}/ticket`,
   },
   pedidos: {
     list: "/pedidos",
@@ -135,5 +151,74 @@ export const API_ENDPOINTS = {
   },
   dashboard: {
     data: "/dashboard",
+  },
+  configuracion: {
+    tiendaParametros: "/configuracion/tienda/parametros",
+    tiendaMetodosPagoWeb: "/configuracion/tienda/metodos-pago/web",
+    posMetodosPago: "/configuracion/pos/metodos-pago",
+    adminParametros: "/configuracion/admin/parametros",
+    adminParametrosAgrupados: "/configuracion/admin/parametros/agrupados",
+    adminParametrosModulo: (modulo: string) =>
+      `/configuracion/admin/parametros/modulo/${modulo}`,
+    adminParametroByClave: (clave: string) =>
+      `/configuracion/admin/parametros/${encodeURIComponent(clave)}`,
+    adminMetodosPago: "/configuracion/admin/metodos-pago",
+    adminMetodoPagoByCodigo: (codigo: string) =>
+      `/configuracion/admin/metodos-pago/${encodeURIComponent(codigo)}`,
+  },
+  reportes: {
+    resumen: "/reportes/resumen",
+
+    ventas: {
+      resumen: "/reportes/ventas/resumen",
+      tendencia: "/reportes/ventas/tendencia",
+      metodosPago: "/reportes/ventas/metodos-pago",
+      empleados: "/reportes/ventas/empleados",
+    },
+
+    productos: {
+      masVendidos: "/reportes/productos/mas-vendidos",
+      menosVendidos: "/reportes/productos/menos-vendidos",
+      sinVentas: "/reportes/productos/sin-ventas",
+    },
+
+    inventario: {
+      resumen: "/reportes/inventario/resumen",
+      critico: "/reportes/inventario/critico",
+      movimientos: "/reportes/inventario/movimientos",
+    },
+
+    clientes: {
+      resumen: "/reportes/clientes/resumen",
+      tendencia: "/reportes/clientes/tendencia",
+      frecuentes: "/reportes/clientes/frecuentes",
+    },
+
+    credito: {
+      resumen: "/reportes/credito/resumen",
+      cuentasCobrar: "/reportes/credito/cuentas-cobrar",
+    },
+
+    apartados: {
+      resumen: "/reportes/apartados/resumen",
+      detalle: "/reportes/apartados/detalle",
+    },
+
+    financiero: {
+      resumen: "/reportes/financiero/resumen",
+      metodosPago: "/reportes/financiero/metodos-pago",
+    },
+
+    cortes: {
+      resumen: "/reportes/cortes/resumen",
+      detalle: "/reportes/cortes/detalle",
+    },
+
+    exportaciones: "/reportes/exportaciones",
+
+    export: {
+      pdf: "/reportes/export/pdf",
+      excel: "/reportes/export/excel",
+    },
   },
 } as const;

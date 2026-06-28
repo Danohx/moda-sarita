@@ -25,6 +25,10 @@ import ModalCliente, {
 } from "@admin/components/components/ModalClientes";
 import ModalCheckout from "@admin/components/components/ModalCheckout";
 import ModalApartado from "@admin/components/components/ModalApartado";
+import {
+  configuracionService,
+  type MetodoPagoConfig,
+} from "@admin/services/configuracion.service";
 
 interface CategoriaItem {
   id: string | number;
@@ -129,6 +133,11 @@ export const POS: React.FC = () => {
   const [modalApartadoAbierto, setModalApartadoAbierto] = useState(false);
   const [procesandoPago, setProcesandoPago] = useState(false);
   const [procesandoApartado, setProcesandoApartado] = useState(false);
+  const [metodosPagoPOS, setMetodosPagoPOS] = useState<MetodoPagoConfig[]>([]);
+  const [metodoPago, setMetodoPago] = useState("");
+  const [referenciaExterna, setReferenciaExterna] = useState("");
+  const [montoRecibido, setMontoRecibido] = useState(0);
+  const [estadoCaja, setEstadoCaja] = useState(false);
 
   const productosFiltrados = useMemo(() => {
     const productosActivos = products.filter((p) => p.activo);
@@ -142,6 +151,19 @@ export const POS: React.FC = () => {
         p.categoria?.nombre?.toLowerCase().includes(q),
     );
   }, [busqueda, products]);
+
+  const productosOrdenados = useMemo(() => {
+    return [...productosFiltrados].sort((a, b) => {
+      const aSinStock = Number(a.stock_total || 0) <= 0;
+      const bSinStock = Number(b.stock_total || 0) <= 0;
+
+      if (aSinStock === bSinStock) {
+        return a.nombre.localeCompare(b.nombre, "es");
+      }
+
+      return aSinStock ? 1 : -1;
+    });
+  }, [productosFiltrados]);
 
   const normalizeProducts = useCallback(
     (data: Producto[], categorias: CategoriaItem[]) => {
@@ -188,7 +210,7 @@ export const POS: React.FC = () => {
     async (isRefresh = false) => {
       try {
         setError(null);
-        
+
         if (isRefresh) {
           setRefreshing(true);
         } else {
@@ -217,8 +239,7 @@ export const POS: React.FC = () => {
 
   const getStockDisponible = (variante: VarianteItem) =>
     Math.max(
-      (Number(variante.stock_fisico ?? 0)) -
-        (Number(variante.stock_apartado ?? 0)),
+      Number(variante.stock_fisico ?? 0) - Number(variante.stock_apartado ?? 0),
       0,
     );
 
@@ -232,28 +253,46 @@ export const POS: React.FC = () => {
 
       for (const variante of variantes) {
         const stock = getStockDisponible(variante);
-        const precio = Number(variante.precio_venta ?? producto.precio_venta ?? 0);
+        const precio = Number(
+          variante.precio_venta ?? producto.precio_venta ?? 0,
+        );
 
         if (variante.talla_id && variante.talla_nombre) {
           const key = String(variante.talla_id);
           const current = tallasMap.get(key);
           if (!current || stock > current.stock)
-            tallasMap.set(key, { id: key, etiqueta: variante.talla_nombre, stock, precio });
+            tallasMap.set(key, {
+              id: key,
+              etiqueta: variante.talla_nombre,
+              stock,
+              precio,
+            });
         }
 
         if (variante.color_id && variante.color_nombre) {
           const key = String(variante.color_id);
           const current = coloresMap.get(key);
           if (!current || stock > current.stock)
-            coloresMap.set(key, { id: key, etiqueta: variante.color_nombre, stock, precio });
+            coloresMap.set(key, {
+              id: key,
+              etiqueta: variante.color_nombre,
+              stock,
+              precio,
+            });
         }
       }
 
       const grupos: ModalGrupoVariante[] = [];
       if (tallasMap.size > 0)
-        grupos.push({ nombre: "Talla", variantes: Array.from(tallasMap.values()) });
+        grupos.push({
+          nombre: "Talla",
+          variantes: Array.from(tallasMap.values()),
+        });
       if (coloresMap.size > 0)
-        grupos.push({ nombre: "Color", variantes: Array.from(coloresMap.values()) });
+        grupos.push({
+          nombre: "Color",
+          variantes: Array.from(coloresMap.values()),
+        });
 
       return {
         id: String(producto.id),
@@ -279,7 +318,9 @@ export const POS: React.FC = () => {
         if (variantesActivas.length === 0) return;
 
         setVariantesActuales(variantesActivas as VarianteItem[]);
-        setProductoModal(mapVariantesToModal(producto, variantesActivas as VarianteItem[]));
+        setProductoModal(
+          mapVariantesToModal(producto, variantesActivas as VarianteItem[]),
+        );
         setModalVariantesAbierto(true);
       } catch (err) {
         console.error(err);
@@ -305,13 +346,17 @@ export const POS: React.FC = () => {
         : null;
 
       const variante = variantesActuales.find((item) => {
-        const tallaOk = tallaId === null || Number(item.talla_id ?? 0) === tallaId;
-        const colorOk = colorId === null || Number(item.color_id ?? 0) === colorId;
+        const tallaOk =
+          tallaId === null || Number(item.talla_id ?? 0) === tallaId;
+        const colorOk =
+          colorId === null || Number(item.color_id ?? 0) === colorId;
         return tallaOk && colorOk;
       });
 
       if (!variante) {
-        setError("No se encontró una variante válida para la combinación seleccionada.");
+        setError(
+          "No se encontró una variante válida para la combinación seleccionada.",
+        );
         return;
       }
 
@@ -324,14 +369,22 @@ export const POS: React.FC = () => {
       const varianteNombre = [variante.talla_nombre, variante.color_nombre]
         .filter(Boolean)
         .join(" / ");
-      const precioFinal = Number(variante.precio_venta ?? productoModal?.precio ?? 0);
+      const precioFinal = Number(
+        variante.precio_venta ?? productoModal?.precio ?? 0,
+      );
 
       setCarrito((prev) => {
         const existente = prev.find((item) => item.id === variante.id);
         if (existente) {
           return prev.map((item) =>
             item.id === variante.id
-              ? { ...item, cantidad: Math.min(existente.cantidad + cantidad, stockDisponible) }
+              ? {
+                  ...item,
+                  cantidad: Math.min(
+                    existente.cantidad + cantidad,
+                    stockDisponible,
+                  ),
+                }
               : item,
           );
         }
@@ -365,7 +418,9 @@ export const POS: React.FC = () => {
     }
   }, []);
 
-  const handleCrearClientePOS = async (nuevoClienteData: Omit<ClientePOS, "id">) => {
+  const handleCrearClientePOS = async (
+    nuevoClienteData: Omit<ClientePOS, "id">,
+  ) => {
     setCargandoCliente(true);
     try {
       type CreateClientePayload = Parameters<typeof clientesService.create>[0];
@@ -388,22 +443,56 @@ export const POS: React.FC = () => {
     }
   };
 
-  const handlePagarVenta = async (metodo: string) => {
+  const handlePagarVenta = async () => {
     try {
       setProcesandoPago(true);
       setError(null);
 
+      if (!metodoPago) {
+        setError("Selecciona un método de pago.");
+        return;
+      }
+
+      if (requiereReferencia && !referenciaExterna.trim()) {
+        setError("Este método de pago requiere referencia.");
+        return;
+      }
+
+      if (pagoEfectivoInsuficiente) {
+        setError("El monto recibido no puede ser menor al total.");
+        return;
+      }
+
+      if (esMetodoCredito && !cliente) {
+        setError(
+          "Para pagar con crédito de tienda debes seleccionar un cliente.",
+        );
+        return;
+      }
+
       const payload: Parameters<typeof ventasService.crearVentaPOS>[0] = {
         cliente_id: cliente ? cliente.id : null,
         vendedor_id: "1",
-        metodo_pago: metodo,
+        metodo_pago: metodoPago,
+        referencia_externa: requiereReferencia
+          ? referenciaExterna.trim()
+          : null,
         tipo: "PUNTO_VENTA",
         items: carrito.map((item) => {
           const cant = Number(item.cantidad);
-          if (!item.id || typeof item.id !== "string")
-            throw new Error(`El producto ${item.nombre} no tiene un ID de variante válido.`);
-          if (isNaN(cant) || cant <= 0)
-            throw new Error(`La cantidad para ${item.nombre} debe ser mayor a 0.`);
+
+          if (!item.id || typeof item.id !== "string") {
+            throw new Error(
+              `El producto ${item.nombre} no tiene un ID de variante válido.`,
+            );
+          }
+
+          if (isNaN(cant) || cant <= 0) {
+            throw new Error(
+              `La cantidad para ${item.nombre} debe ser mayor a 0.`,
+            );
+          }
+
           return {
             variante_id: String(item.id),
             cantidad: cant,
@@ -414,21 +503,51 @@ export const POS: React.FC = () => {
         costo_envio: 0,
       };
 
-      await ventasService.crearVentaPOS(payload);
+      const venta = await ventasService.crearVentaPOS(payload);
+
       setCarrito([]);
       setCliente(null);
+      setReferenciaExterna("");
+      setMontoRecibido(0);
       setModalCheckoutAbierto(false);
-      alert("¡Venta registrada con éxito!");
+
+      if (permiteCambio && cambio > 0) {
+        alert(`¡Venta registrada con éxito! Cambio: ${formatMoneda(cambio)}`);
+      }
+
       loadProducts(true);
+
+      if (venta?.id) {
+        await ventasService.abrirTicketPdf(venta.id, "generacion");
+      }
     } catch (err) {
       console.error("Error al procesar venta:", err);
-      setError("Ocurrió un error al procesar la venta.");
+
+      let backendMessage = "Ocurrió un error al procesar la venta.";
+
+      if (typeof err === "object" && err !== null) {
+        const e = err as {
+          response?: { data?: { msg?: string; message?: string } };
+          message?: string;
+        };
+
+        backendMessage =
+          e.response?.data?.msg ||
+          e.response?.data?.message ||
+          e.message ||
+          backendMessage;
+      }
+
+      setError(backendMessage);
     } finally {
       setProcesandoPago(false);
     }
   };
 
-  const handleCrearApartado = async (anticipo: number, diasVigencia: number) => {
+  const handleCrearApartado = async (
+    anticipo: number,
+    diasVigencia: number,
+  ) => {
     try {
       setProcesandoApartado(true);
       setError(null);
@@ -446,9 +565,13 @@ export const POS: React.FC = () => {
         items: carrito.map((item) => {
           const cant = Number(item.cantidad);
           if (!item.id || typeof item.id !== "string")
-            throw new Error(`El producto ${item.nombre} no tiene un ID de variante válido.`);
+            throw new Error(
+              `El producto ${item.nombre} no tiene un ID de variante válido.`,
+            );
           if (isNaN(cant) || cant <= 0)
-            throw new Error(`La cantidad para ${item.nombre} debe ser mayor a 0.`);
+            throw new Error(
+              `La cantidad para ${item.nombre} debe ser mayor a 0.`,
+            );
           return {
             variante_id: String(item.id),
             cantidad: cant,
@@ -466,20 +589,21 @@ export const POS: React.FC = () => {
     } catch (err) {
       let backendMessage = "Ocurrió un error al crear el apartado.";
       if (typeof err === "object" && err !== null) {
-        const e = err as { response?: { data?: { msg?: string; message?: string } }; message?: string };
+        const e = err as {
+          response?: { data?: { msg?: string; message?: string } };
+          message?: string;
+        };
         backendMessage =
-          e.response?.data?.msg || e.response?.data?.message || e.message || backendMessage;
+          e.response?.data?.msg ||
+          e.response?.data?.message ||
+          e.message ||
+          backendMessage;
       }
       setError(backendMessage);
     } finally {
       setProcesandoApartado(false);
     }
   };
-
-  useEffect(() => {
-    loadProducts();
-    loadClientes();
-  }, [loadProducts, loadClientes]);
 
   const subtotal = useMemo(
     () => carrito.reduce((sum, item) => sum + item.precio * item.cantidad, 0),
@@ -518,9 +642,73 @@ export const POS: React.FC = () => {
   );
 
   const clienteNombreCheckout = useMemo(
-    () => (cliente ? `${cliente.nombres} ${cliente.apellido_paterno}` : undefined),
+    () =>
+      cliente ? `${cliente.nombres} ${cliente.apellido_paterno}` : undefined,
     [cliente],
   );
+
+  const metodoPagoSeleccionado = useMemo(
+    () => metodosPagoPOS.find((m) => m.codigo === metodoPago) ?? null,
+    [metodosPagoPOS, metodoPago],
+  );
+
+  const requiereReferencia = Boolean(
+    metodoPagoSeleccionado?.requiere_referencia,
+  );
+
+  const permiteCambio = Boolean(metodoPagoSeleccionado?.permite_cambio);
+
+  const esMetodoCredito = Boolean(metodoPagoSeleccionado?.es_credito);
+  const creditoSinCliente = esMetodoCredito && !cliente;
+
+  const cambio = useMemo(() => {
+    if (!permiteCambio) return 0;
+
+    return Math.max(Number(montoRecibido || 0) - total, 0);
+  }, [permiteCambio, montoRecibido, total]);
+
+  const pagoEfectivoInsuficiente =
+    permiteCambio && Number(montoRecibido || 0) < total;
+
+  const loadMetodosPagoPOS = useCallback(async () => {
+    try {
+      const metodos = await configuracionService.getMetodosPagoPOS();
+
+      setMetodosPagoPOS(metodos);
+
+      setMetodoPago((prev) => {
+        if (prev && metodos.some((m) => m.codigo === prev)) return prev;
+        return metodos[0]?.codigo ?? "";
+      });
+    } catch (err) {
+      console.error("Error cargando métodos de pago POS:", err);
+      setMetodosPagoPOS([]);
+      setMetodoPago("");
+    }
+  }, []);
+
+  const handleAbrirCheckout = useCallback(() => {
+    if (carrito.length === 0) {
+      setError("Agrega productos al carrito antes de cobrar.");
+      return;
+    }
+
+    setReferenciaExterna("");
+    setMontoRecibido(total);
+    setModalCheckoutAbierto(true);
+  }, [carrito.length, total]);
+
+  useEffect(() => {
+    const init = async () => {
+      const corte = await ventasService.getCorteActual();
+      setEstadoCaja(Boolean(corte));
+    };
+    loadProducts();
+    loadClientes();
+    loadMetodosPagoPOS();
+
+    init();
+  }, [loadProducts, loadClientes, loadMetodosPagoPOS]);
 
   return (
     <div className={styles.pos}>
@@ -537,311 +725,409 @@ export const POS: React.FC = () => {
         </div>
       </div>
 
-      <div className={styles.mainGrid}>
-        <div className={styles.productosPanel}>
-          {error && (
-            <div style={{ color: "red", marginBottom: "10px" }}>{error}</div>
-          )}
-          <div className={styles.searchBox}>
-            <Search size={20} />
-            <input
-              type="text"
-              placeholder="Buscar por nombre, SKU o categoría..."
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              className={styles.searchInput}
-            />
-          </div>
-
-          <div className={styles.productosGrid}>
-            {loading ? (
-              Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className={styles.productSkeleton}>
-                  <div className={styles.skeletonImage}></div>
-                  <div className={styles.skeletonText}></div>
-                  <div className={styles.skeletonPrice}></div>
-                </div>
-              ))
-            ) : productosFiltrados.length > 0 ? (
-              productosFiltrados.map((producto) => (
-                <div
-                  key={producto.id}
-                  className={styles.productoCard}
-                  onClick={() => handleOpenVariantes(producto)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ")
-                      handleOpenVariantes(producto);
-                  }}
-                >
-                  <div className={styles.productoIcono}>
-                    <Package size={32} />
-                  </div>
-                  <div className={styles.productoInfo}>
-                    <h3 className={styles.productoNombre}>{producto.nombre}</h3>
-                    <p className={styles.productoSku}>SKU: {producto.sku ?? "N/A"}</p>
-                    <div className={styles.productoFooter}>
-                      <span className={styles.productoPrecio}>
-                        {formatMoneda(producto.precio_venta)}
-                      </span>
-                      <span
-                        className={`${styles.stockBadge} ${
-                          producto.stock_total < 10 ? styles.stockBajo : ""
-                        }`}
-                      >
-                        Stock: {producto.stock_total}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className={styles.emptyState}>
-                <AlertCircle size={48} />
-                <p className={styles.emptyTitle}>No existen productos</p>
-                <p className={styles.emptySubtitle}>
-                  Intente con otro término de búsqueda.
-                </p>
-              </div>
+      {estadoCaja ? (
+        <div className={styles.mainGrid}>
+          <div className={styles.productosPanel}>
+            {error && (
+              <div style={{ color: "red", marginBottom: "10px" }}>{error}</div>
             )}
-          </div>
-        </div>
-
-        <div className={styles.carritoPanel}>
-          <div className={styles.clienteCard}>
-            <div
-              className={styles.clienteHeader}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "10px",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <User size={20} />
-                <span className={styles.clienteLabel} style={{ fontWeight: "bold" }}>
-                  Cliente
-                </span>
-              </div>
-
-              {cliente && (
-                <div style={{ display: "flex", gap: "10px" }}>
-                  <button
-                    onClick={() => setModalClienteAbierto(true)}
-                    style={{ background: "none", border: "none", color: "#3b82f6", cursor: "pointer", fontSize: "13px" }}
-                  >
-                    Cambiar
-                  </button>
-                  <button
-                    onClick={() => setCliente(null)}
-                    style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: "13px" }}
-                  >
-                    Quitar
-                  </button>
-                </div>
-              )}
+            <div className={styles.searchBox}>
+              <Search size={20} />
+              <input
+                type="text"
+                placeholder="Buscar por nombre, SKU o categoría..."
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                className={styles.searchInput}
+              />
             </div>
 
-            <button
-              className={styles.clienteBtn}
-              type="button"
-              onClick={() => !cliente && setModalClienteAbierto(true)}
-              style={{
-                width: "100%",
-                textAlign: "left",
-                padding: "10px",
-                background: "#f8fafc",
-                border: "1px solid #e2e8f0",
-                borderRadius: "6px",
-                cursor: "pointer",
-              }}
-            >
-              {cliente ? (
-                <div className={styles.clienteInfoFull}>
-                  <span
-                    className={styles.clienteNombre}
-                    style={{ display: "block", fontWeight: "bold", fontSize: "15px" }}
-                  >
-                    {`${cliente.nombres} ${cliente.apellido_paterno} ${cliente.apellido_materno || ""}`.trim()}
-                  </span>
-                  {cliente.telefono && (
-                    <span
-                      className={styles.clienteTel}
-                      style={{ display: "block", fontSize: "13px", color: "#64748b", marginTop: "4px" }}
-                    >
-                      Tel: {cliente.telefono}
-                    </span>
-                  )}
-                  {cliente.tiene_credito && (
+            <div className={styles.productosGrid}>
+              {loading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className={styles.productSkeleton}>
+                    <div className={styles.skeletonImage}></div>
+                    <div className={styles.skeletonText}></div>
+                    <div className={styles.skeletonPrice}></div>
+                  </div>
+                ))
+              ) : productosOrdenados.length > 0 ? (
+                productosOrdenados.map((producto) => {
+                  const sinStock = Number(producto.stock_total || 0) <= 0;
+
+                  const abrirVariantes = () => {
+                    if (sinStock) return;
+                    handleOpenVariantes(producto);
+                  };
+
+                  return (
                     <div
-                      style={{
-                        marginTop: "8px",
-                        padding: "8px",
-                        backgroundColor: "#eff6ff",
-                        borderRadius: "4px",
-                        fontSize: "13px",
-                        border: "1px solid #bfdbfe",
+                      key={producto.id}
+                      className={`${styles.productoCard} ${
+                        sinStock ? styles.productoCardSinStock : ""
+                      }`}
+                      onClick={abrirVariantes}
+                      role="button"
+                      tabIndex={sinStock ? -1 : 0}
+                      aria-disabled={sinStock}
+                      title={
+                        sinStock
+                          ? "Producto sin stock disponible"
+                          : producto.nombre
+                      }
+                      onKeyDown={(e) => {
+                        if (sinStock) return;
+
+                        if (e.key === "Enter" || e.key === " ") {
+                          handleOpenVariantes(producto);
+                        }
                       }}
                     >
-                      <strong style={{ color: "#1d4ed8" }}>Cliente con Crédito</strong>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px" }}>
-                        <span>Límite: {formatMoneda(cliente.limite_credito || 0)}</span>
-                        <span
-                          style={{
-                            color: (cliente.saldo_deudor ?? 0) > 0 ? "#b91c1c" : "#15803d",
-                            fontWeight: "500",
-                          }}
-                        >
-                          Deuda: {formatMoneda(cliente.saldo_deudor || 0)}
-                        </span>
+                      <div className={styles.productoIcono}>
+                        <Package size={32} />
+                      </div>
+
+                      <div className={styles.productoInfo}>
+                        <h3 className={styles.productoNombre}>
+                          {producto.nombre}
+                        </h3>
+
+                        <p className={styles.productoSku}>
+                          SKU: {producto.sku ?? "N/A"}
+                        </p>
+
+                        <div className={styles.productoFooter}>
+                          <span className={styles.productoPrecio}>
+                            {formatMoneda(producto.precio_venta)}
+                          </span>
+
+                          <span
+                            className={`${styles.stockBadge} ${
+                              sinStock
+                                ? styles.stockSinStock
+                                : producto.stock_total < 10
+                                  ? styles.stockBajo
+                                  : ""
+                            }`}
+                          >
+                            {sinStock
+                              ? "Sin stock"
+                              : `Stock: ${producto.stock_total}`}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  )}
-                </div>
+                  );
+                })
               ) : (
-                <span
-                  className={styles.clientePlaceholder}
-                  style={{ color: "#64748b", display: "flex", justifyContent: "center", alignItems: "center", height: "40px" }}
-                >
-                  + Seleccionar o Crear Cliente
-                </span>
-              )}
-            </button>
-          </div>
-
-          <div className={styles.carritoCard}>
-            <div className={styles.carritoHeader}>
-              <h2 className={styles.carritoTitle}>
-                <ShoppingCart size={20} />
-                Carrito de Compra
-              </h2>
-              {carrito.length > 0 && (
-                <span className={styles.carritoBadge}>{carrito.length}</span>
+                <div className={styles.emptyState}>
+                  <AlertCircle size={48} />
+                  <p className={styles.emptyTitle}>No existen productos</p>
+                  <p className={styles.emptySubtitle}>
+                    Intente con otro término de búsqueda.
+                  </p>
+                </div>
               )}
             </div>
+          </div>
 
-            {carrito.length === 0 ? (
-              <div className={styles.carritoVacio}>
-                {loading ? (
-                  <RefreshCw size={48} className={styles.spinning} />
-                ) : (
-                  <ShoppingCart size={48} />
-                )}
-                <p className={styles.vacioTitle}>
-                  {loading ? "Cargando..." : "Carrito vacío"}
-                </p>
-                <p className={styles.vacioSubtitle}>
-                  {loading
-                    ? "Consultando productos..."
-                    : "Agrega productos desde el panel izquierdo"}
-                </p>
-              </div>
-            ) : (
-              <>
-                <div className={styles.carritoItems}>
-                  {carrito.map((item) => (
-                    <div key={item.id} className={styles.carritoItem}>
-                      <div className={styles.itemInfo}>
-                        <h4 className={styles.itemNombre}>{item.nombre}</h4>
-                        <div className={styles.itemPrecioWrap}>
-                          <p className={styles.itemPrecioUnit}>
-                            {formatMoneda(item.precio)} c/u
-                          </p>
-                          <p className={styles.itemSubtotal}>
-                            {formatMoneda(item.precio * item.cantidad)}
-                          </p>
-                        </div>
-                        {item.variante && (
-                          <span className={styles.itemVariante}>{item.variante}</span>
-                        )}
-                      </div>
-
-                      <div className={styles.itemControls}>
-                        <div className={styles.cantidadControl}>
-                          <button
-                            className={styles.cantidadBtn}
-                            onClick={() => cambiarCantidad(item.id, -1)}
-                            type="button"
-                          >
-                            <Minus size={16} />
-                          </button>
-                          <span className={styles.cantidadText}>{item.cantidad}</span>
-                          <button
-                            className={styles.cantidadBtn}
-                            onClick={() => cambiarCantidad(item.id, 1)}
-                            type="button"
-                          >
-                            <Plus size={16} />
-                          </button>
-                        </div>
-                        <button
-                          className={styles.eliminarBtn}
-                          onClick={() => eliminarDelCarrito(item.id)}
-                          type="button"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className={styles.resumen}>
-                  <div className={styles.resumenRow}>
-                    <span>Subtotal:</span>
-                    <span>{formatMoneda(subtotal)}</span>
-                  </div>
-                  <div className={styles.resumenRow}>
-                    <span>IVA (16%):</span>
-                    <span>{formatMoneda(iva)}</span>
-                  </div>
-                  <div className={styles.resumenTotal}>
-                    <span>Total:</span>
-                    <span>{formatMoneda(total)}</span>
-                  </div>
-                </div>
-              </>
-            )}
-
-            <div className={styles.acciones}>
-              <button
-                className={styles.procesarBtn}
-                disabled={carrito.length === 0 || procesandoPago}
-                type="button"
-                onClick={() => setModalCheckoutAbierto(true)}
-              >
-                <CreditCard size={20} />
-                {procesandoPago ? "Procesando..." : "Procesar Pago"}
-              </button>
-
-              <button
-                className={styles.apartarBtn}
-                disabled={carrito.length === 0 || procesandoApartado}
-                type="button"
-                onClick={() => {
-                  if (!cliente) {
-                    alert("Debes seleccionar un cliente para poder crear un apartado!");
-                    return;
-                  }
-                  setModalApartadoAbierto(true);
+          <div className={styles.carritoPanel}>
+            <div className={styles.clienteCard}>
+              <div
+                className={styles.clienteHeader}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "10px",
                 }}
               >
-                <Receipt size={20} />
-                {procesandoApartado ? "Apartando..." : "Apartar"}
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                >
+                  <User size={20} />
+                  <span
+                    className={styles.clienteLabel}
+                    style={{ fontWeight: "bold" }}
+                  >
+                    Cliente
+                  </span>
+                </div>
+
+                {cliente && (
+                  <div style={{ display: "flex", gap: "10px" }}>
+                    <button
+                      onClick={() => setModalClienteAbierto(true)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#3b82f6",
+                        cursor: "pointer",
+                        fontSize: "13px",
+                      }}
+                    >
+                      Cambiar
+                    </button>
+                    <button
+                      onClick={() => setCliente(null)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#ef4444",
+                        cursor: "pointer",
+                        fontSize: "13px",
+                      }}
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <button
+                className={styles.clienteBtn}
+                type="button"
+                onClick={() => !cliente && setModalClienteAbierto(true)}
+                style={{
+                  width: "100%",
+                  textAlign: "left",
+                  padding: "10px",
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                }}
+              >
+                {cliente ? (
+                  <div className={styles.clienteInfoFull}>
+                    <span
+                      className={styles.clienteNombre}
+                      style={{
+                        display: "block",
+                        fontWeight: "bold",
+                        fontSize: "15px",
+                      }}
+                    >
+                      {`${cliente.nombres} ${cliente.apellido_paterno} ${cliente.apellido_materno || ""}`.trim()}
+                    </span>
+                    {cliente.telefono && (
+                      <span
+                        className={styles.clienteTel}
+                        style={{
+                          display: "block",
+                          fontSize: "13px",
+                          color: "#64748b",
+                          marginTop: "4px",
+                        }}
+                      >
+                        Tel: {cliente.telefono}
+                      </span>
+                    )}
+                    {cliente.tiene_credito && (
+                      <div
+                        style={{
+                          marginTop: "8px",
+                          padding: "8px",
+                          backgroundColor: "#eff6ff",
+                          borderRadius: "4px",
+                          fontSize: "13px",
+                          border: "1px solid #bfdbfe",
+                        }}
+                      >
+                        <strong style={{ color: "#1d4ed8" }}>
+                          Cliente con Crédito
+                        </strong>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            marginTop: "4px",
+                          }}
+                        >
+                          <span>
+                            Límite: {formatMoneda(cliente.limite_credito || 0)}
+                          </span>
+                          <span
+                            style={{
+                              color:
+                                (cliente.saldo_deudor ?? 0) > 0
+                                  ? "#b91c1c"
+                                  : "#15803d",
+                              fontWeight: "500",
+                            }}
+                          >
+                            Deuda: {formatMoneda(cliente.saldo_deudor || 0)}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <span
+                    className={styles.clientePlaceholder}
+                    style={{
+                      color: "#64748b",
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      height: "40px",
+                    }}
+                  >
+                    + Seleccionar o Crear Cliente
+                  </span>
+                )}
               </button>
+            </div>
+
+            <div className={styles.carritoCard}>
+              <div className={styles.carritoHeader}>
+                <h2 className={styles.carritoTitle}>
+                  <ShoppingCart size={20} />
+                  Carrito de Compra
+                </h2>
+                {carrito.length > 0 && (
+                  <span className={styles.carritoBadge}>{carrito.length}</span>
+                )}
+              </div>
+
+              {carrito.length === 0 ? (
+                <div className={styles.carritoVacio}>
+                  {loading ? (
+                    <RefreshCw size={48} className={styles.spinning} />
+                  ) : (
+                    <ShoppingCart size={48} />
+                  )}
+                  <p className={styles.vacioTitle}>
+                    {loading ? "Cargando..." : "Carrito vacío"}
+                  </p>
+                  <p className={styles.vacioSubtitle}>
+                    {loading
+                      ? "Consultando productos..."
+                      : "Agrega productos desde el panel izquierdo"}
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className={styles.carritoItems}>
+                    {carrito.map((item) => (
+                      <div key={item.id} className={styles.carritoItem}>
+                        <div className={styles.itemInfo}>
+                          <h4 className={styles.itemNombre}>{item.nombre}</h4>
+                          <div className={styles.itemPrecioWrap}>
+                            <p className={styles.itemPrecioUnit}>
+                              {formatMoneda(item.precio)} c/u
+                            </p>
+                            <p className={styles.itemSubtotal}>
+                              {formatMoneda(item.precio * item.cantidad)}
+                            </p>
+                          </div>
+                          {item.variante && (
+                            <span className={styles.itemVariante}>
+                              {item.variante}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className={styles.itemControls}>
+                          <div className={styles.cantidadControl}>
+                            <button
+                              className={styles.cantidadBtn}
+                              onClick={() => cambiarCantidad(item.id, -1)}
+                              type="button"
+                            >
+                              <Minus size={16} />
+                            </button>
+                            <span className={styles.cantidadText}>
+                              {item.cantidad}
+                            </span>
+                            <button
+                              className={styles.cantidadBtn}
+                              onClick={() => cambiarCantidad(item.id, 1)}
+                              type="button"
+                            >
+                              <Plus size={16} />
+                            </button>
+                          </div>
+                          <button
+                            className={styles.eliminarBtn}
+                            onClick={() => eliminarDelCarrito(item.id)}
+                            type="button"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className={styles.resumen}>
+                    <div className={styles.resumenRow}>
+                      <span>Subtotal:</span>
+                      <span>{formatMoneda(subtotal)}</span>
+                    </div>
+                    <div className={styles.resumenRow}>
+                      <span>IVA (16%):</span>
+                      <span>{formatMoneda(iva)}</span>
+                    </div>
+                    <div className={styles.resumenTotal}>
+                      <span>Total:</span>
+                      <span>{formatMoneda(total)}</span>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div className={styles.acciones}>
+                <button
+                  className={styles.procesarBtn}
+                  disabled={carrito.length === 0 || procesandoPago}
+                  type="button"
+                  onClick={handleAbrirCheckout}
+                >
+                  <CreditCard size={20} />
+                  {procesandoPago ? "Procesando..." : "Procesar Pago"}
+                </button>
+
+                <button
+                  className={styles.apartarBtn}
+                  disabled={carrito.length === 0 || procesandoApartado}
+                  type="button"
+                  onClick={() => {
+                    if (!cliente) {
+                      alert(
+                        "Debes seleccionar un cliente para poder crear un apartado!",
+                      );
+                      return;
+                    }
+                    setModalApartadoAbierto(true);
+                  }}
+                >
+                  <Receipt size={20} />
+                  {procesandoApartado ? "Apartando..." : "Apartar"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className={styles.cajaCerradaState}>
+          <div className={styles.cajaCerradaCard}>
+            <div className={styles.cajaCerradaIcono}>
+              <Package size={36} />
+            </div>
+            <h2 className={styles.cajaCerradaTitulo}>Caja cerrada</h2>
+            <p className={styles.cajaCerradaDesc}>
+              Para operar el punto de venta es necesario realizar la{" "}
+              <strong>apertura de caja</strong> (corte de caja). Sin esto no se
+              pueden registrar ventas ni apartados.
+            </p>
+            <p className={styles.cajaCerradaHint}>
+              Ve a <strong>Corte de caja</strong> para iniciar turno
+            </p>
+          </div>
+        </div>
+      )}
 
-      {/*
-        Los modales se montan condicionalmente solo cuando tienen datos necesarios
-        (productoModal para variantes). Los demás se montan siempre pero el CSS
-        los oculta con display:none cuando isOpen=false, evitando el costo de
-        mount/unmount en cada apertura.
-      */}
       {modalVariantesAbierto && productoModal && (
         <ModalVariantes
           producto={productoModal}
@@ -875,8 +1161,26 @@ export const POS: React.FC = () => {
         iva={iva}
         total={total}
         clienteNombre={clienteNombreCheckout}
+        procesando={procesandoPago}
         onPagar={handlePagarVenta}
         onCerrar={() => setModalCheckoutAbierto(false)}
+        metodosPago={metodosPagoPOS}
+        metodoPago={metodoPago}
+        onMetodoPagoChange={(codigo) => {
+          setMetodoPago(codigo);
+          setReferenciaExterna("");
+          setMontoRecibido(total);
+        }}
+        referenciaExterna={referenciaExterna}
+        onReferenciaExternaChange={setReferenciaExterna}
+        montoRecibido={montoRecibido}
+        onMontoRecibidoChange={setMontoRecibido}
+        cambio={cambio}
+        requiereReferencia={requiereReferencia}
+        permiteCambio={permiteCambio}
+        pagoEfectivoInsuficiente={pagoEfectivoInsuficiente}
+        esMetodoCredito={esMetodoCredito}
+        creditoSinCliente={creditoSinCliente}
       />
 
       <ModalApartado

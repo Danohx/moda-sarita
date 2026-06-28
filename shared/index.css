@@ -1,10 +1,11 @@
 /* src/index.css */
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap");
 
 :root {
   /* 🎨 Colores base */
   --color-background: #f8f6f7;
   --color-surface: #ffffff;
+  --color-surface-soft: #fdfbfc;
   --color-text: #5c4b57;
 
   --color-primary: #f7d5e9;
@@ -14,7 +15,16 @@
 
   --color-primary-vibrant: #ec1380;
   --color-primary-vibrant-hover: #c2185b;
+  --color-primary-vibrant-soft: #ff4fa3;
   --color-text-on-vibrant: #ffffff;
+
+  /* Gradiente de marca: usar con moderación (acentos, iconos, CTA) */
+  --gradient-primary: linear-gradient(135deg, #ec1380 0%, #ff4fa3 100%);
+  --gradient-primary-soft: linear-gradient(
+    135deg,
+    rgba(236, 19, 128, 0.1) 0%,
+    rgba(255, 79, 163, 0.06) 100%
+  );
 
   --color-border: rgba(92, 75, 87, 0.12);
   --color-border-strong: rgba(92, 75, 87, 0.2);
@@ -46,14 +56,16 @@
   --border-radius-medium: 12px;
   --border-radius-small: 8px;
 
-  /* 🌫 Sombras */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
-  --shadow-pink: 0 6px 20px rgba(236, 19, 128, 0.18);
+  /* 🌫 Sombras (con tinte de marca, no gris puro) */
+  --shadow-sm: 0 2px 8px rgba(92, 75, 87, 0.06);
+  --shadow-md: 0 10px 28px rgba(92, 75, 87, 0.1);
+  --shadow-lg: 0 18px 40px rgba(92, 75, 87, 0.14);
+  --shadow-pink: 0 8px 22px rgba(236, 19, 128, 0.22);
+  --shadow-pink-strong: 0 14px 32px rgba(236, 19, 128, 0.3);
 
   /* 📏 Layout */
   --container-padding: 24px;
-  --section-gap: 24px;
+  --section-gap: 28px;
 
   /* 📱 Breakpoints de referencia */
   --bp-xs: 360px;
@@ -96,4 +108,21 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--color-primary-vibrant);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
 }

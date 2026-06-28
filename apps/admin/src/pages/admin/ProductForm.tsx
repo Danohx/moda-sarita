@@ -7,6 +7,7 @@ import { categoriaService } from "../../services/categorias.service";
 import { useBreadcrumbContext } from "@shared/hooks/useBreadcrumbContext";
 import AdminBreadcrumbs from "@admin/components/layout/AdminBreadcrumbs";
 import type { BreadcrumbItem } from "@admin/components/layout/AdminBreadcrumbs";
+import { configuracionService } from "@admin/services/configuracion.service";
 
 type CategoriaItem = {
   id: string | number;
@@ -157,7 +158,13 @@ const ProductForm: React.FC = () => {
         setLoading(true);
         setError(null);
 
-        const categorias = await categoriaService.getCategorias();
+        const [categorias, inventoryParams] = await Promise.all([
+          categoriaService.getCategorias(),
+          isEdit
+            ? Promise.resolve([])
+            : configuracionService.getInventoryParams(),
+        ]);
+
         if (!cancelled) {
           setCategories(
             (categorias ?? []).map((categoria) => ({
@@ -165,6 +172,22 @@ const ProductForm: React.FC = () => {
               nombre: categoria.nombre,
             })),
           );
+        }
+
+        if (!cancelled && !isEdit) {
+          const stockMinimoGeneral = configuracionService.getParamNumber(
+            inventoryParams,
+            "inventario.stock_minimo_general",
+            5,
+          );
+
+          setForm((prev) => ({
+            ...prev,
+            variante_base: {
+              ...prev.variante_base,
+              stock_minimo: stockMinimoGeneral,
+            },
+          }));
         }
 
         if (isEdit && id) {
@@ -512,6 +535,21 @@ const ProductForm: React.FC = () => {
                   required
                 />
               </div>
+
+              <div className={styles.field}>
+                <label htmlFor="stock_minimo">Stock mínimo</label>
+                <input
+                  id="stock_minimo"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.variante_base.stock_minimo}
+                  onChange={(e) =>
+                    handleVariantChange("stock_minimo", Number(e.target.value))
+                  }
+                  required
+                />
+              </div>
             </div>
           </section>
         ) : (
@@ -522,61 +560,6 @@ const ProductForm: React.FC = () => {
             </div>
           </section>
         )}
-
-        {/* {!isEdit ? (
-          <section className={styles.card}>
-            <h2 className={styles.title} style={{ fontSize: "1.2rem", margin: 0 }}>
-              Inventario inicial
-            </h2>
-            <p className={styles.subtitle} style={{ marginTop: "-12px" }}>
-              Define el stock con el que inicia esta variante base dentro del sistema.
-            </p>
-
-            <div className={styles.grid}>
-              <div className={styles.field}>
-                <label htmlFor="stock_fisico">Stock físico inicial</label>
-                <input
-                  id="stock_fisico"
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={form.variante_base.stock_fisico}
-                  onChange={(e) =>
-                    handleVariantChange("stock_fisico", Number(e.target.value))
-                  }
-                />
-              </div>
-
-              <div className={styles.field}>
-                <label htmlFor="stock_apartado">Stock apartado</label>
-                <input
-                  id="stock_apartado"
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={form.variante_base.stock_apartado}
-                  onChange={(e) =>
-                    handleVariantChange("stock_apartado", Number(e.target.value))
-                  }
-                />
-              </div>
-
-              <div className={styles.field}>
-                <label htmlFor="stock_minimo">Stock mínimo</label>
-                <input
-                  id="stock_minimo"
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={form.variante_base.stock_minimo}
-                  onChange={(e) =>
-                    handleVariantChange("stock_minimo", Number(e.target.value))
-                  }
-                />
-              </div>
-            </div>
-          </section>
-        ) : null} */}
 
         <div className={styles.footer}>
           {isEdit && id ? (

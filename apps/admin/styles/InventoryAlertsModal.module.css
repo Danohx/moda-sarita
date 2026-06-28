@@ -392,6 +392,48 @@
   transform: translateY(-1px);
 }
 
+.alertItemInfo {
+  background: rgba(59, 130, 246, 0.06);
+}
+
+.statusBarInfo {
+  background: #3b82f6;
+}
+
+.badgeInfo {
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.subtitleBadgeInfo {
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-left: 6px;
+}
+
+.itemMessage {
+  margin: 6px 0 10px;
+  color: var(--color-text);
+  opacity: 0.72;
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.itemIcon {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
 @media (max-width: 480px) {
   .modal {
     max-height: 95vh;
