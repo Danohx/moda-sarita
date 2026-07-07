@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { reportesApi } from "@shared/api/reportes.api";
+import { useAuth } from "@shared/context/AuthContext";
+import { canAccess } from "../../utils/permissions";
 import ReporteMetricCard from "@admin/components/components/reportes/ReporteMetricCard";
 import {
   addDaysYmd,
@@ -46,15 +48,54 @@ type ActiveTab =
 
 type PeriodPreset = "7d" | "30d" | "month" | "custom";
 
-const TABS: { id: ActiveTab; label: string }[] = [
-  { id: "ventas", label: "Ventas" },
-  { id: "productos", label: "Productos" },
-  { id: "inventario", label: "Inventario" },
-  { id: "clientes", label: "Clientes" },
-  { id: "credito", label: "Crédito" },
-  { id: "apartados", label: "Apartados" },
-  { id: "financiero", label: "Financiero" },
-  { id: "cortes", label: "Cortes" },
+const REPORT_PERMISSIONS = {
+  resumen: ["reportes.resumen.view"],
+  ventas: ["reportes.ventas.view"],
+  productos: ["reportes.productos.view"],
+  inventario: ["reportes.inventario.view"],
+  clientes: ["reportes.clientes.view"],
+  credito: ["reportes.credito.view"],
+  apartados: ["reportes.apartados.view"],
+  financiero: ["reportes.financiero.view"],
+  cortes: ["reportes.cortes.view"],
+  export: ["reportes.export"],
+} as const;
+
+type ReportTabConfig = {
+  id: ActiveTab;
+  label: string;
+  permissions: readonly string[];
+};
+
+const TABS: ReportTabConfig[] = [
+  { id: "ventas", label: "Ventas", permissions: REPORT_PERMISSIONS.ventas },
+  {
+    id: "productos",
+    label: "Productos",
+    permissions: REPORT_PERMISSIONS.productos,
+  },
+  {
+    id: "inventario",
+    label: "Inventario",
+    permissions: REPORT_PERMISSIONS.inventario,
+  },
+  {
+    id: "clientes",
+    label: "Clientes",
+    permissions: REPORT_PERMISSIONS.clientes,
+  },
+  { id: "credito", label: "Crédito", permissions: REPORT_PERMISSIONS.credito },
+  {
+    id: "apartados",
+    label: "Apartados",
+    permissions: REPORT_PERMISSIONS.apartados,
+  },
+  {
+    id: "financiero",
+    label: "Financiero",
+    permissions: REPORT_PERMISSIONS.financiero,
+  },
+  { id: "cortes", label: "Cortes", permissions: REPORT_PERMISSIONS.cortes },
 ];
 
 const PERIODS: { id: PeriodPreset; label: string }[] = [
@@ -182,6 +223,8 @@ function getReporteExportable(tab: ActiveTab): ReporteExportable {
 }
 
 export default function AdminReportes() {
+  const { user } = useAuth();
+
   const [activeTab, setActiveTab] = useState<ActiveTab>("ventas");
   const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("30d");
   const [from, setFrom] = useState(addDaysYmd(-30));
@@ -195,6 +238,32 @@ export default function AdminReportes() {
 
   const [exporting, setExporting] = useState<"pdf" | "excel" | null>(null);
 
+  const canViewResumen = canAccess(user, {
+    permissions: REPORT_PERMISSIONS.resumen,
+  });
+
+  const canExportReports = canAccess(user, {
+    permissions: REPORT_PERMISSIONS.export,
+  });
+
+  const visibleTabs = useMemo(() => {
+    return TABS.filter((tab) =>
+      canAccess(user, { permissions: tab.permissions }),
+    );
+  }, [user]);
+
+  const effectiveActiveTab = useMemo<ActiveTab | null>(() => {
+    if (visibleTabs.some((tab) => tab.id === activeTab)) {
+      return activeTab;
+    }
+
+    return visibleTabs[0]?.id ?? null;
+  }, [activeTab, visibleTabs]);
+
+  const activeTabLabel =
+    visibleTabs.find((tab) => tab.id === effectiveActiveTab)?.label ??
+    "Sin acceso";
+
   const filters = useMemo<ReporteFiltros>(
     () => ({
       from,
@@ -206,24 +275,36 @@ export default function AdminReportes() {
     [from, to, groupBy],
   );
 
-  async function loadAll() {
+  const loadAll = useCallback(async () => {
+    if (!canViewResumen && !effectiveActiveTab) {
+      setResumen(null);
+      setTabData(null);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
 
       const [resumenResponse, tabResponse] = await Promise.all([
-        reportesApi.getResumen(filters),
-        getTabData(activeTab, filters),
+        canViewResumen
+          ? reportesApi.getResumen(filters)
+          : Promise.resolve(null),
+        effectiveActiveTab
+          ? getTabData(effectiveActiveTab, filters)
+          : Promise.resolve(null),
       ]);
 
       setResumen(resumenResponse);
       setTabData(tabResponse);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error cargando reportes");
+      setResumen(null);
+      setTabData(null);
     } finally {
       setLoading(false);
     }
-  }
+  }, [canViewResumen, effectiveActiveTab, filters]);
 
   function handlePeriodChange(preset: PeriodPreset) {
     setPeriodPreset(preset);
@@ -234,9 +315,17 @@ export default function AdminReportes() {
   }
 
   async function handleExportPdf() {
+    if (!canExportReports || !effectiveActiveTab) {
+      setError("No tienes permiso para exportar reportes.");
+      return;
+    }
+
     try {
       setExporting("pdf");
-      await reportesApi.exportPdf(getReporteExportable(activeTab), filters);
+      await reportesApi.exportPdf(
+        getReporteExportable(effectiveActiveTab),
+        filters,
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error exportando PDF");
     } finally {
@@ -245,9 +334,17 @@ export default function AdminReportes() {
   }
 
   async function handleExportExcel() {
+    if (!canExportReports || !effectiveActiveTab) {
+      setError("No tienes permiso para exportar reportes.");
+      return;
+    }
+
     try {
       setExporting("excel");
-      await reportesApi.exportExcel(getReporteExportable(activeTab), filters);
+      await reportesApi.exportExcel(
+        getReporteExportable(effectiveActiveTab),
+        filters,
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error exportando Excel");
     } finally {
@@ -257,7 +354,56 @@ export default function AdminReportes() {
 
   useEffect(() => {
     void loadAll();
-  }, [activeTab, filters]);
+  }, [loadAll]);
+
+  const summaryCards = useMemo(
+    () =>
+      [
+        {
+          title: "Ventas totales",
+          value: formatMoney(resumen?.ventas_totales),
+          helper: "Total vendido en el periodo",
+          icon: "VT",
+          permissions: REPORT_PERMISSIONS.ventas,
+        },
+        {
+          title: "Ingresos confirmados",
+          value: formatMoney(resumen?.ingresos_confirmados),
+          helper: "Pagos confirmados",
+          icon: "IC",
+          permissions: REPORT_PERMISSIONS.financiero,
+        },
+        {
+          title: "Ticket promedio",
+          value: formatMoney(resumen?.ticket_promedio),
+          helper: "Promedio por venta",
+          icon: "TP",
+          permissions: REPORT_PERMISSIONS.ventas,
+        },
+        {
+          title: "Productos vendidos",
+          value: formatNumber(resumen?.productos_vendidos),
+          helper: "Unidades vendidas",
+          icon: "PV",
+          permissions: REPORT_PERMISSIONS.productos,
+        },
+        {
+          title: "Bajo stock",
+          value: formatNumber(resumen?.productos_bajo_stock),
+          helper: "Productos/variantes críticas",
+          icon: "BS",
+          permissions: REPORT_PERMISSIONS.inventario,
+        },
+        {
+          title: "Cuentas por cobrar",
+          value: formatMoney(resumen?.saldo_deudor_total),
+          helper: "Saldo pendiente de clientes",
+          icon: "CC",
+          permissions: REPORT_PERMISSIONS.credito,
+        },
+      ].filter((card) => canAccess(user, { permissions: card.permissions })),
+    [resumen, user],
+  );
 
   return (
     <main className={styles.reports}>
@@ -340,153 +486,133 @@ export default function AdminReportes() {
           </label>
         </div>
 
-        <div className={styles.exportButtons}>
-          <button
-            type="button"
-            className={styles.exportBtn}
-            onClick={() => void handleExportPdf()}
-            disabled={exporting !== null}
-          >
-            {exporting === "pdf" ? "Generando PDF..." : "PDF"}
-          </button>
+        {canExportReports && effectiveActiveTab ? (
+          <div className={styles.exportButtons}>
+            <button
+              type="button"
+              className={styles.exportBtn}
+              onClick={() => void handleExportPdf()}
+              disabled={exporting !== null}
+            >
+              {exporting === "pdf" ? "Generando PDF..." : "PDF"}
+            </button>
 
-          <button
-            type="button"
-            className={styles.exportBtn}
-            onClick={() => void handleExportExcel()}
-            disabled={exporting !== null}
-          >
-            {exporting === "excel" ? "Generando Excel..." : "Excel"}
-          </button>
-        </div>
+            <button
+              type="button"
+              className={styles.exportBtn}
+              onClick={() => void handleExportExcel()}
+              disabled={exporting !== null}
+            >
+              {exporting === "excel" ? "Generando Excel..." : "Excel"}
+            </button>
+          </div>
+        ) : null}
       </section>
 
       {error ? <section className={styles.errorBox}>{error}</section> : null}
 
-      <section className={styles.summaryGrid}>
-        <ReporteMetricCard
-          title="Ventas totales"
-          value={formatMoney(resumen?.ventas_totales)}
-          helper="Total vendido en el periodo"
-          icon="VT"
-        />
-
-        <ReporteMetricCard
-          title="Ingresos confirmados"
-          value={formatMoney(resumen?.ingresos_confirmados)}
-          helper="Pagos confirmados"
-          icon="IC"
-        />
-
-        <ReporteMetricCard
-          title="Ticket promedio"
-          value={formatMoney(resumen?.ticket_promedio)}
-          helper="Promedio por venta"
-          icon="TP"
-        />
-
-        <ReporteMetricCard
-          title="Productos vendidos"
-          value={formatNumber(resumen?.productos_vendidos)}
-          helper="Unidades vendidas"
-          icon="PV"
-        />
-
-        <ReporteMetricCard
-          title="Bajo stock"
-          value={formatNumber(resumen?.productos_bajo_stock)}
-          helper="Productos/variantes críticas"
-          icon="BS"
-        />
-
-        <ReporteMetricCard
-          title="Cuentas por cobrar"
-          value={formatMoney(resumen?.saldo_deudor_total)}
-          helper="Saldo pendiente de clientes"
-          icon="CC"
-        />
-      </section>
-
-      <nav className={styles.tabs}>
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setActiveTab(tab.id)}
-            className={`${styles.tabButton} ${
-              activeTab === tab.id ? styles.tabActive : ""
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </nav>
-
-      <section className={styles.contentCard}>
-        <header className={styles.contentHeader}>
-          <h2 className={styles.contentTitle}>
-            {TABS.find((tab) => tab.id === activeTab)?.label}
-          </h2>
-        </header>
-
-        <div className={styles.contentBody}>
-          {activeTab === "ventas" ? (
-            <VentasTab
-              data={isVentasTabData(tabData) ? tabData : null}
-              loading={loading}
+      {canViewResumen && summaryCards.length > 0 ? (
+        <section className={styles.summaryGrid}>
+          {summaryCards.map((card) => (
+            <ReporteMetricCard
+              key={card.title}
+              title={card.title}
+              value={card.value}
+              helper={card.helper}
+              icon={card.icon}
             />
-          ) : null}
+          ))}
+        </section>
+      ) : null}
 
-          {activeTab === "productos" ? (
-            <ProductosTab
-              data={isProductosTabData(tabData) ? tabData : null}
-              loading={loading}
-            />
-          ) : null}
+      {visibleTabs.length > 0 ? (
+        <nav className={styles.tabs}>
+          {visibleTabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`${styles.tabButton} ${
+                effectiveActiveTab === tab.id ? styles.tabActive : ""
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      ) : null}
 
-          {activeTab === "inventario" ? (
-            <InventarioTab
-              data={isInventarioTabData(tabData) ? tabData : null}
-              loading={loading}
-            />
-          ) : null}
+      {visibleTabs.length === 0 ? (
+        <section className={styles.errorBox}>
+          No tienes permisos para consultar reportes específicos.
+        </section>
+      ) : null}
 
-          {activeTab === "clientes" ? (
-            <ClientesTab
-              data={isClientesTabData(tabData) ? tabData : null}
-              loading={loading}
-            />
-          ) : null}
+      {effectiveActiveTab ? (
+        <section className={styles.contentCard}>
+          <header className={styles.contentHeader}>
+            <h2 className={styles.contentTitle}>{activeTabLabel}</h2>
+          </header>
 
-          {activeTab === "credito" ? (
-            <CreditoTab
-              data={isCreditoTabData(tabData) ? tabData : null}
-              loading={loading}
-            />
-          ) : null}
+          <div className={styles.contentBody}>
+            {effectiveActiveTab === "ventas" ? (
+              <VentasTab
+                data={isVentasTabData(tabData) ? tabData : null}
+                loading={loading}
+              />
+            ) : null}
 
-          {activeTab === "apartados" ? (
-            <ApartadosTab
-              data={isApartadosTabData(tabData) ? tabData : null}
-              loading={loading}
-            />
-          ) : null}
+            {effectiveActiveTab === "productos" ? (
+              <ProductosTab
+                data={isProductosTabData(tabData) ? tabData : null}
+                loading={loading}
+              />
+            ) : null}
 
-          {activeTab === "financiero" ? (
-            <FinancieroTab
-              data={isFinancieroTabData(tabData) ? tabData : null}
-              loading={loading}
-            />
-          ) : null}
+            {effectiveActiveTab === "inventario" ? (
+              <InventarioTab
+                data={isInventarioTabData(tabData) ? tabData : null}
+                loading={loading}
+              />
+            ) : null}
 
-          {activeTab === "cortes" ? (
-            <CortesTab
-              data={isCortesTabData(tabData) ? tabData : null}
-              loading={loading}
-            />
-          ) : null}
-        </div>
-      </section>
+            {effectiveActiveTab === "clientes" ? (
+              <ClientesTab
+                data={isClientesTabData(tabData) ? tabData : null}
+                loading={loading}
+              />
+            ) : null}
+
+            {effectiveActiveTab === "credito" ? (
+              <CreditoTab
+                data={isCreditoTabData(tabData) ? tabData : null}
+                loading={loading}
+              />
+            ) : null}
+
+            {effectiveActiveTab === "apartados" ? (
+              <ApartadosTab
+                data={isApartadosTabData(tabData) ? tabData : null}
+                loading={loading}
+              />
+            ) : null}
+
+            {effectiveActiveTab === "financiero" ? (
+              <FinancieroTab
+                data={isFinancieroTabData(tabData) ? tabData : null}
+                loading={loading}
+              />
+            ) : null}
+
+            {effectiveActiveTab === "cortes" ? (
+              <CortesTab
+                data={isCortesTabData(tabData) ? tabData : null}
+                loading={loading}
+              />
+            ) : null}
+          </div>
+        </section>
+      ) : null}
     </main>
   );
 }

@@ -221,4 +221,57 @@ export const API_ENDPOINTS = {
       excel: "/reportes/export/excel",
     },
   },
+  contenido: {
+    paginasAdmin: "/contenido/admin/paginas",
+    paginaById: (id: string) => `/contenido/admin/paginas/${id}`,
+    paginaAdminById: (id: string) => `/contenido/admin/paginas/by-id/${id}`,
+    paginaAdminByClave: (clave: string) =>
+      `/contenido/admin/paginas/by-clave/${clave}`,
+
+    paginaStatus: (id: string) => `/contenido/admin/paginas/${id}/status`,
+    paginaPublicacion: (id: string) =>
+      `/contenido/admin/paginas/${id}/publicacion`,
+    paginaVersiones: (id: string) => `/contenido/admin/paginas/${id}/versiones`,
+    restaurarPaginaVersion: (id: string, versionId: string) =>
+      `/contenido/admin/paginas/${id}/versiones/${versionId}/restaurar`,
+
+    paginaPublica: (clave: string) => `/contenido/public/paginas/${clave}`,
+
+    faqsAdmin: "/contenido/admin/faqs",
+    faqById: (id: string) => `/contenido/admin/faqs/${id}`,
+    faqStatus: (id: string) => `/contenido/admin/faqs/${id}/status`,
+    faqPublicacion: (id: string) => `/contenido/admin/faqs/${id}/publicacion`,
+    faqsReorder: "/contenido/admin/faqs/reorder",
+
+    faqsPublicas: "/contenido/public/faqs",
+  },
+  contacto: {
+    mensajesAdmin: "/contacto/admin/mensajes",
+    mensajesResumen: "/contacto/admin/mensajes/resumen",
+    mensajeById: (id: string) => `/contacto/admin/mensajes/${id}`,
+    mensajeStatus: (id: string) => `/contacto/admin/mensajes/${id}/status`,
+    mensajeNotas: (id: string) => `/contacto/admin/mensajes/${id}/notas`,
+    mensajeResponder: (id: string) =>
+      `/contacto/admin/mensajes/${id}/responder`,
+
+    mensajePublico: "/contacto/public/mensajes",
+  },
+  marketing: {
+    suscripciones: "/marketing/admin/suscripciones",
+    suscripcionById: (id: string) => `/marketing/admin/suscripciones/${id}`,
+    suscripcionStatus: (id: string) =>
+      `/marketing/admin/suscripciones/${id}/status`,
+
+    cupones: "/marketing/admin/cupones",
+    cuponById: (id: string) => `/marketing/admin/cupones/${id}`,
+    cuponStatus: (id: string) => `/marketing/admin/cupones/${id}/status`,
+
+    segmentos: "/marketing/admin/segmentos",
+    segmentoById: (id: string) => `/marketing/admin/segmentos/${id}`,
+
+    plantillas: "/marketing/admin/plantillas",
+    plantillaById: (id: string) => `/marketing/admin/plantillas/${id}`,
+    plantillaTestSend: (id: string) =>
+      `/marketing/admin/plantillas/${id}/test-send`,
+  },
 } as const;

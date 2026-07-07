@@ -22,6 +22,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@shared/context/AuthContext";
 import { authApi } from "@shared/api/auth.api";
+import { canAccess } from "../../utils/permissions";
 
 type LoginStep = "credentials" | "2fa";
 
@@ -70,12 +71,12 @@ const AdminLogin: React.FC = () => {
     setTwoFactorCode(onlyDigits);
   };
 
-  const validateUserRole = async () => {
+  const validatePanelAccess = async () => {
     const user = await authApi.me();
-    const rol = String(user?.rol ?? "").toLowerCase();
 
-    const allowedRoles = ["admin", "administrador", "empleado"];
-    const hasAccess = allowedRoles.includes(rol);
+    const hasAccess = canAccess(user, {
+      permissions: "panel.admin.access",
+    });
 
     if (!hasAccess) {
       await authApi.logout();
@@ -120,7 +121,7 @@ const AdminLogin: React.FC = () => {
         return;
       }
 
-      await validateUserRole();
+      await validatePanelAccess();
       navigate("/dashboard", { replace: true });
     } catch (err) {
       const message =
@@ -154,11 +155,13 @@ const AdminLogin: React.FC = () => {
         otpCode: twoFactorCode.trim(),
       });
 
-      await validateUserRole();
+      await validatePanelAccess();
       navigate("/dashboard", { replace: true });
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : "No se pudo verificar el código 2FA";
+        err instanceof Error
+          ? err.message
+          : "No se pudo verificar el código 2FA";
       setError(message);
     } finally {
       setLoading(false);

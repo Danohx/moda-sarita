@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from "react";
 import { X, Search, User, Phone, Mail, Check, AlertCircle } from "lucide-react";
 import styles from "../../../styles/ModalCliente.module.css";
+import { useAuth } from "@shared/context/AuthContext";
+import { canAccess } from "../../utils/permissions";
 
 export interface ClientePOS {
   id?: string | number;
@@ -24,7 +26,13 @@ interface ModalClienteProps {
   cargando?: boolean;
 }
 
-const FORM_INITIAL = { nombres: "", apellido_paterno: "", apellido_materno: "", telefono: "", email: "" };
+const FORM_INITIAL = {
+  nombres: "",
+  apellido_paterno: "",
+  apellido_materno: "",
+  telefono: "",
+  email: "",
+};
 
 export const ModalCliente: React.FC<ModalClienteProps> = ({
   isOpen,
@@ -35,9 +43,21 @@ export const ModalCliente: React.FC<ModalClienteProps> = ({
   onCerrar,
   cargando = false,
 }) => {
+  const { user } = useAuth();
+
+  const canReadCustomers = canAccess(user, {
+    permissions: "clientes.clientes.read",
+  });
+
+  const canCreateCustomers = canAccess(user, {
+    permissions: "clientes.clientes.create",
+  });
+
   const [vista, setVista] = useState<"buscar" | "crear">("buscar");
   const [busqueda, setBusqueda] = useState("");
-  const [seleccionado, setSeleccionado] = useState<ClientePOS | null>(clienteActual);
+  const [seleccionado, setSeleccionado] = useState<ClientePOS | null>(
+    clienteActual,
+  );
   const [errorFormulario, setErrorFormulario] = useState<string | null>(null);
   const [formData, setFormData] = useState(FORM_INITIAL);
 
@@ -52,17 +72,23 @@ export const ModalCliente: React.FC<ModalClienteProps> = ({
     }
   }, [isOpen, clienteActual]);
 
-  
+  React.useEffect(() => {
+    if (vista === "crear" && !canCreateCustomers) {
+      setVista("buscar");
+    }
+  }, [canCreateCustomers, vista]);
+
   const getNombreCompleto = (c: ClientePOS) =>
     `${c.nombres || ""} ${c.apellido_paterno || ""} ${c.apellido_materno || ""}`.trim();
-  
+
   const iniciales = (c: ClientePOS) =>
     `${c.nombres?.charAt(0) ?? ""}${c.apellido_paterno?.charAt(0) ?? ""}`.toUpperCase();
-  
+
   const clientesFiltrados = useMemo(() => {
     const q = busqueda.toLowerCase().trim();
-    if (!q) return clientes;
-    return clientes.filter((c) => {
+    const visibleClientes = canReadCustomers ? clientes : [];
+    if (!q) return visibleClientes;
+    return visibleClientes.filter((c) => {
       const nombre = getNombreCompleto(c).toLowerCase();
       return (
         nombre.includes(q) ||
@@ -70,10 +96,10 @@ export const ModalCliente: React.FC<ModalClienteProps> = ({
         (c.email && c.email.toLowerCase().includes(q))
       );
     });
-  }, [busqueda, clientes]);
-  
+  }, [busqueda, canReadCustomers, clientes]);
+
   if (!isOpen) return null;
-  
+
   const handleConfirmar = () => {
     onSeleccionar(seleccionado);
     onCerrar();
@@ -86,6 +112,11 @@ export const ModalCliente: React.FC<ModalClienteProps> = ({
   const handleSubmitCrear = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorFormulario(null);
+
+    if (!canCreateCustomers) {
+      setErrorFormulario("No tienes permiso para crear clientes.");
+      return;
+    }
 
     if (!formData.nombres.trim() || !formData.apellido_paterno.trim()) {
       setErrorFormulario("Nombres y apellido paterno son obligatorios.");
@@ -116,14 +147,18 @@ export const ModalCliente: React.FC<ModalClienteProps> = ({
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
           <div className={styles.headerLeft}>
-            <div className={styles.headerIcon}><User size={16} /></div>
+            <div className={styles.headerIcon}>
+              <User size={16} />
+            </div>
             <div>
               <h2 className={styles.titulo}>
-                {vista === "buscar" ? "Seleccionar cliente" : "Nuevo cliente rápido"}
+                {vista === "buscar"
+                  ? "Seleccionar cliente"
+                  : "Nuevo cliente rápido"}
               </h2>
               <p className={styles.subtitulo}>
                 {vista === "buscar"
-                  ? `${clientes.length} clientes registrados`
+                  ? `${canReadCustomers ? clientes.length : 0} clientes registrados`
                   : "Completa los datos básicos"}
               </p>
             </div>
@@ -141,13 +176,18 @@ export const ModalCliente: React.FC<ModalClienteProps> = ({
           >
             Buscar
           </button>
-          <button
-            type="button"
-            className={`${styles.tab} ${vista === "crear" ? styles.tabActivo : ""}`}
-            onClick={() => { setVista("crear"); setErrorFormulario(null); }}
-          >
-            Nuevo cliente
-          </button>
+          {canCreateCustomers && (
+            <button
+              type="button"
+              className={`${styles.tab} ${vista === "crear" ? styles.tabActivo : ""}`}
+              onClick={() => {
+                setVista("crear");
+                setErrorFormulario(null);
+              }}
+            >
+              Nuevo cliente
+            </button>
+          )}
         </div>
 
         {vista === "buscar" && (
@@ -177,11 +217,17 @@ export const ModalCliente: React.FC<ModalClienteProps> = ({
                   <User size={14} />
                 </div>
                 <div className={styles.clienteInfo}>
-                  <span className={styles.clienteNombre}>Venta al público general</span>
-                  <span className={styles.clienteDetalle}>Sin datos específicos</span>
+                  <span className={styles.clienteNombre}>
+                    Venta al público general
+                  </span>
+                  <span className={styles.clienteDetalle}>
+                    Sin datos específicos
+                  </span>
                 </div>
                 {seleccionado === null && (
-                  <span className={styles.checkIcon}><Check size={11} /></span>
+                  <span className={styles.checkIcon}>
+                    <Check size={11} />
+                  </span>
                 )}
               </button>
 
@@ -198,7 +244,9 @@ export const ModalCliente: React.FC<ModalClienteProps> = ({
                 >
                   <div className={styles.avatar}>{iniciales(c)}</div>
                   <div className={styles.clienteInfo}>
-                    <span className={styles.clienteNombre}>{getNombreCompleto(c)}</span>
+                    <span className={styles.clienteNombre}>
+                      {getNombreCompleto(c)}
+                    </span>
                     <div className={styles.clienteMeta}>
                       {c.telefono && (
                         <span className={styles.clienteDetalle}>
@@ -213,7 +261,9 @@ export const ModalCliente: React.FC<ModalClienteProps> = ({
                     </div>
                   </div>
                   {seleccionado?.id === c.id && (
-                    <span className={styles.checkIcon}><Check size={11} /></span>
+                    <span className={styles.checkIcon}>
+                      <Check size={11} />
+                    </span>
                   )}
                 </button>
               ))}
@@ -221,13 +271,15 @@ export const ModalCliente: React.FC<ModalClienteProps> = ({
               {clientesFiltrados.length === 0 && busqueda && (
                 <div className={styles.emptyBusqueda}>
                   <p>Sin resultados para "{busqueda}"</p>
-                  <button
-                    type="button"
-                    className={styles.crearDesdeEmpty}
-                    onClick={() => setVista("crear")}
-                  >
-                    Crear cliente ahora
-                  </button>
+                  {canCreateCustomers && (
+                    <button
+                      type="button"
+                      className={styles.crearDesdeEmpty}
+                      onClick={() => setVista("crear")}
+                    >
+                      Crear cliente ahora
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -236,21 +288,33 @@ export const ModalCliente: React.FC<ModalClienteProps> = ({
               <button
                 type="button"
                 className={styles.cancelarBtn}
-                onClick={() => { onSeleccionar(null); onCerrar(); }}
+                onClick={() => {
+                  onSeleccionar(null);
+                  onCerrar();
+                }}
               >
                 Quitar cliente
               </button>
-              <button type="button" className={styles.confirmarBtn} onClick={handleConfirmar}>
+              <button
+                type="button"
+                className={styles.confirmarBtn}
+                onClick={handleConfirmar}
+              >
                 <Check size={14} /> Confirmar
               </button>
             </div>
           </>
         )}
 
-        {vista === "crear" && (
+        {vista === "crear" && canCreateCustomers && (
           <form
             onSubmit={handleSubmitCrear}
-            style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              flex: 1,
+              overflow: "hidden",
+            }}
           >
             <div className={styles.formView}>
               {errorFormulario && (
@@ -329,7 +393,11 @@ export const ModalCliente: React.FC<ModalClienteProps> = ({
               >
                 Cancelar
               </button>
-              <button type="submit" className={styles.guardarBtn} disabled={cargando}>
+              <button
+                type="submit"
+                className={styles.guardarBtn}
+                disabled={cargando || !canCreateCustomers}
+              >
                 {cargando ? "Guardando..." : "Guardar cliente"}
               </button>
             </div>

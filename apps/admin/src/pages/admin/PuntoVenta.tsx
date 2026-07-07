@@ -13,6 +13,8 @@ import {
   RefreshCw,
 } from "lucide-react";
 import styles from "../../../styles/PuntoVenta.module.css";
+import { useAuth } from "@shared/context/AuthContext";
+import { canAccess } from "../../utils/permissions";
 import type { Producto } from "@shared/api/productos.api";
 import { productosService } from "@admin/services/productos.service";
 import { categoriaService } from "@admin/services/categorias.service";
@@ -111,6 +113,41 @@ const CURRENCY_FORMATTER = new Intl.NumberFormat("es-MX", {
 const formatMoneda = (valor: number) => CURRENCY_FORMATTER.format(valor);
 
 export const POS: React.FC = () => {
+  const { user } = useAuth();
+
+  const canUsePOS = canAccess(user, {
+    permissions: ["ventas.pedidos.create", "inventario.productos.read"],
+    mode: "all",
+  });
+
+  const canCreateSales = canAccess(user, {
+    permissions: "ventas.pedidos.create",
+  });
+
+  const canCreatePayments = canAccess(user, {
+    permissions: "ventas.pagos.create",
+  });
+
+  const canReadProducts = canAccess(user, {
+    permissions: "inventario.productos.read",
+  });
+
+  const canReadCategories = canAccess(user, {
+    permissions: "inventario.categorias.read",
+  });
+
+  const canReadClients = canAccess(user, {
+    permissions: "clientes.clientes.read",
+  });
+
+  const canCreateClients = canAccess(user, {
+    permissions: "clientes.clientes.create",
+  });
+
+  const canReadCashCut = canAccess(user, {
+    permissions: "ventas.corte_caja.read",
+  });
+
   const [busqueda, setBusqueda] = useState("");
   const [carrito, setCarrito] = useState<CarritoItem[]>([]);
   const [cliente, setCliente] = useState<ClientePOS | null>(null);
@@ -208,6 +245,17 @@ export const POS: React.FC = () => {
 
   const loadProducts = useCallback(
     async (isRefresh = false) => {
+      if (!canReadProducts) {
+        setProducts([]);
+        setCategories([]);
+        setLoading(false);
+        setRefreshing(false);
+        setError(
+          "No tienes permiso para consultar productos en el punto de venta.",
+        );
+        return;
+      }
+
       try {
         setError(null);
 
@@ -219,7 +267,9 @@ export const POS: React.FC = () => {
 
         const [productos, categorias] = await Promise.all([
           productosService.getList(),
-          categoriaService.getCategorias(),
+          canReadCategories
+            ? categoriaService.getCategorias()
+            : Promise.resolve([]),
         ]);
         const normalizedProducts = normalizeProducts(productos, categorias);
         setProducts(normalizedProducts);
@@ -234,7 +284,7 @@ export const POS: React.FC = () => {
         setRefreshing(false);
       }
     },
-    [buildCategories, normalizeProducts],
+    [buildCategories, canReadCategories, canReadProducts, normalizeProducts],
   );
 
   const getStockDisponible = (variante: VarianteItem) =>
@@ -307,6 +357,11 @@ export const POS: React.FC = () => {
 
   const handleOpenVariantes = useCallback(
     async (producto: ProductoItem) => {
+      if (!canCreateSales || !canReadProducts) {
+        setError("No tienes permiso para agregar productos a una venta.");
+        return;
+      }
+
       try {
         setCargandoVariantes(true);
         setError(null);
@@ -329,7 +384,7 @@ export const POS: React.FC = () => {
         setCargandoVariantes(false);
       }
     },
-    [mapVariantesToModal],
+    [canCreateSales, canReadProducts, mapVariantesToModal],
   );
 
   const handleAgregarVariante = useCallback(
@@ -338,6 +393,11 @@ export const POS: React.FC = () => {
       variantesSeleccionadas: Record<string, string>,
       cantidad: number,
     ) => {
+      if (!canCreateSales) {
+        setError("No tienes permiso para modificar el carrito de venta.");
+        return;
+      }
+
       const tallaId = variantesSeleccionadas.Talla
         ? Number(variantesSeleccionadas.Talla)
         : null;
@@ -406,21 +466,31 @@ export const POS: React.FC = () => {
       setProductoModal(null);
       setVariantesActuales([]);
     },
-    [productoModal, variantesActuales],
+    [canCreateSales, productoModal, variantesActuales],
   );
 
   const loadClientes = useCallback(async () => {
+    if (!canReadClients) {
+      setClientesLista([]);
+      return;
+    }
+
     try {
       const data = await clientesService.getList();
       setClientesLista((data || []) as ClientePOS[]);
     } catch (err) {
       console.error("Error cargando clientes", err);
     }
-  }, []);
+  }, [canReadClients]);
 
   const handleCrearClientePOS = async (
     nuevoClienteData: Omit<ClientePOS, "id">,
   ) => {
+    if (!canCreateClients) {
+      setError("No tienes permiso para crear clientes desde el POS.");
+      return;
+    }
+
     setCargandoCliente(true);
     try {
       type CreateClientePayload = Parameters<typeof clientesService.create>[0];
@@ -444,6 +514,11 @@ export const POS: React.FC = () => {
   };
 
   const handlePagarVenta = async () => {
+    if (!canCreateSales || !canCreatePayments) {
+      setError("No tienes permiso para registrar ventas o pagos.");
+      return;
+    }
+
     try {
       setProcesandoPago(true);
       setError(null);
@@ -688,6 +763,11 @@ export const POS: React.FC = () => {
   }, []);
 
   const handleAbrirCheckout = useCallback(() => {
+    if (!canCreateSales || !canCreatePayments) {
+      setError("No tienes permiso para procesar pagos.");
+      return;
+    }
+
     if (carrito.length === 0) {
       setError("Agrega productos al carrito antes de cobrar.");
       return;
@@ -696,10 +776,15 @@ export const POS: React.FC = () => {
     setReferenciaExterna("");
     setMontoRecibido(total);
     setModalCheckoutAbierto(true);
-  }, [carrito.length, total]);
+  }, [canCreatePayments, canCreateSales, carrito.length, total]);
 
   useEffect(() => {
     const init = async () => {
+      if (!canReadCashCut) {
+        setEstadoCaja(true);
+        return;
+      }
+
       const corte = await ventasService.getCorteActual();
       setEstadoCaja(Boolean(corte));
     };
@@ -708,7 +793,28 @@ export const POS: React.FC = () => {
     loadMetodosPagoPOS();
 
     init();
-  }, [loadProducts, loadClientes, loadMetodosPagoPOS]);
+  }, [canReadCashCut, loadProducts, loadClientes, loadMetodosPagoPOS]);
+
+  if (!canUsePOS) {
+    return (
+      <div className={styles.pos}>
+        <div className={styles.header}>
+          <h1 className={styles.title}>Punto de Venta</h1>
+        </div>
+        <div className={styles.cajaCerradaState}>
+          <div className={styles.cajaCerradaCard}>
+            <div className={styles.cajaCerradaIcono}>
+              <Package size={36} />
+            </div>
+            <h2 className={styles.cajaCerradaTitulo}>Acceso restringido</h2>
+            <p className={styles.cajaCerradaDesc}>
+              No tienes permisos para operar el punto de venta.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.pos}>
@@ -1080,7 +1186,12 @@ export const POS: React.FC = () => {
               <div className={styles.acciones}>
                 <button
                   className={styles.procesarBtn}
-                  disabled={carrito.length === 0 || procesandoPago}
+                  disabled={
+                    carrito.length === 0 ||
+                    procesandoPago ||
+                    !canCreateSales ||
+                    !canCreatePayments
+                  }
                   type="button"
                   onClick={handleAbrirCheckout}
                 >
@@ -1090,13 +1201,21 @@ export const POS: React.FC = () => {
 
                 <button
                   className={styles.apartarBtn}
-                  disabled={carrito.length === 0 || procesandoApartado}
+                  disabled={
+                    carrito.length === 0 ||
+                    procesandoApartado ||
+                    !canCreateSales
+                  }
                   type="button"
                   onClick={() => {
                     if (!cliente) {
                       alert(
                         "Debes seleccionar un cliente para poder crear un apartado!",
                       );
+                      return;
+                    }
+                    if (!canCreateSales) {
+                      setError("No tienes permiso para crear apartados.");
                       return;
                     }
                     setModalApartadoAbierto(true);

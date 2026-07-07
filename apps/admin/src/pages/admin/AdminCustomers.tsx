@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Box, Button, Typography } from "@mui/material";
+import { Alert, Box, Button, Typography } from "@mui/material";
 import { Add } from "@mui/icons-material";
 import styles from "../../../styles/AdminCustomers.module.css";
 import CustomerStatsSection from "@admin/components/components/CustomerStatsSection";
@@ -9,6 +9,8 @@ import CustomerFormDialog from "@admin/components/components/CustomerFormDialog"
 import { clientesService } from "@admin/services/clientes.service";
 import { useErrorAlert } from "@admin/components/layout/useErrorAlert";
 import ErrorAlert from "@admin/components/layout/ErrorAlert";
+import { useAuth } from "@shared/context/AuthContext";
+import { canAccess } from "../../utils/permissions";
 
 export type CustomerStatus = "active" | "inactive";
 
@@ -22,10 +24,18 @@ export type Cliente = {
   status: CustomerStatus;
   joinDate: string;
   address?: string;
+  lastPurchase?: string;
   totalPurchases?: number;
   totalLayaways?: number;
   totalSpent?: number;
 };
+
+const CUSTOMER_PERMISSIONS = {
+  customersRead: "clientes.clientes.read",
+  customersCreate: "clientes.clientes.create",
+  customersUpdate: "clientes.clientes.update",
+  creditManage: "clientes.clientes.credito.manage",
+} as const;
 
 function formatMoneda(valor: number) {
   return new Intl.NumberFormat("es-MX", {
@@ -35,6 +45,24 @@ function formatMoneda(valor: number) {
 }
 
 const AdminCustomers: React.FC = () => {
+  const { user } = useAuth();
+
+  const canReadCustomers = canAccess(user, {
+    permissions: CUSTOMER_PERMISSIONS.customersRead,
+  });
+
+  const canCreateCustomers = canAccess(user, {
+    permissions: CUSTOMER_PERMISSIONS.customersCreate,
+  });
+
+  const canUpdateCustomers = canAccess(user, {
+    permissions: CUSTOMER_PERMISSIONS.customersUpdate,
+  });
+
+  const canManageCredit = canAccess(user, {
+    permissions: CUSTOMER_PERMISSIONS.creditManage,
+  });
+
   const [openCustomerModal, setOpenCustomerModal] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Cliente | null>(
     null,
@@ -54,15 +82,27 @@ const AdminCustomers: React.FC = () => {
     "all" | "with_debt" | "without_debt"
   >("all");
 
-  const { state: alertState, hide: hideAlert, showError, showSuccess } = useErrorAlert();
+  const {
+    state: alertState,
+    hide: hideAlert,
+    showError,
+    showSuccess,
+  } = useErrorAlert();
 
   const load = useCallback(async () => {
+    if (!canReadCustomers) {
+      setCustomers([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       const data = await clientesService.getList();
 
       const normalized: Cliente[] = data.map((c: unknown) => {
         const item = c as Record<string, unknown>;
+
         return {
           id: String(item.id || ""),
           name: String(
@@ -96,14 +136,23 @@ const AdminCustomers: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [canReadCustomers]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    if (!canManageCredit) {
+      setCreditFilter("all");
+      setDebtFilter("all");
+    }
+  }, [canManageCredit]);
+
   const customersFiltrados = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
+    const effectiveCreditFilter = canManageCredit ? creditFilter : "all";
+    const effectiveDebtFilter = canManageCredit ? debtFilter : "all";
 
     return customers.filter((c) => {
       const matchQ =
@@ -116,48 +165,75 @@ const AdminCustomers: React.FC = () => {
         statusFilter === "all" ? true : c.status === statusFilter;
 
       const matchCredit =
-        creditFilter === "all"
+        effectiveCreditFilter === "all"
           ? true
-          : creditFilter === "with_credit"
+          : effectiveCreditFilter === "with_credit"
             ? c.creditLimit > 0
             : c.creditLimit === 0;
+
       const matchDebt =
-        debtFilter === "all"
+        effectiveDebtFilter === "all"
           ? true
-          : debtFilter === "with_debt"
+          : effectiveDebtFilter === "with_debt"
             ? c.currentBalance > 0
             : c.currentBalance === 0;
 
       return matchQ && matchStatus && matchCredit && matchDebt;
     });
-  }, [customers, searchTerm, statusFilter, creditFilter, debtFilter]);
+  }, [
+    canManageCredit,
+    customers,
+    searchTerm,
+    statusFilter,
+    creditFilter,
+    debtFilter,
+  ]);
 
   const estadisticas = useMemo(() => {
     const totalClientes = customers.length;
     const clientesActivos = customers.filter(
       (c) => c.status === "active",
     ).length;
-    const clientesConCredito = customers.filter(
-      (c) => c.creditLimit > 0,
-    ).length;
-    const saldoTotal = customers.reduce((sum, c) => sum + c.currentBalance, 0);
+
+    const clientesConCredito = canManageCredit
+      ? customers.filter((c) => c.creditLimit > 0).length
+      : 0;
+
+    const saldoTotal = canManageCredit
+      ? customers.reduce((sum, c) => sum + c.currentBalance, 0)
+      : 0;
 
     return { totalClientes, clientesActivos, clientesConCredito, saldoTotal };
-  }, [customers]);
+  }, [canManageCredit, customers]);
 
   const handleViewCustomer = (customer: Cliente) => {
+    if (!canReadCustomers) {
+      showError("No tienes permiso para consultar clientes.");
+      return;
+    }
+
     setSelectedCustomer(customer);
     setIsEditMode(false);
     setOpenCustomerModal(true);
   };
 
   const handleEditCustomer = (customer: Cliente) => {
+    if (!canUpdateCustomers) {
+      showError("No tienes permiso para editar clientes.");
+      return;
+    }
+
     setSelectedCustomer(customer);
     setIsEditMode(true);
     setOpenCustomerModal(true);
   };
 
   const handleNuevoCliente = () => {
+    if (!canCreateCustomers) {
+      showError("No tienes permiso para crear clientes.");
+      return;
+    }
+
     setSelectedCustomer(null);
     setIsEditMode(true);
     setOpenCustomerModal(true);
@@ -169,6 +245,22 @@ const AdminCustomers: React.FC = () => {
     setIsEditMode(false);
   };
 
+  if (!canReadCustomers) {
+    return (
+      <Box className={styles.root}>
+        <Box className={styles.header}>
+          <Typography variant="h4" className={styles.title}>
+            Gestión de Clientes
+          </Typography>
+        </Box>
+
+        <Alert severity="warning">
+          No tienes permisos para consultar clientes.
+        </Alert>
+      </Box>
+    );
+  }
+
   return (
     <Box className={styles.root}>
       <Box className={styles.header}>
@@ -176,14 +268,16 @@ const AdminCustomers: React.FC = () => {
           Gestión de Clientes
         </Typography>
 
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          className={styles.primaryButton}
-          onClick={handleNuevoCliente}
-        >
-          Nuevo cliente
-        </Button>
+        {canCreateCustomers && (
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            className={styles.primaryButton}
+            onClick={handleNuevoCliente}
+          >
+            Nuevo cliente
+          </Button>
+        )}
       </Box>
 
       <CustomerStatsSection
@@ -210,6 +304,8 @@ const AdminCustomers: React.FC = () => {
         customers={customersFiltrados}
         loading={loading}
         formatMoneda={formatMoneda}
+        canEdit={canUpdateCustomers}
+        canManageCredit={canManageCredit}
         onView={handleViewCustomer}
         onEdit={handleEditCustomer}
       />

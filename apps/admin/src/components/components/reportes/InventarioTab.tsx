@@ -68,18 +68,14 @@ function getEstadoInventario(item: ReporteInventarioCritico): {
   };
 }
 
-function ProductImage({
-  src,
-  alt,
-}: {
-  src?: string | null;
-  alt: string;
-}) {
+function ProductImage({ src, alt }: { src?: string | null; alt: string }) {
   if (!src) {
     return <div className={styles.productPlaceholder}>{getInitials(alt)}</div>;
   }
 
-  return <img className={styles.productImage} src={src} alt={alt} loading="lazy" />;
+  return (
+    <img className={styles.productImage} src={src} alt={alt} loading="lazy" />
+  );
 }
 
 function InventarioMetricCard({
@@ -100,13 +96,7 @@ function InventarioMetricCard({
   );
 }
 
-function MovimientoCard({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
+function MovimientoCard({ label, value }: { label: string; value: string }) {
   return (
     <article className={styles.movementCard}>
       <p className={styles.movementLabel}>{label}</p>
@@ -274,7 +264,8 @@ export default function InventarioTab({ data, loading }: InventarioTabProps) {
         <header className={styles.cardHeader}>
           <h3 className={styles.cardTitle}>Movimientos del periodo</h3>
           <p className={styles.cardSubtitle}>
-            Entradas, salidas y ajustes registrados dentro del rango seleccionado.
+            Entradas, salidas y ajustes registrados dentro del rango
+            seleccionado.
           </p>
         </header>
 

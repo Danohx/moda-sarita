@@ -262,8 +262,36 @@
   font-family: var(--font-primary) !important;
 }
 
+.roleDialogPaper {
+  width: min(1180px, calc(100vw - 40px)) !important;
+  max-height: calc(100vh - 48px) !important;
+}
+
+.permissionsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.permissionsTitle {
+  font-family: var(--font-primary) !important;
+  font-weight: 800 !important;
+  color: var(--color-text) !important;
+}
+
+.permissionsCounter {
+  font-family: var(--font-primary) !important;
+  color: var(--color-primary-vibrant) !important;
+  font-weight: 700 !important;
+  background: var(--color-primary-bg);
+  border: 1px solid var(--color-primary);
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
 .permsBox {
-  max-height: 280px;
+  max-height: 520px;
   overflow: auto;
   border: 1px solid var(--color-border);
   border-radius: var(--border-radius-medium);
@@ -271,6 +299,87 @@
   background: var(--color-primary-bg);
 }
 
+.permissionsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.permissionItem {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 11px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-small);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    transform 0.15s ease;
+}
+
+.permissionItem:hover {
+  border-color: var(--color-primary);
+  background: var(--color-surface-soft);
+  transform: translateY(-1px);
+}
+
+.permissionItemChecked {
+  border-color: var(--color-primary-vibrant);
+  background: var(--color-primary-soft);
+}
+
+.permissionItemDisabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+  transform: none !important;
+}
+
+.permissionCheckbox {
+  padding: 0 !important;
+  margin-top: 2px !important;
+  color: var(--color-primary-vibrant) !important;
+}
+
+.permissionText {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.permissionName {
+  font-family: var(--font-primary);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.25;
+}
+
+.permissionSlug {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.68rem;
+  color: var(--color-text);
+  opacity: 0.52;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.permsBox::-webkit-scrollbar {
+  width: 7px;
+}
+
+.permsBox::-webkit-scrollbar-thumb {
+  background: var(--color-primary);
+  border-radius: 10px;
+}
+
+.permsBox::-webkit-scrollbar-track {
+  background: transparent;
+}
 .permsBox::-webkit-scrollbar {
   width: 4px;
 }
@@ -297,4 +406,30 @@
   border-radius: var(--border-radius-medium);
   font-size: var(--font-size-aux);
   color: var(--color-text);
+}
+
+@media (max-width: 1000px) {
+  .permissionsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .roleDialogPaper {
+    width: calc(100vw - 20px) !important;
+    margin: 10px !important;
+  }
+
+  .permissionsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .permsBox {
+    max-height: 430px;
+  }
+
+  .permissionsHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }

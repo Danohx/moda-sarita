@@ -6,6 +6,8 @@ import { productoImagenesService } from "@admin/services/productoImagenes.servic
 import AdminBreadcrumbs from "@admin/components/layout/AdminBreadcrumbs";
 import type { BreadcrumbItem } from "@admin/components/layout/AdminBreadcrumbs";
 import { useBreadcrumbContext } from "@shared/hooks/useBreadcrumbContext";
+import { useAuth } from "@shared/context/AuthContext";
+import { canAccess } from "../../utils/permissions";
 
 type ProductImage = {
   id: string | number;
@@ -19,8 +21,17 @@ type ProductImage = {
 const MAX_FILES_PER_UPLOAD = 5;
 
 const ProductImagesManager: React.FC = () => {
+  const { user } = useAuth();
   const { id = "" } = useParams();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const canReadProducts = canAccess(user, {
+    permissions: "inventario.productos.read",
+  });
+
+  const canManageImages = canAccess(user, {
+    permissions: "inventario.productos.update",
+  });
 
   const [items, setItems] = useState<ProductImage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,20 +40,28 @@ const ProductImagesManager: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [files, setFiles] = useState<File[]>([]);
   const ctx = useBreadcrumbContext();
+
   const breadcrumbItems: BreadcrumbItem[] =
     ctx.from === "detail"
       ? [
           { label: "Productos", to: "/products" },
-          { label: "Detalles del producto", to: `/productos/${id}` },
-          { label: "Imagenes del producto" },
+          { label: "Detalles del producto", to: `/products/${id}` },
+          { label: "Imágenes del producto" },
         ]
       : [
           { label: "Productos", to: "/products" },
-          { label: "Imagenes del producto" },
+          { label: "Imágenes del producto" },
         ];
 
   const loadItems = useCallback(
     async (isRefresh = false) => {
+      if (!canReadProducts) {
+        setItems([]);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
       if (!id) {
         setItems([]);
         setLoading(false);
@@ -67,7 +86,7 @@ const ProductImagesManager: React.FC = () => {
         setRefreshing(false);
       }
     },
-    [id],
+    [canReadProducts, id],
   );
 
   React.useEffect(() => {
@@ -87,6 +106,12 @@ const ProductImagesManager: React.FC = () => {
   };
 
   const handleFilesChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!canManageImages) {
+      setError("No tienes permiso para subir imágenes.");
+      event.target.value = "";
+      return;
+    }
+
     const incomingFiles = Array.from(event.target.files ?? []);
 
     if (incomingFiles.length === 0) {
@@ -139,6 +164,11 @@ const ProductImagesManager: React.FC = () => {
   const handleUpload = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
+    if (!canManageImages) {
+      setError("No tienes permiso para subir imágenes.");
+      return;
+    }
+
     if (!id || files.length === 0) return;
 
     try {
@@ -162,6 +192,11 @@ const ProductImagesManager: React.FC = () => {
   };
 
   const handleSetPrincipal = async (imagenId: string | number) => {
+    if (!canManageImages) {
+      setError("No tienes permiso para modificar imágenes.");
+      return;
+    }
+
     if (!id) return;
 
     try {
@@ -178,6 +213,11 @@ const ProductImagesManager: React.FC = () => {
   };
 
   const handleDelete = async (imagenId: string | number) => {
+    if (!canManageImages) {
+      setError("No tienes permiso para eliminar imágenes.");
+      return;
+    }
+
     if (!id) return;
 
     const confirmed = window.confirm("¿Eliminar esta imagen?");
@@ -195,6 +235,26 @@ const ProductImagesManager: React.FC = () => {
       setSaving(false);
     }
   };
+
+  if (!canReadProducts) {
+    return (
+      <section className={styles.page}>
+        <header className={styles.header}>
+          <div>
+            <AdminBreadcrumbs items={breadcrumbItems} />
+            <h1 className={styles.title}>Imágenes del producto</h1>
+            <p className={styles.subtitle}>
+              No tienes permisos para consultar imágenes.
+            </p>
+          </div>
+        </header>
+
+        <div className={styles.errorBox}>
+          No tienes permiso para ver imágenes.
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className={styles.page}>
@@ -220,64 +280,64 @@ const ProductImagesManager: React.FC = () => {
 
       {error ? <div className={styles.errorBox}>{error}</div> : null}
 
-      <section className={styles.uploadCard}>
-        <h2 className={styles.sectionTitle}>Subir imágenes</h2>
+      {canManageImages && (
+        <section className={styles.uploadCard}>
+          <h2 className={styles.sectionTitle}>Subir imágenes</h2>
 
-        <form className={styles.uploadForm} onSubmit={handleUpload}>
-          <div className={styles.uploadControls}>
-            <label className={styles.filePicker}>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleFilesChange}
-                disabled={saving}
-              />
-              Elegir imágenes
-            </label>
+          <form className={styles.uploadForm} onSubmit={handleUpload}>
+            <div className={styles.uploadControls}>
+              <label className={styles.filePicker}>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleFilesChange}
+                  disabled={saving}
+                />
+                Elegir imágenes
+              </label>
 
-            <div className={styles.uploadInfo}>
-              {files.length > 0
-                ? `${files.length} imagen${files.length === 1 ? "" : "es"} seleccionada${files.length === 1 ? "" : "s"}`
-                : "No se eligió ninguna imagen"}
+              <div className={styles.uploadInfo}>
+                {files.length > 0
+                  ? `${files.length} imagen${files.length === 1 ? "" : "es"} seleccionada${files.length === 1 ? "" : "s"}`
+                  : "No se eligió ninguna imagen"}
+              </div>
+
+              <button
+                type="submit"
+                className={styles.primaryBtn}
+                disabled={files.length === 0 || saving}
+              >
+                <ImagePlus size={18} />
+                {saving ? "Subiendo..." : "Subir imágenes"}
+              </button>
             </div>
 
-            <button
-              type="submit"
-              className={styles.primaryBtn}
-              disabled={files.length === 0 || saving}
-            >
-              <ImagePlus size={18} />
-              {saving ? "Subiendo..." : "Subir imágenes"}
-            </button>
-          </div>
-
-          {files.length > 0 ? (
-            <div className={styles.selectedFiles}>
-              {files.map((selectedFile, index) => (
-                <div
-                  key={`${selectedFile.name}-${index}`}
-                  className={styles.fileChip}
-                >
-                  <span className={styles.fileChipName}>
-                    {selectedFile.name}
-                  </span>
-                  <button
-                    type="button"
-                    className={styles.fileChipRemove}
-                    onClick={() => removeSelectedFile(index)}
-                    disabled={saving}
-                    aria-label={`Quitar ${selectedFile.name}`}
+            {files.length > 0 ? (
+              <div className={styles.selectedFiles}>
+                {files.map((selectedFile, index) => (
+                  <div
+                    key={`${selectedFile.name}-${index}`}
+                    className={styles.selectedFile}
                   >
-                    <X size={14} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          ) : null}
-        </form>
-      </section>
+                    <span>{selectedFile.name}</span>
+                    <button
+                      type="button"
+                      className={styles.removeFileBtn}
+                      onClick={() => removeSelectedFile(index)}
+                      disabled={saving}
+                      aria-label="Quitar imagen seleccionada"
+                    >
+                      <X size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </form>
+        </section>
+      )}
 
       <section className={styles.galleryCard}>
         <h2 className={styles.sectionTitle}>Galería</h2>
@@ -314,26 +374,31 @@ const ProductImagesManager: React.FC = () => {
                     >
                       {isMain ? "Principal" : `Orden ${displayOrder + 1}`}
                     </span>
-                    <div className={styles.actions}>
-                      <button
-                        type="button"
-                        className={styles.iconBtn}
-                        onClick={() => void handleSetPrincipal(image.id)}
-                        disabled={disablePrincipal}
-                        title={isMain ? "Imagen principal" : "Marcar principal"}
-                      >
-                        <Star size={16} />
-                      </button>
-                      <button
-                        type="button"
-                        className={styles.iconBtnDanger}
-                        onClick={() => void handleDelete(image.id)}
-                        disabled={saving}
-                        title="Eliminar"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
+
+                    {canManageImages && (
+                      <div className={styles.actions}>
+                        <button
+                          type="button"
+                          className={styles.iconBtn}
+                          onClick={() => void handleSetPrincipal(image.id)}
+                          disabled={disablePrincipal}
+                          title={
+                            isMain ? "Imagen principal" : "Marcar principal"
+                          }
+                        >
+                          <Star size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.iconBtnDanger}
+                          onClick={() => void handleDelete(image.id)}
+                          disabled={saving}
+                          title="Eliminar"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </article>
               );

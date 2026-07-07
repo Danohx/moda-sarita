@@ -18,6 +18,8 @@ import {
   Wallet,
 } from "lucide-react";
 import styles from "../../../styles/HistorialCortes.module.css";
+import { useAuth } from "@shared/context/AuthContext";
+import { canAccess } from "../../utils/permissions";
 import { ventasService } from "@admin/services/ventas.service";
 import CorteDetalleModal from "../../components/components/CorteDetalleModal";
 import AdminBreadcrumbs from "@admin/components/layout/AdminBreadcrumbs";
@@ -133,6 +135,12 @@ function getInitials(name: string) {
 }
 
 export default function HistorialCortes() {
+  const { user } = useAuth();
+
+  const canReadCorte = canAccess(user, {
+    permissions: "ventas.corte_caja.read",
+  });
+
   const [cortes, setCortes] = useState<CorteHistorial[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -236,6 +244,13 @@ export default function HistorialCortes() {
   }, [filtered, selectedCorteId]);
 
   const loadHistorial = useCallback(async () => {
+    if (!canReadCorte) {
+      setCortes([]);
+      setLoading(false);
+      setError("No tienes permiso para consultar el historial de cortes.");
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -251,7 +266,7 @@ export default function HistorialCortes() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [canReadCorte]);
 
   useEffect(() => {
     void loadHistorial();
@@ -307,9 +322,13 @@ export default function HistorialCortes() {
     setPage(1);
   }, []);
 
-  const handleOpenDetail = useCallback((id: string | number) => {
-    setSelectedCorteId(id);
-  }, []);
+  const handleOpenDetail = useCallback(
+    (id: string | number) => {
+      if (!canReadCorte) return;
+      setSelectedCorteId(id);
+    },
+    [canReadCorte],
+  );
 
   // Sin dependencias → referencia estable siempre.
   // Leen el estado actual mediante refs para no necesitar las vars directamente.
@@ -324,6 +343,32 @@ export default function HistorialCortes() {
     if (idx < 0 || idx >= filteredRef.current.length - 1) return;
     setSelectedCorteId(filteredRef.current[idx + 1]?.id ?? null);
   }, []);
+
+  if (!canReadCorte) {
+    return (
+      <div className={styles.page}>
+        <header className={styles.header}>
+          <div className={styles.headerTop}>
+            <div className={styles.titleGroup}>
+              <AdminBreadcrumbs
+                items={[
+                  { label: "Corte de Caja", to: "/corte" },
+                  { label: "Historial de cortes" },
+                ]}
+              />
+              <span className={styles.badge}>
+                <History size={14} /> Historial de cortes
+              </span>
+              <h1 className={styles.title}>Registro de turnos</h1>
+              <p className={styles.subtitle}>
+                No tienes permiso para consultar el historial de cortes.
+              </p>
+            </div>
+          </div>
+        </header>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.page}>

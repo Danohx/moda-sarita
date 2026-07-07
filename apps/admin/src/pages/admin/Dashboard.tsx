@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import styles from "../../../styles/Dashboard.module.css";
+import { useAuth } from "@shared/context/AuthContext";
+import { canAccess } from "../../utils/permissions";
 import {
   AlertCircle,
   CalendarClock,
@@ -29,6 +31,7 @@ interface Metric {
   value: string;
   icon: React.ElementType;
   change: string;
+  permissions?: string | string[];
 }
 
 interface Product {
@@ -58,10 +61,34 @@ const CRITICAL_PRODUCTS_LIMIT = 6;
 const AUTO_REFRESH_MS = 60_000;
 
 const QUICK_ACTIONS = [
-  { label: "Nueva venta", icon: ShoppingBag, to: "/pos" },
-  { label: "Registrar cliente", icon: UserPlus, to: "/customers" },
-  { label: "Ajustar inventario", icon: SlidersHorizontal, to: "/inventory" },
-  { label: "Corte de caja", icon: Wallet, to: "/corte" },
+  {
+    label: "Nueva venta",
+    icon: ShoppingBag,
+    to: "/pos",
+    permissions: ["ventas.pedidos.create", "ventas.pedidos.read"],
+  },
+  {
+    label: "Registrar cliente",
+    icon: UserPlus,
+    to: "/customers",
+    permissions: ["clientes.clientes.create", "clientes.clientes.update"],
+  },
+  {
+    label: "Ajustar inventario",
+    icon: SlidersHorizontal,
+    to: "/inventory",
+    permissions: ["inventario.movimientos.create"],
+  },
+  {
+    label: "Corte de caja",
+    icon: Wallet,
+    to: "/corte",
+    permissions: [
+      "ventas.corte_caja.read",
+      "ventas.corte_caja.create",
+      "ventas.corte_caja.close",
+    ],
+  },
 ];
 
 const RANGE_OPTIONS: Array<{ label: string; value: DashboardRangeKey }> = [
@@ -193,6 +220,22 @@ function getCriticalAction(item: DashboardProductoCritico) {
   };
 }
 
+function getActivityPermissions(tipo: string): string[] {
+  const map: Record<string, string[]> = {
+    PEDIDO: ["ventas.pedidos.read"],
+    PAGO: ["ventas.pagos.read", "ventas.pedidos.read"],
+    INVENTARIO: ["inventario.movimientos.read", "inventario.productos.read"],
+    CLIENTE: ["clientes.clientes.read"],
+    CORTE_CAJA: ["ventas.corte_caja.read"],
+
+    BAJO_STOCK: ["inventario.productos.read", "inventario.movimientos.read"],
+    APARTADO_POR_VENCER: ["ventas.pedidos.read"],
+    APARTADO_VENCIDO: ["ventas.pedidos.read"],
+  };
+
+  return map[tipo] ?? [];
+}
+
 function getRangeDescription(range?: DashboardApiData["range"]) {
   if (!range?.from || !range?.to) return "Periodo seleccionado";
 
@@ -208,6 +251,7 @@ function getRangeDescription(range?: DashboardApiData["range"]) {
 }
 
 export const Dashboard: React.FC = () => {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [dashboard, setDashboard] = useState<DashboardApiData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -217,6 +261,34 @@ export const Dashboard: React.FC = () => {
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
   const [autoRefresh, setAutoRefresh] = useState(true);
+
+  const canViewSales = canAccess(user, {
+    permissions: [
+      "ventas.pedidos.read",
+      "reportes.ventas.view",
+      "reportes.financiero.view",
+    ],
+  });
+
+  const canViewInventory = canAccess(user, {
+    permissions: ["inventario.productos.read", "inventario.movimientos.read"],
+  });
+
+  const canViewCash = canAccess(user, {
+    permissions: [
+      "ventas.corte_caja.read",
+      "ventas.corte_caja.create",
+      "ventas.corte_caja.close",
+    ],
+  });
+
+  const canViewTopProducts = canAccess(user, {
+    permissions: [
+      "reportes.productos.view",
+      "ventas.pedidos.read",
+      "inventario.productos.read",
+    ],
+  });
 
   const buildQuery = useCallback((): DashboardQuery => {
     const query: DashboardQuery = {
@@ -234,6 +306,12 @@ export const Dashboard: React.FC = () => {
 
     return query;
   }, [customFrom, customTo, range]);
+
+  const visibleQuickActions = useMemo(() => {
+    return QUICK_ACTIONS.filter((action) =>
+      canAccess(user, { permissions: action.permissions }),
+    );
+  }, [user]);
 
   const load = useCallback(async () => {
     try {
@@ -277,11 +355,39 @@ export const Dashboard: React.FC = () => {
           value: "—",
           icon: DollarSign,
           change: "Sin datos",
+          permissions: [
+            "ventas.pedidos.read",
+            "reportes.ventas.view",
+            "reportes.financiero.view",
+          ],
         },
-        { title: "Ventas", value: "—", icon: ShoppingBag, change: "Sin datos" },
-        { title: "Bajo Stock", value: "—", icon: Package, change: "Sin datos" },
-        { title: "Clientes", value: "—", icon: Users, change: "Sin datos" },
-      ];
+        {
+          title: "Ventas",
+          value: "—",
+          icon: ShoppingBag,
+          change: "Sin datos",
+          permissions: ["ventas.pedidos.read", "reportes.ventas.view"],
+        },
+        {
+          title: "Bajo Stock",
+          value: "—",
+          icon: Package,
+          change: "Sin datos",
+          permissions: [
+            "inventario.productos.read",
+            "inventario.movimientos.read",
+          ],
+        },
+        {
+          title: "Clientes",
+          value: "—",
+          icon: Users,
+          change: "Sin datos",
+          permissions: ["clientes.clientes.read"],
+        },
+      ].filter((metric) =>
+        canAccess(user, { permissions: metric.permissions }),
+      );
     }
 
     const ingresos = resumen.ingresosPeriodo ?? resumen.ingresosHoy;
@@ -294,12 +400,18 @@ export const Dashboard: React.FC = () => {
         value: formatMoney(ingresos),
         icon: DollarSign,
         change: `${formatMoney(ticket)} ticket prom.`,
+        permissions: [
+          "ventas.pedidos.read",
+          "reportes.ventas.view",
+          "reportes.financiero.view",
+        ],
       },
       {
         title: "Ventas",
         value: formatNumber(ventas),
         icon: ShoppingBag,
         change: `${formatNumber(resumen.pagosPeriodo ?? 0)} pagos`,
+        permissions: ["ventas.pedidos.read", "reportes.ventas.view"],
       },
       {
         title: "Bajo Stock",
@@ -309,15 +421,20 @@ export const Dashboard: React.FC = () => {
           resumen.variantesSinStock > 0
             ? `${formatNumber(resumen.variantesSinStock)} sin stock`
             : `${formatNumber(resumen.productosActivos)} activos`,
+        permissions: [
+          "inventario.productos.read",
+          "inventario.movimientos.read",
+        ],
       },
       {
         title: "Clientes",
         value: formatNumber(resumen.clientesTotales),
         icon: Users,
         change: `${formatNumber(resumen.apartadosActivos)} apartados`,
+        permissions: ["clientes.clientes.read"],
       },
-    ];
-  }, [dashboard]);
+    ].filter((metric) => canAccess(user, { permissions: metric.permissions }));
+  }, [dashboard, user]);
 
   const products = useMemo<Product[]>(() => {
     return (dashboard?.topProductos ?? []).map((product) => ({
@@ -330,32 +447,47 @@ export const Dashboard: React.FC = () => {
   }, [dashboard]);
 
   const alertItems = useMemo<Activity[]>(() => {
-    return (dashboard?.alertasOperativas ?? []).map((alert) => {
-      const action = getAlertAction(alert.tipo, alert.referenciaId);
+    return (dashboard?.alertasOperativas ?? [])
+      .filter((alert) =>
+        canAccess(user, {
+          permissions: getActivityPermissions(alert.tipo),
+        }),
+      )
+      .map((alert) => {
+        const action = getAlertAction(alert.tipo, alert.referenciaId);
 
-      return {
-        id: `alert-${alert.tipo}-${alert.referenciaId}`,
-        title: alert.titulo,
-        description: alert.detalle,
-        time: formatRelativeTime(alert.fecha),
-        icon: getActivityIcon(alert.tipo, alert.severidad),
-        actionLabel: action?.label,
-        actionTo: action?.to,
-      };
-    });
-  }, [dashboard]);
+        return {
+          id: `alert-${alert.tipo}-${alert.referenciaId}`,
+          title: alert.titulo,
+          description: alert.detalle,
+          time: formatRelativeTime(alert.fecha),
+          icon: getActivityIcon(alert.tipo, alert.severidad),
+          actionLabel: action?.label,
+          actionTo: action?.to,
+        };
+      });
+  }, [dashboard, user]);
 
   const activityItems = useMemo<Activity[]>(() => {
-    return (dashboard?.actividadReciente ?? []).map((activity) => ({
-      id: `${activity.tipo}-${activity.referenciaId}`,
-      title: activity.titulo,
-      description: activity.detalle,
-      time: formatRelativeTime(activity.fecha),
-      icon: getActivityIcon(activity.tipo),
-    }));
-  }, [dashboard]);
+    return (dashboard?.actividadReciente ?? [])
+      .filter((activity) =>
+        canAccess(user, {
+          permissions: getActivityPermissions(activity.tipo),
+        }),
+      )
+      .map((activity) => ({
+        id: `${activity.tipo}-${activity.referenciaId}`,
+        title: activity.titulo,
+        description: activity.detalle,
+        time: formatRelativeTime(activity.fecha),
+        icon: getActivityIcon(activity.tipo),
+      }));
+  }, [dashboard, user]);
 
-  const criticalProducts = dashboard?.productosCriticos ?? [];
+  const criticalProducts = canViewInventory
+    ? (dashboard?.productosCriticos ?? [])
+    : [];
+
   const caja = dashboard?.cajaActual ?? null;
   const salesData = useMemo(() => {
     return dashboard?.ventasUltimos7Dias ?? [];
@@ -455,363 +587,386 @@ export const Dashboard: React.FC = () => {
         </div>
       )}
 
-      <div className={styles.quickActions}>
-        {QUICK_ACTIONS.map((action) => {
-          const Icon = action.icon;
+      {visibleQuickActions.length > 0 && (
+        <div className={styles.quickActions}>
+          {visibleQuickActions.map((action) => {
+            const Icon = action.icon;
 
-          return (
-            <button
-              key={action.label}
-              type="button"
-              className={styles.quickActionButton}
-              onClick={() => navigateTo(action.to)}
-            >
-              <span>
-                <Icon size={17} />
-              </span>
-              {action.label}
-            </button>
-          );
-        })}
-      </div>
+            return (
+              <button
+                key={action.label}
+                type="button"
+                className={styles.quickActionButton}
+                onClick={() => navigateTo(action.to)}
+              >
+                <span>
+                  <Icon size={17} />
+                </span>
+                {action.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
-      <div className={styles.metricsGrid}>
-        {metrics.map((metric) => {
-          const Icon = metric.icon;
+      {metrics.length > 0 && (
+        <div className={styles.metricsGrid}>
+          {metrics.map((metric) => {
+            const Icon = metric.icon;
 
-          return (
-            <div key={metric.title} className={styles.metricCard}>
-              <div className={styles.metricTop}>
-                <div className={styles.metricIcon}>
-                  <Icon size={22} />
+            return (
+              <div key={metric.title} className={styles.metricCard}>
+                <div className={styles.metricTop}>
+                  <div className={styles.metricIcon}>
+                    <Icon size={22} />
+                  </div>
+
+                  <span className={styles.metricChange}>
+                    {loading ? "Cargando..." : metric.change}
+                  </span>
                 </div>
 
-                <span className={styles.metricChange}>
-                  {loading ? "Cargando..." : metric.change}
-                </span>
+                <div className={styles.metricBody}>
+                  <p className={styles.metricTitle}>{metric.title}</p>
+                  <h3 className={styles.metricValue}>
+                    {loading ? "..." : metric.value}
+                  </h3>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {(canViewSales || canViewCash) && (
+        <div className={styles.dashboardMainGrid}>
+          {canViewSales && (
+            <div className={styles.chartCard}>
+              <div className={styles.chartHeader}>
+                <div>
+                  <h3>Ventas por periodo</h3>
+                  <p>
+                    {loading
+                      ? "Cargando rendimiento..."
+                      : `Total: ${formatMoney(totalPeriodSales)}`}
+                  </p>
+                </div>
               </div>
 
-              <div className={styles.metricBody}>
-                <p className={styles.metricTitle}>{metric.title}</p>
-                <h3 className={styles.metricValue}>
-                  {loading ? "..." : metric.value}
-                </h3>
+              <div className={styles.chartContainer}>
+                {loading ? (
+                  <div className={styles.chartPlaceholder}>
+                    <RefreshCw size={44} className={styles.spinning} />
+                    <p>Cargando dashboard...</p>
+                  </div>
+                ) : error ? (
+                  <div className={styles.chartPlaceholder}>
+                    <AlertCircle size={44} />
+                    <p>{error}</p>
+                    <span>Verifica la sesión o el endpoint del dashboard.</span>
+                  </div>
+                ) : hasSalesData ? (
+                  useCompactChart ? (
+                    <CompactSalesLineChart
+                      data={salesData}
+                      maxValue={maxSalesValue}
+                    />
+                  ) : (
+                    <SalesBarChart data={salesData} maxValue={maxSalesValue} />
+                  )
+                ) : (
+                  <div className={styles.chartPlaceholder}>
+                    <TrendingUp size={44} />
+                    <p>Sin ventas en este periodo</p>
+                    <span>
+                      Registra una venta desde Punto de Venta para ver actividad
+                      aquí.
+                    </span>
+                  </div>
+                )}
               </div>
+
+              {lastUpdated && (
+                <p className={styles.lastUpdated}>
+                  Última actualización:{" "}
+                  {lastUpdated.toLocaleTimeString("es-MX")}
+                </p>
+              )}
             </div>
-          );
-        })}
-      </div>
+          )}
 
-      <div className={styles.dashboardMainGrid}>
-        <div className={styles.chartCard}>
-          <div className={styles.chartHeader}>
-            <div>
-              <h3>Ventas por periodo</h3>
-              <p>
-                {loading
-                  ? "Cargando rendimiento..."
-                  : `Total: ${formatMoney(totalPeriodSales)}`}
-              </p>
-            </div>
-          </div>
+          {canViewCash && (
+            <div className={styles.cashCard}>
+              <div className={styles.sectionHeader}>
+                <h3>Caja actual</h3>
+              </div>
 
-          <div className={styles.chartContainer}>
-            {loading ? (
-              <div className={styles.chartPlaceholder}>
-                <RefreshCw size={44} className={styles.spinning} />
-                <p>Cargando dashboard...</p>
-              </div>
-            ) : error ? (
-              <div className={styles.chartPlaceholder}>
-                <AlertCircle size={44} />
-                <p>{error}</p>
-                <span>Verifica la sesión o el endpoint del dashboard.</span>
-              </div>
-            ) : hasSalesData ? (
-              useCompactChart ? (
-                <CompactSalesLineChart
-                  data={salesData}
-                  maxValue={maxSalesValue}
-                />
+              {loading ? (
+                <div className={styles.emptyMiniState}>
+                  <RefreshCw size={18} className={styles.spinning} />
+                  Cargando caja...
+                </div>
+              ) : caja?.abierta ? (
+                <>
+                  <div className={styles.cashStatusOpen}>Caja abierta</div>
+
+                  <div className={styles.cashInfo}>
+                    <span>Responsable</span>
+                    <strong>{caja.usuarioNombre ?? "Sin responsable"}</strong>
+                  </div>
+
+                  <div className={styles.cashInfo}>
+                    <span>Inicio</span>
+                    <strong>{formatDateTime(caja.inicioTurno)}</strong>
+                  </div>
+
+                  <div className={styles.cashTotal}>
+                    <span>Total sistema</span>
+                    <strong>{formatMoney(caja.totalSistema)}</strong>
+                  </div>
+
+                  <div className={styles.cashBreakdown}>
+                    <span>Efectivo: {formatMoney(caja.totalEfectivo)}</span>
+                    <span>Tarjeta: {formatMoney(caja.totalTarjeta)}</span>
+                    <span>
+                      Transferencia: {formatMoney(caja.totalTransferencia)}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    className={styles.cardActionButton}
+                    onClick={() => navigateTo("/corte")}
+                  >
+                    Ver corte de caja
+                  </button>
+                </>
               ) : (
-                <SalesBarChart data={salesData} maxValue={maxSalesValue} />
-              )
-            ) : (
-              <div className={styles.chartPlaceholder}>
-                <TrendingUp size={44} />
-                <p>Sin ventas en este periodo</p>
-                <span>
-                  Registra una venta desde Punto de Venta para ver actividad
-                  aquí.
-                </span>
-              </div>
-            )}
-          </div>
-
-          {lastUpdated && (
-            <p className={styles.lastUpdated}>
-              Última actualización: {lastUpdated.toLocaleTimeString("es-MX")}
-            </p>
-          )}
-        </div>
-
-        <div className={styles.cashCard}>
-          <div className={styles.sectionHeader}>
-            <h3>Caja actual</h3>
-          </div>
-
-          {loading ? (
-            <div className={styles.emptyMiniState}>
-              <RefreshCw size={18} className={styles.spinning} />
-              Cargando caja...
-            </div>
-          ) : caja?.abierta ? (
-            <>
-              <div className={styles.cashStatusOpen}>Caja abierta</div>
-
-              <div className={styles.cashInfo}>
-                <span>Responsable</span>
-                <strong>{caja.usuarioNombre ?? "Sin responsable"}</strong>
-              </div>
-
-              <div className={styles.cashInfo}>
-                <span>Inicio</span>
-                <strong>{formatDateTime(caja.inicioTurno)}</strong>
-              </div>
-
-              <div className={styles.cashTotal}>
-                <span>Total sistema</span>
-                <strong>{formatMoney(caja.totalSistema)}</strong>
-              </div>
-
-              <div className={styles.cashBreakdown}>
-                <span>Efectivo: {formatMoney(caja.totalEfectivo)}</span>
-                <span>Tarjeta: {formatMoney(caja.totalTarjeta)}</span>
-                <span>
-                  Transferencia: {formatMoney(caja.totalTransferencia)}
-                </span>
-              </div>
-
-              <button
-                type="button"
-                className={styles.cardActionButton}
-                onClick={() => navigateTo("/corte")}
-              >
-                Ver corte de caja
-              </button>
-            </>
-          ) : (
-            <div className={styles.emptyState}>
-              <Wallet size={34} />
-              <p>Sin caja abierta</p>
-              <span>
-                Abre una caja desde Corte de Caja para iniciar operaciones.
-              </span>
-              <button
-                type="button"
-                className={styles.cardActionButton}
-                onClick={() => navigateTo("/ventas/corte")}
-              >
-                Ir a corte de caja
-              </button>
+                <div className={styles.emptyState}>
+                  <Wallet size={34} />
+                  <p>Sin caja abierta</p>
+                  <span>
+                    Abre una caja desde Corte de Caja para iniciar operaciones.
+                  </span>
+                  <button
+                    type="button"
+                    className={styles.cardActionButton}
+                    onClick={() => navigateTo("/ventas/corte")}
+                  >
+                    Ir a corte de caja
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
-      </div>
+      )}
 
       <div className={styles.bottomGrid}>
-        <div className={`${styles.sectionCard} ${styles.alertsCard}`}>
-          <div className={styles.sectionHeader}>
-            <h3>Alertas operativas</h3>
-          </div>
+        {(canViewInventory || canViewSales) && (
+          <div className={`${styles.sectionCard} ${styles.alertsCard}`}>
+            <div className={styles.sectionHeader}>
+              <h3>Alertas operativas</h3>
+            </div>
 
-          <div className={styles.activityList}>
-            {loading ? (
-              <LoadingRow text="Cargando alertas..." />
-            ) : alertItems.length > 0 ? (
-              alertItems.map((alert) => {
-                const Icon = alert.icon;
+            <div className={styles.activityList}>
+              {loading ? (
+                <LoadingRow text="Cargando alertas..." />
+              ) : alertItems.length > 0 ? (
+                alertItems.map((alert) => {
+                  const Icon = alert.icon;
 
-                return (
-                  <div key={alert.id} className={styles.activityItem}>
-                    <div
-                      className={`${styles.activityIcon} ${styles.alertIcon}`}
-                    >
-                      <Icon size={16} />
+                  return (
+                    <div key={alert.id} className={styles.activityItem}>
+                      <div
+                        className={`${styles.activityIcon} ${styles.alertIcon}`}
+                      >
+                        <Icon size={16} />
+                      </div>
+
+                      <div className={styles.activityContent}>
+                        <p className={styles.activityTitle}>{alert.title}</p>
+                        <span className={styles.activityDesc}>
+                          {alert.description}
+                        </span>
+                        <span className={styles.activityTime}>
+                          {alert.time}
+                        </span>
+
+                        {alert.actionTo && (
+                          <button
+                            type="button"
+                            className={styles.inlineActionButton}
+                            onClick={() => navigateTo(alert.actionTo)}
+                          >
+                            {alert.actionLabel}
+                          </button>
+                        )}
+                      </div>
                     </div>
+                  );
+                })
+              ) : (
+                <EmptyRow
+                  icon={Check}
+                  title="Sin alertas activas"
+                  description="Todo está en orden: no hay apartados vencidos ni alertas urgentes de inventario."
+                />
+              )}
+            </div>
+          </div>
+        )}
 
-                    <div className={styles.activityContent}>
-                      <p className={styles.activityTitle}>{alert.title}</p>
-                      <span className={styles.activityDesc}>
-                        {alert.description}
-                      </span>
-                      <span className={styles.activityTime}>{alert.time}</span>
+        {canViewInventory && (
+          <div className={`${styles.sectionCard} ${styles.criticalCard}`}>
+            <div className={styles.sectionHeader}>
+              <h3>Productos críticos</h3>
+            </div>
 
-                      {alert.actionTo && (
+            <div className={styles.activityList}>
+              {loading ? (
+                <LoadingRow text="Cargando productos críticos..." />
+              ) : criticalProducts.length > 0 ? (
+                criticalProducts.map((item) => {
+                  const Icon = getCriticalIcon(item);
+                  const action = getCriticalAction(item);
+
+                  return (
+                    <div
+                      key={`${item.tipo}-${item.productoId}-${item.varianteId ?? "base"}`}
+                      className={styles.activityItem}
+                    >
+                      <div
+                        className={`${styles.activityIcon} ${
+                          item.severidad === "alta"
+                            ? styles.alertIcon
+                            : styles.warningIcon
+                        }`}
+                      >
+                        <Icon size={16} />
+                      </div>
+
+                      <div className={styles.activityContent}>
+                        <p className={styles.activityTitle}>{item.nombre}</p>
+                        <span className={styles.activityDesc}>
+                          {item.detalle}
+                        </span>
+                        <span className={styles.activityTime}>{item.tipo}</span>
+
                         <button
                           type="button"
                           className={styles.inlineActionButton}
-                          onClick={() => navigateTo(alert.actionTo)}
+                          onClick={() => navigateTo(action.to)}
                         >
-                          {alert.actionLabel}
+                          {action.label}
                         </button>
-                      )}
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <EmptyRow
+                  icon={Check}
+                  title="Inventario en buen estado"
+                  description="No hay productos sin stock, sin imagen, sin categoría o con datos incompletos."
+                />
+              )}
+            </div>
+          </div>
+        )}
+
+        {canViewTopProducts && (
+          <div className={`${styles.sectionCard} ${styles.productsCard}`}>
+            <div className={styles.sectionHeader}>
+              <h3>Productos más vendidos</h3>
+            </div>
+
+            <div className={styles.productList}>
+              {loading ? (
+                <LoadingRow text="Cargando productos..." />
+              ) : products.length > 0 ? (
+                products.map((product, index) => (
+                  <div key={product.id} className={styles.productItem}>
+                    <div className={styles.productLeft}>
+                      <span className={styles.productRank}>#{index + 1}</span>
+
+                      <div className={styles.productIcon}>
+                        {product.image ? (
+                          <img
+                            src={product.image}
+                            alt={product.name}
+                            className={styles.productImage}
+                          />
+                        ) : (
+                          <Image size={18} />
+                        )}
+                      </div>
+
+                      <div>
+                        <p className={styles.productName}>{product.name}</p>
+                        <span className={styles.productMeta}>
+                          {product.sold} unidades vendidas
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className={styles.productRevenue}>
+                      {product.revenue}
                     </div>
                   </div>
-                );
-              })
-            ) : (
-              <EmptyRow
-                icon={Check}
-                title="Sin alertas activas"
-                description="Todo está en orden: no hay apartados vencidos ni alertas urgentes de inventario."
-              />
-            )}
+                ))
+              ) : (
+                <EmptyRow
+                  icon={TrendingUp}
+                  title="Sin productos vendidos"
+                  description="No hay productos vendidos en el periodo seleccionado. Registra una venta desde Punto de Venta."
+                />
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
-        <div className={`${styles.sectionCard} ${styles.criticalCard}`}>
-          <div className={styles.sectionHeader}>
-            <h3>Productos críticos</h3>
-          </div>
+        {activityItems.length > 0 && (
+          <div className={`${styles.sectionCard} ${styles.activityCard}`}>
+            <div className={styles.sectionHeader}>
+              <h3>Actividad reciente</h3>
+            </div>
 
-          <div className={styles.activityList}>
-            {loading ? (
-              <LoadingRow text="Cargando productos críticos..." />
-            ) : criticalProducts.length > 0 ? (
-              criticalProducts.map((item) => {
-                const Icon = getCriticalIcon(item);
-                const action = getCriticalAction(item);
+            <div className={styles.activityList}>
+              {loading ? (
+                <LoadingRow text="Cargando actividad..." />
+              ) : activityItems.length > 0 ? (
+                activityItems.map((activity) => {
+                  const Icon = activity.icon;
 
-                return (
-                  <div
-                    key={`${item.tipo}-${item.productoId}-${item.varianteId ?? "base"}`}
-                    className={styles.activityItem}
-                  >
-                    <div
-                      className={`${styles.activityIcon} ${
-                        item.severidad === "alta"
-                          ? styles.alertIcon
-                          : styles.warningIcon
-                      }`}
-                    >
-                      <Icon size={16} />
+                  return (
+                    <div key={activity.id} className={styles.activityItem}>
+                      <div className={styles.activityIcon}>
+                        <Icon size={16} />
+                      </div>
+
+                      <div className={styles.activityContent}>
+                        <p className={styles.activityTitle}>{activity.title}</p>
+                        <span className={styles.activityDesc}>
+                          {activity.description}
+                        </span>
+                        <span className={styles.activityTime}>
+                          {activity.time}
+                        </span>
+                      </div>
                     </div>
-
-                    <div className={styles.activityContent}>
-                      <p className={styles.activityTitle}>{item.nombre}</p>
-                      <span className={styles.activityDesc}>
-                        {item.detalle}
-                      </span>
-                      <span className={styles.activityTime}>{item.tipo}</span>
-
-                      <button
-                        type="button"
-                        className={styles.inlineActionButton}
-                        onClick={() => navigateTo(action.to)}
-                      >
-                        {action.label}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <EmptyRow
-                icon={Check}
-                title="Inventario en buen estado"
-                description="No hay productos sin stock, sin imagen, sin categoría o con datos incompletos."
-              />
-            )}
+                  );
+                })
+              ) : (
+                <EmptyRow
+                  icon={Megaphone}
+                  title="Sin actividad reciente"
+                  description="Cuando se registren ventas, pagos, clientes o movimientos de inventario aparecerán aquí."
+                />
+              )}
+            </div>
           </div>
-        </div>
-
-        <div className={`${styles.sectionCard} ${styles.productsCard}`}>
-          <div className={styles.sectionHeader}>
-            <h3>Productos más vendidos</h3>
-          </div>
-
-          <div className={styles.productList}>
-            {loading ? (
-              <LoadingRow text="Cargando productos..." />
-            ) : products.length > 0 ? (
-              products.map((product, index) => (
-                <div key={product.id} className={styles.productItem}>
-                  <div className={styles.productLeft}>
-                    <span className={styles.productRank}>#{index + 1}</span>
-
-                    <div className={styles.productIcon}>
-                      {product.image ? (
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className={styles.productImage}
-                        />
-                      ) : (
-                        <Image size={18} />
-                      )}
-                    </div>
-
-                    <div>
-                      <p className={styles.productName}>{product.name}</p>
-                      <span className={styles.productMeta}>
-                        {product.sold} unidades vendidas
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className={styles.productRevenue}>{product.revenue}</div>
-                </div>
-              ))
-            ) : (
-              <EmptyRow
-                icon={TrendingUp}
-                title="Sin productos vendidos"
-                description="No hay productos vendidos en el periodo seleccionado. Registra una venta desde Punto de Venta."
-              />
-            )}
-          </div>
-        </div>
-
-        <div className={`${styles.sectionCard} ${styles.activityCard}`}>
-          <div className={styles.sectionHeader}>
-            <h3>Actividad reciente</h3>
-          </div>
-
-          <div className={styles.activityList}>
-            {loading ? (
-              <LoadingRow text="Cargando actividad..." />
-            ) : activityItems.length > 0 ? (
-              activityItems.map((activity) => {
-                const Icon = activity.icon;
-
-                return (
-                  <div key={activity.id} className={styles.activityItem}>
-                    <div className={styles.activityIcon}>
-                      <Icon size={16} />
-                    </div>
-
-                    <div className={styles.activityContent}>
-                      <p className={styles.activityTitle}>{activity.title}</p>
-                      <span className={styles.activityDesc}>
-                        {activity.description}
-                      </span>
-                      <span className={styles.activityTime}>
-                        {activity.time}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <EmptyRow
-                icon={Megaphone}
-                title="Sin actividad reciente"
-                description="Cuando se registren ventas, pagos, clientes o movimientos de inventario aparecerán aquí."
-              />
-            )}
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

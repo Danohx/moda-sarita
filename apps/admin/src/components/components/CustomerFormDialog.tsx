@@ -19,6 +19,8 @@ import Grid from "@mui/material/Grid";
 import styles from "../../../styles/AdminCustomers.module.css";
 import type { Cliente } from "@admin/pages/admin/AdminCustomers";
 import { clientesService } from "@admin/services/clientes.service";
+import { useAuth } from "@shared/context/AuthContext";
+import { canAccess } from "../../utils/permissions";
 
 interface DireccionBackend {
   id?: string | number;
@@ -68,12 +70,37 @@ const CustomerFormDialog: React.FC<Props> = ({
   onError,
 }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const canCreateCustomer = canAccess(user, {
+    permissions: "clientes.clientes.create",
+  });
+
+  const canUpdateCustomer = canAccess(user, {
+    permissions: "clientes.clientes.update",
+  });
+
+  const canManageCredit = canAccess(user, {
+    permissions: "clientes.clientes.credito.manage",
+  });
+
+  const canReadOrders = canAccess(user, {
+    permissions: "ventas.pedidos.read",
+  });
+
+  const canCreateAddress = canAccess(user, {
+    permissions: "clientes.direcciones.create",
+  });
+
+  const canManageCustomer = customer ? canUpdateCustomer : canCreateCustomer;
+  const effectiveEditMode = isEditMode && canManageCustomer;
+  const readOnly = !effectiveEditMode;
+
   const title = customer
-    ? isEditMode
+    ? effectiveEditMode
       ? "Editar cliente"
       : "Detalle del cliente"
     : "Nuevo cliente";
-  const readOnly = customer ? !isEditMode : false;
 
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -204,6 +231,22 @@ const CustomerFormDialog: React.FC<Props> = ({
   }, [customer, open]);
 
   const handleSave = async () => {
+    if (!canManageCustomer) {
+      onError(
+        "No tienes permiso para guardar clientes.",
+        "Permiso insuficiente",
+      );
+      return;
+    }
+
+    if (formData.calle.trim() !== "" && !canCreateAddress) {
+      onError(
+        "No tienes permiso para registrar direcciones de clientes.",
+        "Permiso insuficiente",
+      );
+      return;
+    }
+
     try {
       setSaving(true);
       let clienteId = customer?.id;
@@ -447,37 +490,41 @@ const CustomerFormDialog: React.FC<Props> = ({
                 </CardContent>
               </Card>
 
-              <Card className={styles.creditCard}>
-                <CardContent>
-                  <div className={styles.creditHeader}>
-                    <Typography className={styles.creditTitle}>
-                      Crédito
-                    </Typography>
-                    <span
-                      className={
-                        customerStats.limiteCredito > 0
-                          ? styles.creditActive
-                          : styles.creditInactive
-                      }
-                    >
-                      {customerStats.limiteCredito > 0 ? "Activo" : "Inactivo"}
-                    </span>
-                  </div>
+              {canManageCredit && (
+                <Card className={styles.creditCard}>
+                  <CardContent>
+                    <div className={styles.creditHeader}>
+                      <Typography className={styles.creditTitle}>
+                        Crédito
+                      </Typography>
+                      <span
+                        className={
+                          customerStats.limiteCredito > 0
+                            ? styles.creditActive
+                            : styles.creditInactive
+                        }
+                      >
+                        {customerStats.limiteCredito > 0
+                          ? "Activo"
+                          : "Inactivo"}
+                      </span>
+                    </div>
 
-                  <div className={styles.creditRow}>
-                    <span>Límite</span>
-                    <span className={styles.bold}>
-                      {formatMoneda(customerStats.limiteCredito)}
-                    </span>
-                  </div>
-                  <div className={styles.creditRow}>
-                    <span>Saldo</span>
-                    <span className={styles.bold}>
-                      {formatMoneda(customerStats.saldo)}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
+                    <div className={styles.creditRow}>
+                      <span>Límite</span>
+                      <span className={styles.bold}>
+                        {formatMoneda(customerStats.limiteCredito)}
+                      </span>
+                    </div>
+                    <div className={styles.creditRow}>
+                      <span>Saldo</span>
+                      <span className={styles.bold}>
+                        {formatMoneda(customerStats.saldo)}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               <Card className={styles.sideCard}>
                 <CardContent>
@@ -525,7 +572,7 @@ const CustomerFormDialog: React.FC<Props> = ({
           )}
         </Grid>
 
-        {customer && !isEditMode && (
+        {customer && !isEditMode && canReadOrders && (
           <>
             <Divider sx={{ my: 3 }} />
             <Typography className={styles.quickTitle}>
@@ -554,12 +601,12 @@ const CustomerFormDialog: React.FC<Props> = ({
         >
           Cancelar
         </Button>
-        {isEditMode && (
+        {effectiveEditMode && (
           <Button
             variant="contained"
             className={styles.saveBtn}
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || !canManageCustomer}
           >
             {saving ? "Guardando..." : "Guardar cambios"}
           </Button>

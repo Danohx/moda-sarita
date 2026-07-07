@@ -276,3 +276,5 @@ export async function apiFetchBlob(
 ): Promise<Blob> {
   return requestBlob(endpoint, options);
 }
+
+export { ApiError, isApiError, toApiError } from "./errors";

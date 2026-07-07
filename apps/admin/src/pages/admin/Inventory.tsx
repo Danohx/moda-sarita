@@ -13,7 +13,7 @@ import {
   RefreshCw,
   Search,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import styles from "../../../styles/Inventory.module.css";
 import { inventarioService } from "@admin/services/inventario.service";
 import InventoryMovementModal from "@admin/components/components/InventoryMovementsModal";
@@ -22,9 +22,9 @@ import InventoryAlertsModal, {
   type StockAlertItem,
 } from "@admin/components/components/InventoryAlertsModal";
 import AdminBreadcrumbs from "@admin/components/layout/AdminBreadcrumbs";
-import { useSearchParams } from "react-router-dom";
+import { useAuth } from "@shared/context/AuthContext";
+import { canAccess } from "../../utils/permissions";
 
-// Interfaces sin cambios
 interface InventoryRow {
   id: string;
   producto: string;
@@ -52,63 +52,77 @@ interface VariantOption {
 const PAGE_SIZE = 50;
 
 function buildAlertItems(
-    data: Awaited<ReturnType<typeof inventarioService.getAlertas>>,
-  ): AlertItem[] {
-    const bajoStock: AlertItem[] = data.bajo_stock.map((item) => {
-      const stockDisponible = Number(item.stock_disponible ?? 0);
-      const stockMinimo = Number(item.stock_minimo ?? 0);
+  data: Awaited<ReturnType<typeof inventarioService.getAlertas>>,
+): AlertItem[] {
+  const bajoStock: AlertItem[] = data.bajo_stock.map((item) => {
+    const stockDisponible = Number(item.stock_disponible ?? 0);
+    const stockMinimo = Number(item.stock_minimo ?? 0);
 
-      return {
-        id: `bajo-stock-${item.variante_id}`,
-        type: "bajo_stock",
-        varianteId: String(item.variante_id),
-        productoId: String(item.producto_id),
-        title: [
-          item.producto_nombre,
-          item.talla_nombre ? `Talla ${item.talla_nombre}` : null,
-          item.color_nombre ? `Color ${item.color_nombre}` : null,
-        ]
-          .filter(Boolean)
-          .join(" • "),
-        nombre: item.producto_nombre,
-        message: `${item.producto_nombre} tiene ${stockDisponible} disponibles. Mínimo configurado: ${stockMinimo}.`,
-        stockDisponible,
-        stockMinimo,
-        estado: stockDisponible <= 0 ? "agotado" : "bajo",
-        href: `/inventory/variants/${item.variante_id}/movements`,
-      };
-    });
+    return {
+      id: `bajo-stock-${item.variante_id}`,
+      type: "bajo_stock",
+      varianteId: String(item.variante_id),
+      productoId: String(item.producto_id),
+      title: [
+        item.producto_nombre,
+        item.talla_nombre ? `Talla ${item.talla_nombre}` : null,
+        item.color_nombre ? `Color ${item.color_nombre}` : null,
+      ]
+        .filter(Boolean)
+        .join(" • "),
+      nombre: item.producto_nombre,
+      message: `${item.producto_nombre} tiene ${stockDisponible} disponibles. Mínimo configurado: ${stockMinimo}.`,
+      stockDisponible,
+      stockMinimo,
+      estado: stockDisponible <= 0 ? "agotado" : "bajo",
+      href: `/inventory/variants/${item.variante_id}/movements`,
+    };
+  });
 
-    const sinImagen: AlertItem[] = data.productos_sin_imagen.map((item) => ({
-      id: `sin-imagen-${item.producto_id}`,
-      type: "sin_imagen",
+  const sinImagen: AlertItem[] = data.productos_sin_imagen.map((item) => ({
+    id: `sin-imagen-${item.producto_id}`,
+    type: "sin_imagen",
+    productoId: String(item.producto_id),
+    title: item.nombre,
+    message: "Este producto no tiene imagen principal asignada.",
+    href: `/products/${item.producto_id}/images`,
+  }));
+
+  const sinCategoria: AlertItem[] = data.productos_sin_categoria.map(
+    (item) => ({
+      id: `sin-categoria-${item.producto_id}`,
+      type: "sin_categoria",
       productoId: String(item.producto_id),
       title: item.nombre,
-      message: "Este producto no tiene imagen principal asignada.",
-      href: `/products/${item.producto_id}/images`,
-    }));
+      message: "Este producto no tiene categoría asignada.",
+      href: `/products/${item.producto_id}/edit`,
+    }),
+  );
 
-    const sinCategoria: AlertItem[] = data.productos_sin_categoria.map(
-      (item) => ({
-        id: `sin-categoria-${item.producto_id}`,
-        type: "sin_categoria",
-        productoId: String(item.producto_id),
-        title: item.nombre,
-        message: "Este producto no tiene categoría asignada.",
-        href: `/products/${item.producto_id}/edit`,
-      }),
-    );
-
-    return [...bajoStock, ...sinImagen, ...sinCategoria];
-  }
+  return [...bajoStock, ...sinImagen, ...sinCategoria];
+}
 
 const Inventory: React.FC = () => {
+  const { user } = useAuth();
+
+  const canReadInventory = canAccess(user, {
+    permissions: "inventario.productos.read",
+  });
+
+  const canReadMovements = canAccess(user, {
+    permissions: "inventario.movimientos.read",
+  });
+
+  const canCreateMovements = canAccess(user, {
+    permissions: "inventario.movimientos.create",
+  });
+
   const [items, setItems] = useState<InventoryRow[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -131,9 +145,13 @@ const Inventory: React.FC = () => {
   const varianteIdFromUrl = searchParams.get("varianteId") ?? undefined;
   const productoIdFromUrl = searchParams.get("productoId") ?? undefined;
 
-  // ── Carga principal ───────────────────────────────────────────────────────
-
   const loadAlerts = useCallback(async () => {
+    if (!canReadInventory) {
+      setAlerts([]);
+      setAlertsCount(0);
+      return;
+    }
+
     try {
       const data = await inventarioService.getAlertas(20);
       const items = buildAlertItems(data);
@@ -145,7 +163,7 @@ const Inventory: React.FC = () => {
       setAlerts([]);
       setAlertsCount(0);
     }
-  }, []);
+  }, [canReadInventory]);
 
   const loadInventory = useCallback(
     async (
@@ -157,6 +175,14 @@ const Inventory: React.FC = () => {
         productoId?: string;
       } = {},
     ) => {
+      if (!canReadInventory) {
+        setItems([]);
+        setTotal(0);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
       const {
         q = searchQuery,
         p = page,
@@ -167,11 +193,8 @@ const Inventory: React.FC = () => {
 
       try {
         setError(null);
-        if (isRefresh) {
-          setRefreshing(true);
-        } else {
-          setLoading(true);
-        }
+        if (isRefresh) setRefreshing(true);
+        else setLoading(true);
 
         const result = await inventarioService.getExistencias({
           q: q.trim() || undefined,
@@ -225,10 +248,9 @@ const Inventory: React.FC = () => {
         setRefreshing(false);
       }
     },
-    [searchQuery, page],
+    [canReadInventory, searchQuery, page],
   );
 
-  // Carga inicial
   useEffect(() => {
     void loadInventory({
       varianteId: varianteIdFromUrl,
@@ -238,24 +260,20 @@ const Inventory: React.FC = () => {
     void loadAlerts();
   }, [loadInventory, productoIdFromUrl, varianteIdFromUrl, loadAlerts]);
 
-  // ── Búsqueda con debounce ─────────────────────────────────────────────────
-
   const handleSearchChange = useCallback(
     (value: string) => {
-      setSearchInput(value); // actualiza el input visualmente de inmediato
+      setSearchInput(value);
 
       if (debounceRef.current) clearTimeout(debounceRef.current);
 
       debounceRef.current = setTimeout(() => {
         setSearchQuery(value);
         setPage(0);
-        void loadInventory({ q: value, p: 0 }); // consulta al servidor con el nuevo término
+        void loadInventory({ q: value, p: 0 });
       }, 350);
     },
     [loadInventory],
   );
-
-  // ── Paginación ────────────────────────────────────────────────────────────
 
   const goToPage = useCallback(
     (p: number) => {
@@ -273,8 +291,6 @@ const Inventory: React.FC = () => {
     return Array.from({ length: end - start }, (_, i) => start + i);
   }, [page, totalPages]);
 
-  // ── Refresh ───────────────────────────────────────────────────────────────
-
   const loadInventoryRef = useRef(loadInventory);
   useEffect(() => {
     loadInventoryRef.current = loadInventory;
@@ -282,15 +298,21 @@ const Inventory: React.FC = () => {
 
   const handleRefresh = useCallback(() => {
     void loadInventoryRef.current({ isRefresh: true });
-    void loadAlerts()
+    void loadAlerts();
   }, [loadAlerts]);
 
-  // ── Modales ───────────────────────────────────────────────────────────────
+  const handleOpenMovementModal = useCallback(
+    (row?: InventoryRow | null) => {
+      if (!canCreateMovements) {
+        setError("No tienes permiso para registrar movimientos de inventario.");
+        return;
+      }
 
-  const handleOpenMovementModal = useCallback((row?: InventoryRow | null) => {
-    setSelectedMovementRow(row ?? null);
-    setIsMovementModalOpen(true);
-  }, []);
+      setSelectedMovementRow(row ?? null);
+      setIsMovementModalOpen(true);
+    },
+    [canCreateMovements],
+  );
 
   const handleCloseMovementModal = useCallback(() => {
     setIsMovementModalOpen(false);
@@ -300,11 +322,16 @@ const Inventory: React.FC = () => {
 
   const handleRegisterFromAlert = useCallback(
     (alertItem: StockAlertItem) => {
+      if (!canCreateMovements) {
+        setError("No tienes permiso para registrar movimientos de inventario.");
+        return;
+      }
+
       const row = items.find((i) => i.id === alertItem.id) ?? null;
       setIsAlertsModalOpen(false);
       handleOpenMovementModal(row);
     },
-    [items, handleOpenMovementModal],
+    [canCreateMovements, items, handleOpenMovementModal],
   );
 
   const handleCloseAlertsModal = useCallback(
@@ -312,10 +339,6 @@ const Inventory: React.FC = () => {
     [],
   );
 
-  // ── Datos derivados ───────────────────────────────────────────────────────
-
-  // El filtro de estado se aplica solo sobre la página actual (es local)
-  // La búsqueda por texto va siempre al servidor
   const filteredItems = useMemo(() => {
     if (statusFilter === "all") return items;
     return items.filter((item) => item.estado === statusFilter);
@@ -336,7 +359,6 @@ const Inventory: React.FC = () => {
     [items],
   );
 
-  // Stats sobre TODOS los registros del servidor (total), no solo la página
   const stats = useMemo(() => {
     const stockFisico = items.reduce((acc, i) => acc + i.stockFisico, 0);
     const stockDisponible = items.reduce(
@@ -354,7 +376,25 @@ const Inventory: React.FC = () => {
     };
   }, [items, total]);
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  if (!canReadInventory) {
+    return (
+      <section className={styles.inventory}>
+        <header className={styles.header}>
+          <div>
+            <AdminBreadcrumbs items={[{ label: "Inventario" }]} />
+            <h1 className={styles.title}>Inventario</h1>
+            <p className={styles.subtitle}>
+              No tienes permisos para consultar el inventario.
+            </p>
+          </div>
+        </header>
+
+        <div className={styles.centerState}>
+          No tienes permiso para ver inventario.
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className={styles.inventory}>
@@ -381,14 +421,16 @@ const Inventory: React.FC = () => {
             ) : null}
           </button>
 
-          <button
-            type="button"
-            className={styles.primaryBtn}
-            onClick={() => handleOpenMovementModal(null)}
-          >
-            <ArrowRightLeft size={18} />
-            Registrar movimiento
-          </button>
+          {canCreateMovements && (
+            <button
+              type="button"
+              className={styles.primaryBtn}
+              onClick={() => handleOpenMovementModal(null)}
+            >
+              <ArrowRightLeft size={18} />
+              Registrar movimiento
+            </button>
+          )}
 
           <button
             type="button"
@@ -403,6 +445,8 @@ const Inventory: React.FC = () => {
           </button>
         </div>
       </header>
+
+      {error ? <div className={styles.centerState}>{error}</div> : null}
 
       <div className={styles.statsGrid}>
         <article className={`${styles.statCard} ${styles.primaryCard}`}>
@@ -443,7 +487,6 @@ const Inventory: React.FC = () => {
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Buscar por producto, variante, SKU o categoría"
           />
-          {/* Indicador de búsqueda activa */}
           {loading && searchInput && (
             <RefreshCw size={15} className={styles.spinning} />
           )}
@@ -519,19 +562,28 @@ const Inventory: React.FC = () => {
                     </td>
                     <td>
                       <div className={styles.actions}>
-                        <Link
-                          to={`/inventory/variants/${item.id}/movements`}
-                          className={styles.actionBtn}
-                        >
-                          Movimientos
-                        </Link>
-                        <button
-                          type="button"
-                          className={styles.actionBtnSecondary}
-                          onClick={() => handleOpenMovementModal(item)}
-                        >
-                          Ajustar
-                        </button>
+                        {canReadMovements && (
+                          <Link
+                            to={`/inventory/variants/${item.id}/movements`}
+                            className={styles.actionBtn}
+                          >
+                            Movimientos
+                          </Link>
+                        )}
+
+                        {canCreateMovements && (
+                          <button
+                            type="button"
+                            className={styles.actionBtnSecondary}
+                            onClick={() => handleOpenMovementModal(item)}
+                          >
+                            Ajustar
+                          </button>
+                        )}
+
+                        {!canReadMovements && !canCreateMovements && (
+                          <span>Solo lectura</span>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -541,7 +593,6 @@ const Inventory: React.FC = () => {
           </div>
         )}
 
-        {/* ── Paginación ── */}
         {totalPages > 1 && (
           <div className={styles.pagination}>
             <span className={styles.paginationInfo}>
@@ -590,29 +641,31 @@ const Inventory: React.FC = () => {
         onRegisterMovement={handleRegisterFromAlert}
       />
 
-      <InventoryMovementModal
-        isOpen={isMovementModalOpen}
-        onClose={handleCloseMovementModal}
-        title={
-          selectedMovementRow
-            ? "Registrar movimiento"
-            : "Registrar movimiento global"
-        }
-        subtitle={
-          selectedMovementRow
-            ? "Realiza un movimiento rápido sobre la variante seleccionada."
-            : "Selecciona una variante y registra un movimiento de inventario."
-        }
-        producto={selectedMovementRow?.producto ?? ""}
-        variante={selectedMovementRow?.variante ?? ""}
-        sku={selectedMovementRow?.sku ?? ""}
-        variante_id={selectedMovementRow?.id ?? ""}
-        stockFisico={selectedMovementRow?.stockFisico ?? 0}
-        stockApartado={selectedMovementRow?.stockApartado ?? 0}
-        stockDisponible={selectedMovementRow?.stockDisponible ?? 0}
-        stockMinimo={selectedMovementRow?.stockMinimo ?? 0}
-        variantOptions={variantOptions}
-      />
+      {canCreateMovements && (
+        <InventoryMovementModal
+          isOpen={isMovementModalOpen}
+          onClose={handleCloseMovementModal}
+          title={
+            selectedMovementRow
+              ? "Registrar movimiento"
+              : "Registrar movimiento global"
+          }
+          subtitle={
+            selectedMovementRow
+              ? "Realiza un movimiento rápido sobre la variante seleccionada."
+              : "Selecciona una variante y registra un movimiento de inventario."
+          }
+          producto={selectedMovementRow?.producto ?? ""}
+          variante={selectedMovementRow?.variante ?? ""}
+          sku={selectedMovementRow?.sku ?? ""}
+          variante_id={selectedMovementRow?.id ?? ""}
+          stockFisico={selectedMovementRow?.stockFisico ?? 0}
+          stockApartado={selectedMovementRow?.stockApartado ?? 0}
+          stockDisponible={selectedMovementRow?.stockDisponible ?? 0}
+          stockMinimo={selectedMovementRow?.stockMinimo ?? 0}
+          variantOptions={variantOptions}
+        />
+      )}
     </section>
   );
 };

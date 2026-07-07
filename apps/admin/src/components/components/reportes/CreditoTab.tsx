@@ -80,13 +80,7 @@ function CreditoMetricCard({
   );
 }
 
-function SummaryItem({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
+function SummaryItem({ label, value }: { label: string; value: string }) {
   return (
     <article className={styles.summaryItem}>
       <p className={styles.summaryLabel}>{label}</p>
@@ -95,11 +89,7 @@ function SummaryItem({
   );
 }
 
-function CuentasCobrarTable({
-  clientes,
-}: {
-  clientes: ReporteCuentaCobrar[];
-}) {
+function CuentasCobrarTable({ clientes }: { clientes: ReporteCuentaCobrar[] }) {
   if (clientes.length === 0) {
     return (
       <div className={styles.emptyState}>

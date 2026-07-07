@@ -8,6 +8,8 @@ import type {
   TipoMovimiento,
 } from "@shared/api/inventario.api";
 import AdminBreadcrumbs from "../../components/layout/AdminBreadcrumbs";
+import { useAuth } from "@shared/context/AuthContext";
+import { canAccess } from "../../utils/permissions";
 
 interface VariantInfo {
   producto: string;
@@ -44,31 +46,51 @@ const BADGE_CLASS: Record<MovementItem["tipo"], string> = {
 };
 
 const InventoryVariantMovements: React.FC = () => {
+  const { user } = useAuth();
   const { id } = useParams<{ id: string }>();
+
+  const canReadMovements = canAccess(user, {
+    permissions: "inventario.movimientos.read",
+  });
 
   const [variant, setVariant] = useState<VariantInfo>(VARIANT);
   const [movements, setMovements] = useState<MovementItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
   const loadData = useCallback(
     async (isRefresh = false) => {
-      if (!id) return;
+      if (!canReadMovements) {
+        setVariant(VARIANT);
+        setMovements([]);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      if (!id) {
+        setError("No se recibió el identificador de la variante.");
+        setVariant(VARIANT);
+        setMovements([]);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
 
       try {
         setError(null);
 
         if (isRefresh) setRefreshing(true);
-        else setRefreshing(true);
+        else setLoading(true);
 
         const [stockResponse, movementsResponse] = await Promise.all([
           inventarioService.getVariantStock(id),
           inventarioService.getVariantMovements(id),
         ]);
 
-        const stock = stockResponse ?? [];
+        const stock = stockResponse;
         const kardex: MovimientoInventario[] = movementsResponse ?? [];
 
         const talla = stock.talla_nombre;
@@ -81,7 +103,7 @@ const InventoryVariantMovements: React.FC = () => {
 
         setVariant({
           producto: stock.producto_nombre ?? "",
-          variante: variante,
+          variante,
           sku: stock.sku ?? "",
           stockFisico: Number(stock.stock_fisico ?? 0),
           apartado: Number(stock.stock_apartado ?? 0),
@@ -105,12 +127,13 @@ const InventoryVariantMovements: React.FC = () => {
         console.error("Error cargando movimientos de inventario:", err);
         setVariant(VARIANT);
         setMovements([]);
+        setError("No se pudieron cargar los movimientos de inventario.");
       } finally {
         setLoading(false);
         setRefreshing(false);
       }
     },
-    [id],
+    [canReadMovements, id],
   );
 
   useEffect(() => {
@@ -127,6 +150,31 @@ const InventoryVariantMovements: React.FC = () => {
         m.tipo.toLowerCase().includes(term),
     );
   }, [movements, search]);
+
+  if (!canReadMovements) {
+    return (
+      <section className={styles.page}>
+        <header className={styles.header}>
+          <div>
+            <AdminBreadcrumbs
+              items={[
+                { label: "Inventario", to: "/inventory" },
+                { label: "Movimientos" },
+              ]}
+            />
+            <h1 className={styles.title}>Movimientos</h1>
+            <p className={styles.subtitle}>
+              No tienes permisos para consultar movimientos de inventario.
+            </p>
+          </div>
+        </header>
+
+        <div className={styles.centerState}>
+          No tienes permiso para ver movimientos.
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className={styles.page}>
@@ -151,7 +199,8 @@ const InventoryVariantMovements: React.FC = () => {
           <button
             type="button"
             className={styles.refreshBtn}
-            disabled={refreshing}
+            onClick={() => void loadData(true)}
+            disabled={refreshing || loading}
           >
             <RefreshCw
               size={16}
@@ -161,6 +210,8 @@ const InventoryVariantMovements: React.FC = () => {
           </button>
         </div>
       </header>
+
+      {error ? <div className={styles.centerState}>{error}</div> : null}
 
       <section className={styles.variantCard}>
         <div className={styles.variantTop}>

@@ -232,11 +232,9 @@ export default function FinancieroTab({ data, loading }: FinancieroTabProps) {
   const resumen = data.resumen;
   const diferenciaClass = getDiferenciaClass(resumen.diferencia_cortes_total);
 
-  const totalTarjetas =
-    toNumber(resumen.tarjeta);
+  const totalTarjetas = toNumber(resumen.tarjeta);
 
-  const totalOtros =
-    toNumber(resumen.otros);
+  const totalOtros = toNumber(resumen.otros);
 
   return (
     <section className={styles.financieroTab}>
@@ -309,7 +307,8 @@ export default function FinancieroTab({ data, loading }: FinancieroTabProps) {
         <header className={styles.cardHeader}>
           <h3 className={styles.cardTitle}>Resumen financiero</h3>
           <p className={styles.cardSubtitle}>
-            Concentrado de ingresos confirmados, cuentas por cobrar y diferencias de cortes.
+            Concentrado de ingresos confirmados, cuentas por cobrar y
+            diferencias de cortes.
           </p>
         </header>
 

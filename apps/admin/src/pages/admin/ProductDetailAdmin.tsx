@@ -12,6 +12,8 @@ import styles from "../../../styles/ProductDetailAdmin.module.css";
 import { productosService } from "@admin/services/productos.service";
 import AdminBreadcrumbs from "@admin/components/layout/AdminBreadcrumbs";
 import { useBreadcrumbContext } from "@shared/hooks/useBreadcrumbContext";
+import { useAuth } from "@shared/context/AuthContext";
+import { canAccess } from "../../utils/permissions";
 import type { BreadcrumbItem } from "@admin/components/layout/AdminBreadcrumbs";
 
 type ProductViewModel = {
@@ -150,24 +152,53 @@ function mapDetailToViewModel(
 
 const ProductDetailAdmin: React.FC = () => {
   const { id = "" } = useParams();
+  const ctx = useBreadcrumbContext();
+  const { user, loading: authLoading } = useAuth();
+
   const [product, setProduct] = useState<ProductViewModel | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const ctx = useBreadcrumbContext();
-  const breadcrumbItems: BreadcrumbItem[] = ctx.from === "list"
-  ? [
-      { label: "Productos", to: "/products" },
-      { label: "Detalles del producto" },
-    ]
-  : [
-      { label: "Productos", to: "/products" },
-      { label: "Detalles del producto" },
-    ];
+
+  const canReadProducts = canAccess(user, {
+    permissions: "inventario.productos.read",
+  });
+
+  const canUpdateProducts = canAccess(user, {
+    permissions: "inventario.productos.update",
+  });
+
+  const canReadInventoryMovements = canAccess(user, {
+    permissions: "inventario.movimientos.read",
+  });
+
+  const canViewInventorySummary = canReadProducts || canReadInventoryMovements;
+
+  const breadcrumbItems: BreadcrumbItem[] =
+    ctx.from === "list"
+      ? [
+          { label: "Productos", to: "/products" },
+          { label: "Detalles del producto" },
+        ]
+      : [
+          { label: "Productos", to: "/products" },
+          { label: "Detalles del producto" },
+        ];
 
   useEffect(() => {
     let mounted = true;
 
     async function loadProductDetail() {
+      if (authLoading) return;
+
+      if (!canReadProducts) {
+        if (mounted) {
+          setProduct(null);
+          setError("No tienes permiso para consultar productos.");
+          setLoading(false);
+        }
+        return;
+      }
+
       if (!id) {
         if (mounted) {
           setError("No se recibió un identificador de producto.");
@@ -181,7 +212,6 @@ const ProductDetailAdmin: React.FC = () => {
         setError(null);
 
         const detail = await productosService.getDetalleAdmin(id);
-        console.log("DETALLE ADMIN RAW:", detail);
 
         if (!mounted) return;
 
@@ -208,12 +238,12 @@ const ProductDetailAdmin: React.FC = () => {
       }
     }
 
-    loadProductDetail();
+    void loadProductDetail();
 
     return () => {
       mounted = false;
     };
-  }, [id]);
+  }, [authLoading, canReadProducts, id]);
 
   const principalImage = useMemo(
     () =>
@@ -223,7 +253,7 @@ const ProductDetailAdmin: React.FC = () => {
     [product],
   );
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <section className={styles.detailPage}>
         <div className={styles.stateBox}>Cargando detalle del producto...</div>
@@ -251,33 +281,34 @@ const ProductDetailAdmin: React.FC = () => {
     <section className={styles.detailPage}>
       <header className={styles.header}>
         <div>
-          <AdminBreadcrumbs
-            items={breadcrumbItems}
-          />
+          <AdminBreadcrumbs items={breadcrumbItems} />
           <h1 className={styles.title}>{product.nombre}</h1>
           <p className={styles.subtitle}>
             Vista administrativa del producto y accesos a gestión avanzada.
           </p>
         </div>
 
-        <div className={styles.headerActions}>
-          <Link
-            to={`/products/${product.id}/edit`}
-            state={{ from: "detail", productoNombre: product.nombre }}
-            className={styles.secondaryBtn}
-          >
-            <Pencil size={18} />
-            Editar
-          </Link>
-          <Link
-            to={`/products/${product.id}/variants`}
-            state={{ from: "detail" }}
-            className={styles.primaryBtn}
-          >
-            <Layers3 size={18} />
-            Variantes
-          </Link>
-        </div>
+        {canUpdateProducts && (
+          <div className={styles.headerActions}>
+            <Link
+              to={`/products/${product.id}/edit`}
+              state={{ from: "detail", productoNombre: product.nombre }}
+              className={styles.secondaryBtn}
+            >
+              <Pencil size={18} />
+              Editar
+            </Link>
+
+            <Link
+              to={`/products/${product.id}/variants`}
+              state={{ from: "detail" }}
+              className={styles.primaryBtn}
+            >
+              <Layers3 size={18} />
+              Variantes
+            </Link>
+          </div>
+        )}
       </header>
 
       <div className={styles.topGrid}>
@@ -347,12 +378,15 @@ const ProductDetailAdmin: React.FC = () => {
             <h2>
               <Layers3 size={18} /> Variantes
             </h2>
-            <Link
-              to={`/products/${product.id}/variants`}
-              className={styles.inlineLink}
-            >
-              Administrar
-            </Link>
+
+            {canUpdateProducts && (
+              <Link
+                to={`/products/${product.id}/variants`}
+                className={styles.inlineLink}
+              >
+                Administrar
+              </Link>
+            )}
           </div>
 
           {product.variantes.length ? (
@@ -390,13 +424,16 @@ const ProductDetailAdmin: React.FC = () => {
             <h2>
               <ImageIcon size={18} /> Imágenes
             </h2>
-            <Link
-              to={`/products/${product.id}/images`}
-              state={{ from: "detail"}}
-              className={styles.inlineLink}
-            >
-              Administrar
-            </Link>
+
+            {canUpdateProducts && (
+              <Link
+                to={`/products/${product.id}/images`}
+                state={{ from: "detail" }}
+                className={styles.inlineLink}
+              >
+                Administrar
+              </Link>
+            )}
           </div>
 
           {product.imagenes.length ? (
@@ -416,60 +453,62 @@ const ProductDetailAdmin: React.FC = () => {
           )}
         </article>
 
-        <article className={styles.card}>
-          <div className={styles.cardHeader}>
-            <h2>
-              <Tag size={18} /> Resumen de inventario
-            </h2>
-          </div>
+        {canViewInventorySummary && (
+          <article className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h2>
+                <Tag size={18} /> Resumen de inventario
+              </h2>
+            </div>
 
-          <div className={styles.list}>
-            <div className={styles.listItem}>
-              <div>
-                <strong>
-                  <Package size={16} /> Stock físico
-                </strong>
-                <span>Unidades registradas físicamente</span>
+            <div className={styles.list}>
+              <div className={styles.listItem}>
+                <div>
+                  <strong>
+                    <Package size={16} /> Stock físico
+                  </strong>
+                  <span>Unidades registradas físicamente</span>
+                </div>
+                <div className={styles.trailingInfo}>
+                  {product.stock_fisico_total}
+                </div>
               </div>
-              <div className={styles.trailingInfo}>
-                {product.stock_fisico_total}
+              <div className={styles.listItem}>
+                <div>
+                  <strong>
+                    <Boxes size={16} /> Stock apartado
+                  </strong>
+                  <span>Unidades comprometidas o reservadas</span>
+                </div>
+                <div className={styles.trailingInfo}>
+                  {product.stock_apartado_total}
+                </div>
+              </div>
+              <div className={styles.listItem}>
+                <div>
+                  <strong>
+                    <Layers3 size={16} /> Stock disponible
+                  </strong>
+                  <span>Disponible para venta inmediata</span>
+                </div>
+                <div className={styles.trailingInfo}>
+                  {product.stock_disponible_total}
+                </div>
+              </div>
+              <div className={styles.listItem}>
+                <div>
+                  <strong>
+                    <Tag size={16} /> Variantes activas
+                  </strong>
+                  <span>Variantes habilitadas para operación</span>
+                </div>
+                <div className={styles.trailingInfo}>
+                  {product.variantes_activas}
+                </div>
               </div>
             </div>
-            <div className={styles.listItem}>
-              <div>
-                <strong>
-                  <Boxes size={16} /> Stock apartado
-                </strong>
-                <span>Unidades comprometidas o reservadas</span>
-              </div>
-              <div className={styles.trailingInfo}>
-                {product.stock_apartado_total}
-              </div>
-            </div>
-            <div className={styles.listItem}>
-              <div>
-                <strong>
-                  <Layers3 size={16} /> Stock disponible
-                </strong>
-                <span>Disponible para venta inmediata</span>
-              </div>
-              <div className={styles.trailingInfo}>
-                {product.stock_disponible_total}
-              </div>
-            </div>
-            <div className={styles.listItem}>
-              <div>
-                <strong>
-                  <Tag size={16} /> Variantes activas
-                </strong>
-                <span>Variantes habilitadas para operación</span>
-              </div>
-              <div className={styles.trailingInfo}>
-                {product.variantes_activas}
-              </div>
-            </div>
-          </div>
-        </article>
+          </article>
+        )}
       </div>
     </section>
   );

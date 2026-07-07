@@ -2,6 +2,7 @@ import React from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { Box, CircularProgress } from "@mui/material";
 import { useAuth } from "@shared/context/AuthContext";
+import { canAccess } from "../utils/permissions";
 
 const AdminRoute: React.FC = () => {
   const { user, loading, isAuthenticated } = useAuth();
@@ -25,13 +26,11 @@ const AdminRoute: React.FC = () => {
     return <Navigate to="/login" replace />;
   }
 
-  const rol = String(user.rol ?? "").toLowerCase();
-  const isAllowed =
-    rol === "admin" ||
-    rol === "administrador" ||
-    rol === "empleado";
+  const canEnterPanel = canAccess(user, {
+    permissions: "panel.admin.access",
+  });
 
-  if (!isAllowed) {
+  if (!canEnterPanel) {
     return <Navigate to="/login" replace />;
   }
 

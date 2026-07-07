@@ -5,9 +5,11 @@ import styles from "../../../styles/ProductForm.module.css";
 import { productosService } from "../../services/productos.service";
 import { categoriaService } from "../../services/categorias.service";
 import { useBreadcrumbContext } from "@shared/hooks/useBreadcrumbContext";
+import { useAuth } from "@shared/context/AuthContext";
 import AdminBreadcrumbs from "@admin/components/layout/AdminBreadcrumbs";
 import type { BreadcrumbItem } from "@admin/components/layout/AdminBreadcrumbs";
 import { configuracionService } from "@admin/services/configuracion.service";
+import { canAccess } from "../../utils/permissions";
 
 type CategoriaItem = {
   id: string | number;
@@ -82,7 +84,28 @@ const ProductForm: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const ctx = useBreadcrumbContext();
+  const { user, loading: authLoading } = useAuth();
+
   const isEdit = Boolean(id);
+
+  const canCreateProducts = canAccess(user, {
+    permissions: "inventario.productos.create",
+  });
+
+  const canUpdateProducts = canAccess(user, {
+    permissions: "inventario.productos.update",
+  });
+
+  const canReadCategories = canAccess(user, {
+    permissions: "inventario.categorias.read",
+  });
+
+  const canViewInventorySettings = canAccess(user, {
+    permissions: "configuracion.ajustes.view",
+  });
+
+  const canSubmitForm = isEdit ? canUpdateProducts : canCreateProducts;
+
   const breadcrumbItems: BreadcrumbItem[] =
     ctx.from === "detail"
       ? [
@@ -151,18 +174,28 @@ const ProductForm: React.FC = () => {
   }, [form.nombre, isEdit, slugTouched, skuTouched]);
 
   useEffect(() => {
+    if (authLoading) return;
+
     let cancelled = false;
 
     const loadData = async () => {
+      if (!canSubmitForm) {
+        setLoading(false);
+        setCategories([]);
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
 
         const [categorias, inventoryParams] = await Promise.all([
-          categoriaService.getCategorias(),
-          isEdit
-            ? Promise.resolve([])
-            : configuracionService.getInventoryParams(),
+          canReadCategories
+            ? categoriaService.getCategorias()
+            : Promise.resolve([]),
+          !isEdit && canViewInventorySettings
+            ? configuracionService.getInventoryParams()
+            : Promise.resolve([]),
         ]);
 
         if (!cancelled) {
@@ -175,11 +208,13 @@ const ProductForm: React.FC = () => {
         }
 
         if (!cancelled && !isEdit) {
-          const stockMinimoGeneral = configuracionService.getParamNumber(
-            inventoryParams,
-            "inventario.stock_minimo_general",
-            5,
-          );
+          const stockMinimoGeneral = canViewInventorySettings
+            ? configuracionService.getParamNumber(
+                inventoryParams,
+                "inventario.stock_minimo_general",
+                5,
+              )
+            : 5;
 
           setForm((prev) => ({
             ...prev,
@@ -228,7 +263,14 @@ const ProductForm: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [id, isEdit]);
+  }, [
+    authLoading,
+    canReadCategories,
+    canSubmitForm,
+    canViewInventorySettings,
+    id,
+    isEdit,
+  ]);
 
   const handleChange = <K extends keyof ProductFormState>(
     field: K,
@@ -326,6 +368,15 @@ const ProductForm: React.FC = () => {
     event.preventDefault();
     setError(null);
 
+    if (!canSubmitForm) {
+      setError(
+        isEdit
+          ? "No tienes permiso para editar productos."
+          : "No tienes permiso para crear productos.",
+      );
+      return;
+    }
+
     const validationError = isEdit ? validateUpdate() : validateCreate();
     if (validationError) {
       setError(validationError);
@@ -354,10 +405,38 @@ const ProductForm: React.FC = () => {
     }
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <section className={styles.stateBox}>
         <Loader2 size={20} className={styles.spinning} />
+      </section>
+    );
+  }
+
+  if (!canSubmitForm) {
+    return (
+      <section className={styles.formPage}>
+        <header className={styles.header}>
+          <div>
+            <AdminBreadcrumbs items={breadcrumbItems} />
+            <h1 className={styles.title}>{pageTitle}</h1>
+            <p className={styles.subtitle}>
+              {isEdit
+                ? "No tienes permisos para editar productos."
+                : "No tienes permisos para crear productos."}
+            </p>
+          </div>
+        </header>
+
+        <div className={styles.errorBox}>
+          {isEdit
+            ? "No tienes permiso para editar productos."
+            : "No tienes permiso para crear productos."}
+        </div>
+
+        <Link to="/products" className={styles.cancelBtn}>
+          Volver a productos
+        </Link>
       </section>
     );
   }
@@ -393,6 +472,7 @@ const ProductForm: React.FC = () => {
                 id="nombre"
                 value={form.nombre}
                 onChange={(e) => handleChange("nombre", e.target.value)}
+                disabled={saving}
                 required
               />
             </div>
@@ -403,8 +483,13 @@ const ProductForm: React.FC = () => {
                 id="categoria_id"
                 value={String(form.categoria_id ?? "")}
                 onChange={(e) => handleChange("categoria_id", e.target.value)}
+                disabled={saving || !canReadCategories}
               >
-                <option value="">Selecciona una categoría</option>
+                <option value="">
+                  {canReadCategories
+                    ? "Selecciona una categoría"
+                    : "Sin permiso para consultar categorías"}
+                </option>
                 {categories.map((category) => (
                   <option key={category.id} value={String(category.id)}>
                     {category.nombre}
@@ -418,6 +503,7 @@ const ProductForm: React.FC = () => {
               <input
                 id="slug"
                 value={form.slug}
+                disabled={saving}
                 onChange={(e) => {
                   setSlugTouched(true);
                   handleChange("slug", e.target.value);
@@ -431,6 +517,7 @@ const ProductForm: React.FC = () => {
                 id="descripcion"
                 rows={5}
                 value={form.descripcion}
+                disabled={saving}
                 onChange={(e) => handleChange("descripcion", e.target.value)}
               />
             </div>
@@ -453,6 +540,7 @@ const ProductForm: React.FC = () => {
               <input
                 type="checkbox"
                 checked={form.activo}
+                disabled={saving}
                 onChange={(e) => handleChange("activo", e.target.checked)}
               />
               Producto activo
@@ -462,6 +550,7 @@ const ProductForm: React.FC = () => {
               <input
                 type="checkbox"
                 checked={form.destacado}
+                disabled={saving}
                 onChange={(e) => handleChange("destacado", e.target.checked)}
               />
               Mostrar como destacado
@@ -488,6 +577,7 @@ const ProductForm: React.FC = () => {
                 <input
                   id="sku"
                   value={form.variante_base.sku}
+                  disabled={saving}
                   onChange={(e) => {
                     setSkuTouched(true);
                     handleVariantChange("sku", e.target.value.toUpperCase());
@@ -501,6 +591,7 @@ const ProductForm: React.FC = () => {
                 <input
                   id="codigo_barras"
                   value={form.variante_base.codigo_barras ?? ""}
+                  disabled={saving}
                   onChange={(e) =>
                     handleVariantChange("codigo_barras", e.target.value)
                   }
@@ -515,6 +606,7 @@ const ProductForm: React.FC = () => {
                   min="0"
                   step="0.01"
                   value={form.variante_base.precio_costo ?? 0}
+                  disabled={saving}
                   onChange={(e) =>
                     handleVariantChange("precio_costo", Number(e.target.value))
                   }
@@ -529,6 +621,7 @@ const ProductForm: React.FC = () => {
                   min="0"
                   step="0.01"
                   value={form.variante_base.precio_venta}
+                  disabled={saving}
                   onChange={(e) =>
                     handleVariantChange("precio_venta", Number(e.target.value))
                   }
@@ -544,6 +637,7 @@ const ProductForm: React.FC = () => {
                   min="0"
                   step="0.01"
                   value={form.variante_base.stock_minimo}
+                  disabled={saving}
                   onChange={(e) =>
                     handleVariantChange("stock_minimo", Number(e.target.value))
                   }
@@ -562,7 +656,7 @@ const ProductForm: React.FC = () => {
         )}
 
         <div className={styles.footer}>
-          {isEdit && id ? (
+          {isEdit && id && canUpdateProducts ? (
             <Link to={`/products/${id}/variants`} className={styles.cancelBtn}>
               Administrar variantes
             </Link>

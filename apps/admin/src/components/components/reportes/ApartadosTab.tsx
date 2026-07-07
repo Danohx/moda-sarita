@@ -189,13 +189,7 @@ function ApartadoMetricCard({
   );
 }
 
-function SummaryItem({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
+function SummaryItem({ label, value }: { label: string; value: string }) {
   return (
     <article className={styles.summaryItem}>
       <p className={styles.summaryLabel}>{label}</p>
@@ -296,9 +290,7 @@ function ApartadosDetalleTable({
 
                 <td>{formatDate(apartado.fecha_limite_apartado)}</td>
 
-                <td className={vencimiento.className}>
-                  {vencimiento.label}
-                </td>
+                <td className={vencimiento.className}>{vencimiento.label}</td>
 
                 <td>{formatDate(apartado.fecha_creacion)}</td>
               </tr>

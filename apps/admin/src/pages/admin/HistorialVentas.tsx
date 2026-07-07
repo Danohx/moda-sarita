@@ -15,6 +15,8 @@ import {
   Filter,
 } from "lucide-react";
 import styles from "../../../styles/HistorialVentas.module.css";
+import { useAuth } from "@shared/context/AuthContext";
+import { canAccess } from "../../utils/permissions";
 import {
   ventasService,
   type VentaHistorial,
@@ -361,6 +363,16 @@ const ModalDetalle = memo(function ModalDetalle({
 export default function HistorialVentasPOS({
   onOpenTicket,
 }: HistorialVentasPOSProps) {
+  const { user } = useAuth();
+
+  const canReadSales = canAccess(user, {
+    permissions: "ventas.pedidos.read",
+  });
+
+  const canReadPayments = canAccess(user, {
+    permissions: "ventas.pagos.read",
+  });
+
   const [ventas, setVentas] = useState<VentaHistorial[]>([]);
   const [detalle, setDetalle] = useState<VentaHistorialDetalle | null>(null);
 
@@ -398,6 +410,14 @@ export default function HistorialVentasPOS({
   );
 
   const cargarVentas = useCallback(async () => {
+    if (!canReadSales) {
+      setVentas([]);
+      setTotal(0);
+      setLoading(false);
+      setError("No tienes permiso para consultar ventas.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -413,7 +433,7 @@ export default function HistorialVentasPOS({
     } finally {
       setLoading(false);
     }
-  }, [filtros]);
+  }, [canReadSales, filtros]);
 
   useEffect(() => {
     void cargarVentas();
@@ -431,6 +451,11 @@ export default function HistorialVentasPOS({
   };
 
   const abrirDetalle = async (venta: VentaHistorial) => {
+    if (!canReadSales) {
+      setError("No tienes permiso para consultar el detalle de ventas.");
+      return;
+    }
+
     setModalOpen(true);
     setDetalle(null);
     setLoadingDetalle(true);
@@ -458,6 +483,11 @@ export default function HistorialVentasPOS({
   const hasFiltros = Boolean(q || estado || metodo || fechaInicio || fechaFin);
 
   async function handleOpenTicket(ventaId: string | number) {
+    if (!canReadSales) {
+      setError("No tienes permiso para reimprimir tickets.");
+      return;
+    }
+
     const id = String(ventaId);
 
     try {
@@ -472,6 +502,22 @@ export default function HistorialVentasPOS({
     } finally {
       setTicketLoadingId(null);
     }
+  }
+
+  if (!canReadSales) {
+    return (
+      <section className={styles.wrapper}>
+        <header className={styles.header}>
+          <div className={styles.headerContent}>
+            <p className={styles.kicker}>Ventas / POS</p>
+            <h2 className={styles.title}>Historial de ventas</h2>
+            <p className={styles.subtitle}>
+              No tienes permisos para consultar el historial de ventas.
+            </p>
+          </div>
+        </header>
+      </section>
+    );
   }
 
   return (
@@ -565,23 +611,28 @@ export default function HistorialVentasPOS({
               </select>
             </label>
 
-            <label className={styles.field}>
-              <span>Método de pago</span>
-              <select
-                value={metodo}
-                onChange={(e) => {
-                  setMetodo(e.target.value);
-                  resetPage();
-                }}
-                aria-label="Filtrar por método de pago"
-              >
-                {METODOS.map((item) => (
-                  <option key={item.value || "all-metodos"} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {canReadPayments && (
+              <label className={styles.field}>
+                <span>Método de pago</span>
+                <select
+                  value={metodo}
+                  onChange={(e) => {
+                    setMetodo(e.target.value);
+                    resetPage();
+                  }}
+                  aria-label="Filtrar por método de pago"
+                >
+                  {METODOS.map((item) => (
+                    <option
+                      key={item.value || "all-metodos"}
+                      value={item.value}
+                    >
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
 
             <label className={styles.field}>
               <span>Desde</span>

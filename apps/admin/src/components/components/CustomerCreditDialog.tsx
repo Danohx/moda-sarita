@@ -30,6 +30,8 @@ import {
 import styles from "../../../styles/AdminCustomers.module.css";
 import type { Cliente } from "@admin/pages/admin/AdminCustomers";
 import { clientesService } from "@admin/services/clientes.service";
+import { useAuth } from "@shared/context/AuthContext";
+import { canAccess } from "../../utils/permissions";
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -88,6 +90,12 @@ const CustomerCreditDialog: React.FC<Props> = ({
   onClose,
   onSuccess,
 }) => {
+  const { user } = useAuth();
+
+  const canManageCredit = canAccess(user, {
+    permissions: "clientes.clientes.credito.manage",
+  });
+
   // ── Configuración de crédito
   const [saving, setSaving] = useState(false);
   const [creditoHabilitado, setCreditoHabilitado] = useState(false);
@@ -116,8 +124,8 @@ const CustomerCreditDialog: React.FC<Props> = ({
   // ── Reset al abrir y Carga de Historial ──────────────────────────────────────
 
   useEffect(() => {
-    if (!open || !customer) return;
-    
+    if (!open || !customer || !canManageCredit) return;
+
     setCreditoHabilitado(customer.creditLimit > 0);
     setLimiteCredito(String(customer.creditLimit || ""));
     setAbonoMonto("");
@@ -128,23 +136,28 @@ const CustomerCreditDialog: React.FC<Props> = ({
       try {
         setLoadingMov(true);
         const dataBD = await clientesService.getMovimientosCredito(customer.id);
-        
-        // Mapeo seguro de los datos de la BD a la interfaz visual
-        const mappedData: MovimientoCredito[] = dataBD.map((mov: MovimientoCreditoBD) => {
-          const tipoLower = String(mov.tipo).toLowerCase();
-          const tipoFinal = (tipoLower === "abono" || tipoLower === "compra" || tipoLower === "ajuste") 
-            ? (tipoLower as "compra" | "abono" | "ajuste") 
-            : "ajuste";
 
-          return {
-            id: String(mov.id),
-            fecha: mov.fecha,
-            tipo: tipoFinal,
-            descripcion: mov.descripcion,
-            monto: Number(mov.monto),
-            saldoResultante: Number(mov.saldoResultante),
-          };
-        });
+        // Mapeo seguro de los datos de la BD a la interfaz visual
+        const mappedData: MovimientoCredito[] = dataBD.map(
+          (mov: MovimientoCreditoBD) => {
+            const tipoLower = String(mov.tipo).toLowerCase();
+            const tipoFinal =
+              tipoLower === "abono" ||
+              tipoLower === "compra" ||
+              tipoLower === "ajuste"
+                ? (tipoLower as "compra" | "abono" | "ajuste")
+                : "ajuste";
+
+            return {
+              id: String(mov.id),
+              fecha: mov.fecha,
+              tipo: tipoFinal,
+              descripcion: mov.descripcion,
+              monto: Number(mov.monto),
+              saldoResultante: Number(mov.saldoResultante),
+            };
+          },
+        );
 
         setMovimientos(mappedData);
       } catch (error) {
@@ -156,12 +169,18 @@ const CustomerCreditDialog: React.FC<Props> = ({
     };
 
     void fetchMovimientos();
-  }, [customer, open]);
+  }, [canManageCredit, customer, open]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
 
   const handleGuardarCredito = useCallback(async () => {
     if (!customer) return;
+
+    if (!canManageCredit) {
+      alert("No tienes permiso para modificar crédito de clientes.");
+      return;
+    }
+
     const limiteFinal = creditoHabilitado ? Number(limiteCredito) : 0;
     try {
       setSaving(true);
@@ -177,10 +196,23 @@ const CustomerCreditDialog: React.FC<Props> = ({
     } finally {
       setSaving(false);
     }
-  }, [customer, creditoHabilitado, limiteCredito, onSuccess, onClose]);
+  }, [
+    canManageCredit,
+    customer,
+    creditoHabilitado,
+    limiteCredito,
+    onSuccess,
+    onClose,
+  ]);
 
   const handleRegistrarAbono = useCallback(async () => {
     if (!customer) return;
+
+    if (!canManageCredit) {
+      alert("No tienes permiso para registrar abonos de crédito.");
+      return;
+    }
+
     const monto = Number(abonoMonto);
     if (monto <= 0) {
       alert("⚠️ Ingresa un monto mayor a 0.");
@@ -207,7 +239,14 @@ const CustomerCreditDialog: React.FC<Props> = ({
     } finally {
       setProcesandoAbono(false);
     }
-  }, [customer, abonoMonto, metodoPago, formatMoneda, onSuccess]);
+  }, [
+    canManageCredit,
+    customer,
+    abonoMonto,
+    metodoPago,
+    formatMoneda,
+    onSuccess,
+  ]);
 
   const ultimaActividad = useMemo(() => {
     if (!movimientos.length) return null;
@@ -219,6 +258,8 @@ const CustomerCreditDialog: React.FC<Props> = ({
   const busy = saving || procesandoAbono;
 
   // ── Render ───────────────────────────────────────────────────────────────────
+
+  if (!canManageCredit) return null;
 
   return (
     <Dialog

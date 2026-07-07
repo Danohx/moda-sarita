@@ -47,15 +47,15 @@ export type SessionTokens = {
 };
 
 export type AuthUser = {
-  id?: string;
-  correo?: string;
-  email?: string;
-  nombre?: string;
+  id: string;
+  email: string;
+  nombres?: string;
+  apellido_paterno?: string;
+  apellido_materno?: string | null;
   rol?: string;
+  role?: string;
+  rol_nombre?: string;
   permisos?: string[];
-  sid?: string;
-  tfa?: boolean;
-  activo?: boolean;
 };
 
 export type LoginPayload = {

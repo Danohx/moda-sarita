@@ -16,6 +16,8 @@ import ProductVariantForm, {
 import AdminBreadcrumbs from "@admin/components/layout/AdminBreadcrumbs";
 import { useBreadcrumbContext } from "@shared/hooks/useBreadcrumbContext";
 import type { BreadcrumbItem } from "@admin/components/layout/AdminBreadcrumbs";
+import { useAuth } from "@shared/context/AuthContext";
+import { canAccess } from "../../utils/permissions";
 
 interface OptionItem {
   id: string | number;
@@ -97,16 +99,10 @@ function mapVarianteToItem(variant: VarianteRaw): VarianteItem {
     color_id: variant.color_id ?? null,
     talla_id: variant.talla_id ?? null,
     color: variant.color_nombre
-      ? {
-          nombre: variant.color_nombre,
-          hex: variant.color_hex ?? null,
-        }
+      ? { nombre: variant.color_nombre, hex: variant.color_hex ?? null }
       : null,
     talla: variant.talla_nombre
-      ? {
-          nombre: variant.talla_nombre,
-          tipo: variant.talla_tipo ?? null,
-        }
+      ? { nombre: variant.talla_nombre, tipo: variant.talla_tipo ?? null }
       : null,
     created_at: variant.created_at,
     updated_at: variant.updated_at,
@@ -114,8 +110,26 @@ function mapVarianteToItem(variant: VarianteRaw): VarianteItem {
 }
 
 const ProductVariantsManager: React.FC = () => {
+  const { user } = useAuth();
   const { id = "" } = useParams();
   const ctx = useBreadcrumbContext();
+
+  const canReadProducts = canAccess(user, {
+    permissions: "inventario.productos.read",
+  });
+
+  const canManageVariants = canAccess(user, {
+    permissions: "inventario.productos.update",
+  });
+
+  const canCreateMovements = canAccess(user, {
+    permissions: "inventario.movimientos.create",
+  });
+
+  const canReadCatalogs = canAccess(user, {
+    permissions: "inventario.categorias.read",
+  });
+
   const breadcrumbItems: BreadcrumbItem[] =
     ctx.from === "detail"
       ? [
@@ -147,6 +161,13 @@ const ProductVariantsManager: React.FC = () => {
 
   const loadItems = useCallback(
     async (isRefresh = false) => {
+      if (!canReadProducts) {
+        setVariants([]);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
       if (!id) {
         setVariants([]);
         setLoading(false);
@@ -173,10 +194,16 @@ const ProductVariantsManager: React.FC = () => {
         setRefreshing(false);
       }
     },
-    [id],
+    [canReadProducts, id],
   );
 
   const loadCatalogs = useCallback(async () => {
+    if (!canReadCatalogs) {
+      setColors([]);
+      setSizes([]);
+      return;
+    }
+
     try {
       const [colorsData, sizesData] = await Promise.all([
         categoriaService.getColores(),
@@ -189,18 +216,14 @@ const ProductVariantsManager: React.FC = () => {
           nombre: item.nombre,
         })),
       );
-
       setSizes(
-        (sizesData ?? []).map((item) => ({
-          id: item.id,
-          nombre: item.nombre,
-        })),
+        (sizesData ?? []).map((item) => ({ id: item.id, nombre: item.nombre })),
       );
     } catch (err) {
       console.error(err);
       setError("No se pudieron cargar colores y tallas.");
     }
-  }, []);
+  }, [canReadCatalogs]);
 
   useEffect(() => {
     void loadItems();
@@ -216,6 +239,16 @@ const ProductVariantsManager: React.FC = () => {
   };
 
   const openCreateModal = () => {
+    if (!canManageVariants) {
+      setError("No tienes permiso para crear variantes.");
+      return;
+    }
+
+    if (!canReadCatalogs) {
+      setError("No tienes permiso para consultar colores y tallas.");
+      return;
+    }
+
     setFormMode("create");
     setSelectedVariantId(null);
     setVariantForm(emptyVariantForm);
@@ -223,6 +256,11 @@ const ProductVariantsManager: React.FC = () => {
   };
 
   const handleEditVariant = (variant: VarianteItem) => {
+    if (!canManageVariants) {
+      setError("No tienes permiso para editar variantes.");
+      return;
+    }
+
     setFormMode("edit");
     setSelectedVariantId(variant.id);
     setVariantForm(
@@ -243,6 +281,11 @@ const ProductVariantsManager: React.FC = () => {
   };
 
   const handleSubmitVariantForm = async () => {
+    if (!canManageVariants) {
+      setError("No tienes permiso para guardar variantes.");
+      return;
+    }
+
     if (!id) return;
 
     try {
@@ -269,6 +312,11 @@ const ProductVariantsManager: React.FC = () => {
         const diff = nextStock - currentStock;
 
         if (diff !== 0) {
+          if (!canCreateMovements) {
+            setError("No tienes permiso para ajustar stock desde variantes.");
+            return;
+          }
+
           await variantesService.changeStock(selectedVariantId, {
             cantidad: diff,
             motivo: "Ajuste desde formulario de variante",
@@ -292,6 +340,11 @@ const ProductVariantsManager: React.FC = () => {
     varianteId: string | number,
     activo: boolean,
   ) => {
+    if (!canManageVariants) {
+      setError("No tienes permiso para activar o desactivar variantes.");
+      return;
+    }
+
     try {
       setError(null);
       await variantesService.changeStatus(varianteId, activo);
@@ -301,6 +354,26 @@ const ProductVariantsManager: React.FC = () => {
       setError("No se pudo actualizar el estado de la variante.");
     }
   };
+
+  if (!canReadProducts) {
+    return (
+      <section className={styles.page}>
+        <header className={styles.header}>
+          <div>
+            <AdminBreadcrumbs items={breadcrumbItems} />
+            <h1 className={styles.title}>Variantes del producto</h1>
+            <p className={styles.subtitle}>
+              No tienes permisos para consultar variantes.
+            </p>
+          </div>
+        </header>
+
+        <div className={styles.errorBox}>
+          No tienes permiso para ver variantes.
+        </div>
+      </section>
+    );
+  }
 
   return (
     <>
@@ -316,14 +389,16 @@ const ProductVariantsManager: React.FC = () => {
           </div>
 
           <div className={styles.headerActions}>
-            <button
-              type="button"
-              className={styles.primaryBtn}
-              onClick={openCreateModal}
-              disabled={saving}
-            >
-              Crear variante
-            </button>
+            {canManageVariants && (
+              <button
+                type="button"
+                className={styles.primaryBtn}
+                onClick={openCreateModal}
+                disabled={saving}
+              >
+                Crear variante
+              </button>
+            )}
 
             <button
               type="button"
@@ -382,27 +457,39 @@ const ProductVariantsManager: React.FC = () => {
                   </div>
 
                   <div className={styles.variantTools}>
-                    <button
-                      type="button"
-                      className={styles.primaryBtn}
-                      onClick={() => handleEditVariant(variant)}
-                      disabled={saving}
-                    >
-                      Editar
-                    </button>
+                    {canManageVariants ? (
+                      <>
+                        <button
+                          type="button"
+                          className={styles.primaryBtn}
+                          onClick={() => handleEditVariant(variant)}
+                          disabled={saving}
+                        >
+                          Editar
+                        </button>
 
-                    <button
-                      type="button"
-                      className={
-                        variant.activo ? styles.statusOn : styles.statusOff
-                      }
-                      onClick={() =>
-                        void handleToggleStatus(variant.id, !variant.activo)
-                      }
-                      disabled={saving}
-                    >
-                      {variant.activo ? "Activo" : "Inactivo"}
-                    </button>
+                        <button
+                          type="button"
+                          className={
+                            variant.activo ? styles.statusOn : styles.statusOff
+                          }
+                          onClick={() =>
+                            void handleToggleStatus(variant.id, !variant.activo)
+                          }
+                          disabled={saving}
+                        >
+                          {variant.activo ? "Activo" : "Inactivo"}
+                        </button>
+                      </>
+                    ) : (
+                      <span
+                        className={
+                          variant.activo ? styles.statusOn : styles.statusOff
+                        }
+                      >
+                        {variant.activo ? "Activo" : "Inactivo"}
+                      </span>
+                    )}
                   </div>
                 </article>
               ))}

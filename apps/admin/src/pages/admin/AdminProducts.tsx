@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState, useEffect } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Box,
@@ -15,11 +15,14 @@ import {
   ToggleRight,
   ToggleLeft,
 } from "lucide-react";
+
 import styles from "../../../styles/AdminProducts.module.css";
 import { productosService } from "@admin/services/productos.service";
 import type { Producto } from "@shared/api/productos.api";
 import { categoriaService } from "@admin/services/categorias.service";
 import AdminBreadcrumbs from "@admin/components/layout/AdminBreadcrumbs";
+import { useAuth } from "@shared/context/AuthContext";
+import { canAccess } from "../../utils/permissions";
 
 interface CategoriaItem {
   id: string | number;
@@ -50,6 +53,28 @@ function currency(value?: number) {
 }
 
 const AdminProducts: React.FC = () => {
+  const { user } = useAuth();
+
+  const canReadProducts = canAccess(user, {
+    permissions: "inventario.productos.read",
+  });
+
+  const canCreateProducts = canAccess(user, {
+    permissions: "inventario.productos.create",
+  });
+
+  const canUpdateProducts = canAccess(user, {
+    permissions: "inventario.productos.update",
+  });
+
+  const canDeactivateProducts = canAccess(user, {
+    permissions: "inventario.productos.deactivate",
+  });
+
+  const canReadCategories = canAccess(user, {
+    permissions: "inventario.categorias.read",
+  });
+
   const [products, setProducts] = useState<ProductoItem[]>([]);
   const [categories, setCategories] = useState<CategoriaItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,9 +97,12 @@ const AdminProducts: React.FC = () => {
       );
 
       const normalized: ProductoItem[] = data.map((product) => {
-        const categoria = product.categoria_id
+        const categoriaFromMap = product.categoria_id
           ? categoriasMap.get(String(product.categoria_id))
           : null;
+
+        const categoriaNombre =
+          categoriaFromMap?.nombre ?? product.categoria_nombre ?? null;
 
         return {
           id: product.id,
@@ -84,14 +112,16 @@ const AdminProducts: React.FC = () => {
           stock_total: Number(product.stock_total ?? 0),
           activo: Boolean(product.activo),
           destacado: Boolean(product.destacado),
-          categoria: categoria
-            ? {
-                id: categoria.id,
-                nombre: categoria.nombre,
-              }
-            : null,
+          categoria:
+            product.categoria_id && categoriaNombre
+              ? {
+                  id: product.categoria_id,
+                  nombre: categoriaNombre,
+                }
+              : null,
         };
       });
+
       return normalized;
     },
     [],
@@ -117,6 +147,14 @@ const AdminProducts: React.FC = () => {
 
   const loadProducts = useCallback(
     async (isRefresh = false) => {
+      if (!canReadProducts) {
+        setProducts([]);
+        setCategories([]);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
       try {
         setError(null);
 
@@ -128,12 +166,16 @@ const AdminProducts: React.FC = () => {
 
         const [productos, categorias] = await Promise.all([
           productosService.getList(),
-          categoriaService.getCategorias(),
+          canReadCategories
+            ? categoriaService.getCategorias()
+            : Promise.resolve([] as CategoriaItem[]),
         ]);
-        const normalizedProducts = normalizeProducts(productos, categorias);
-        const normalizedCategories = buildCategories(normalizedProducts);
 
-        console.log(normalizedProducts, normalizedCategories);
+        const normalizedProducts = normalizeProducts(productos, categorias);
+        const normalizedCategories = canReadCategories
+          ? buildCategories(normalizedProducts)
+          : [];
+
         setProducts(normalizedProducts);
         setCategories(normalizedCategories);
       } catch (err) {
@@ -146,39 +188,62 @@ const AdminProducts: React.FC = () => {
         setRefreshing(false);
       }
     },
-    [buildCategories, normalizeProducts],
+    [
+      buildCategories,
+      canReadCategories,
+      canReadProducts,
+      normalizeProducts,
+    ],
   );
 
   useEffect(() => {
     void loadProducts();
   }, [loadProducts]);
 
-  const handleToggleStatus = async (product: ProductoItem) => {
-    try {
-      await productosService.changeStatus(product.id, !product.activo);
-      await loadProducts(true);
-    } catch (err) {
-      console.error(err);
-      setError("No se pudo cambiar el estado del producto.");
-    }
-  };
+  const handleToggleStatus = useCallback(
+    async (product: ProductoItem) => {
+      if (!canDeactivateProducts) {
+        setError("No tienes permiso para activar o desactivar productos.");
+        return;
+      }
 
-  const handleToggleFeatured = async (product: ProductoItem) => {
-    try {
-      await productosService.changeFeatured(product.id, !product.destacado);
-      await loadProducts(true);
-    } catch (err) {
-      console.error(err);
-      setError("No se pudo cambiar el estado destacado.");
-    }
-  };
+      try {
+        await productosService.changeStatus(product.id, !product.activo);
+        await loadProducts(true);
+      } catch (err) {
+        console.error(err);
+        setError("No se pudo cambiar el estado del producto.");
+      }
+    },
+    [canDeactivateProducts, loadProducts],
+  );
+
+  const handleToggleFeatured = useCallback(
+    async (product: ProductoItem) => {
+      if (!canUpdateProducts) {
+        setError("No tienes permiso para modificar productos.");
+        return;
+      }
+
+      try {
+        await productosService.changeFeatured(product.id, !product.destacado);
+        await loadProducts(true);
+      } catch (err) {
+        console.error(err);
+        setError("No se pudo cambiar el estado destacado.");
+      }
+    },
+    [canUpdateProducts, loadProducts],
+  );
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
+      const normalizedSearch = search.trim().toLowerCase();
+
       const matchesSearch =
-        !search ||
-        product.nombre.toLowerCase().includes(search.toLowerCase()) ||
-        product.sku.toLowerCase().includes(search.toLowerCase());
+        !normalizedSearch ||
+        product.nombre.toLowerCase().includes(normalizedSearch) ||
+        product.sku.toLowerCase().includes(normalizedSearch);
 
       const matchesCategory =
         categoryFilter === "all" ||
@@ -216,6 +281,26 @@ const AdminProducts: React.FC = () => {
     };
   }, [products]);
 
+  if (!canReadProducts) {
+    return (
+      <section className={styles.products}>
+        <header className={styles.header}>
+          <div>
+            <AdminBreadcrumbs items={[{ label: "Productos" }]} />
+            <h1 className={styles.title}>Productos</h1>
+            <p className={styles.subtitle}>
+              No tienes permisos para consultar el catálogo de productos.
+            </p>
+          </div>
+        </header>
+
+        <div className={styles.errorBox}>
+          No tienes permiso para ver productos.
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className={styles.products}>
       <header className={styles.header}>
@@ -241,15 +326,19 @@ const AdminProducts: React.FC = () => {
             Actualizar
           </button>
 
-          <Link to="/products/new" className={styles.primaryBtn}>
-            <Plus size={18} />
-            Nuevo producto
-          </Link>
+          {canCreateProducts && (
+            <Link to="/products/new" className={styles.primaryBtn}>
+              <Plus size={18} />
+              Nuevo producto
+            </Link>
+          )}
 
-          <Link to="/products/catalogs" className={styles.primaryBtn}>
-            <ClipboardCheck size={18} />
-            Gestionar categorías
-          </Link>
+          {canReadCategories && (
+            <Link to="/products/catalogs" className={styles.primaryBtn}>
+              <ClipboardCheck size={18} />
+              Gestionar categorías
+            </Link>
+          )}
         </div>
       </header>
 
@@ -297,18 +386,20 @@ const AdminProducts: React.FC = () => {
           />
         </div>
 
-        <select
-          className={styles.select}
-          value={categoryFilter}
-          onChange={(event) => setCategoryFilter(event.target.value)}
-        >
-          <option value="all">Todas las categorías</option>
-          {categories.map((category) => (
-            <option key={category.id} value={String(category.id)}>
-              {category.nombre}
-            </option>
-          ))}
-        </select>
+        {canReadCategories && (
+          <select
+            className={styles.select}
+            value={categoryFilter}
+            onChange={(event) => setCategoryFilter(event.target.value)}
+          >
+            <option value="all">Todas las categorías</option>
+            {categories.map((category) => (
+              <option key={category.id} value={String(category.id)}>
+                {category.nombre}
+              </option>
+            ))}
+          </select>
+        )}
 
         <select
           className={styles.select}
@@ -358,12 +449,14 @@ const AdminProducts: React.FC = () => {
                   <th>Acciones</th>
                 </tr>
               </thead>
+
               <tbody>
                 {filteredProducts.map((product) => (
                   <tr key={product.id}>
                     <td>
                       <div className={styles.productCell}>
                         <strong>{product.nombre}</strong>
+
                         {product.destacado ? (
                           <span className={styles.featuredBadge}>
                             Destacado
@@ -371,10 +464,12 @@ const AdminProducts: React.FC = () => {
                         ) : null}
                       </div>
                     </td>
+
                     <td>{product.categoria?.nombre ?? "Sin categoría"}</td>
                     <td>{product.sku || "Sin SKU"}</td>
                     <td>{currency(product.precio_venta)}</td>
                     <td>{product.stock_total}</td>
+
                     <td>
                       <span
                         className={
@@ -386,6 +481,7 @@ const AdminProducts: React.FC = () => {
                         {product.activo ? "Activo" : "Inactivo"}
                       </span>
                     </td>
+
                     <td>
                       <div className={styles.actions}>
                         <Link
@@ -395,50 +491,66 @@ const AdminProducts: React.FC = () => {
                         >
                           <Eye size={17} />
                         </Link>
-                        <Link
-                          to={`/products/${product.id}/edit`}
-                          state={{ from: "list" }}
-                          className={styles.iconBtn}
-                          title="Editar"
-                        >
-                          <Edit3 size={17} />
-                        </Link>
-                        <Link
-                          to={`/products/${product.id}/variants`}
-                          state={{ from: "list", productoNombre: product.nombre }}
-                          className={styles.iconBtn}
-                          title="Variantes"
-                        >
-                          <Layers3 size={17} />
-                        </Link>
-                        <Link
-                          to={`/products/${product.id}/images`}
-                          state={{ from: "list" }}
-                          className={styles.iconBtn}
-                          title="Imágenes"
-                        >
-                          <ImageIcon size={17} />
-                        </Link>
-                        <button
-                          type="button"
-                          className={styles.iconBtn}
-                          title={product.destacado ? "No destacar" : "Destacar"}
-                          onClick={() => void handleToggleFeatured(product)}
-                        >
-                          <Sparkles size={17} />
-                        </button>
-                        <button
-                          type="button"
-                          className={styles.iconBtn}
-                          title={product.activo ? "Desactivar" : "Activar"}
-                          onClick={() => void handleToggleStatus(product)}
-                        >
-                          {product.activo ? (
-                            <ToggleRight size={17} />
-                          ) : (
-                            <ToggleLeft size={17} />
-                          )}
-                        </button>
+
+                        {canUpdateProducts && (
+                          <>
+                            <Link
+                              to={`/products/${product.id}/edit`}
+                              state={{ from: "list" }}
+                              className={styles.iconBtn}
+                              title="Editar"
+                            >
+                              <Edit3 size={17} />
+                            </Link>
+
+                            <Link
+                              to={`/products/${product.id}/variants`}
+                              state={{
+                                from: "list",
+                                productoNombre: product.nombre,
+                              }}
+                              className={styles.iconBtn}
+                              title="Variantes"
+                            >
+                              <Layers3 size={17} />
+                            </Link>
+
+                            <Link
+                              to={`/products/${product.id}/images`}
+                              state={{ from: "list" }}
+                              className={styles.iconBtn}
+                              title="Imágenes"
+                            >
+                              <ImageIcon size={17} />
+                            </Link>
+
+                            <button
+                              type="button"
+                              className={styles.iconBtn}
+                              title={
+                                product.destacado ? "No destacar" : "Destacar"
+                              }
+                              onClick={() => void handleToggleFeatured(product)}
+                            >
+                              <Sparkles size={17} />
+                            </button>
+                          </>
+                        )}
+
+                        {canDeactivateProducts && (
+                          <button
+                            type="button"
+                            className={styles.iconBtn}
+                            title={product.activo ? "Desactivar" : "Activar"}
+                            onClick={() => void handleToggleStatus(product)}
+                          >
+                            {product.activo ? (
+                              <ToggleRight size={17} />
+                            ) : (
+                              <ToggleLeft size={17} />
+                            )}
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

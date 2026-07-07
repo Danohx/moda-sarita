@@ -33,6 +33,8 @@ import {
   Search,
 } from "@mui/icons-material";
 import styles from "../../../styles/OrdersManager.module.css";
+import { useAuth } from "@shared/context/AuthContext";
+import { canAccess } from "../../utils/permissions";
 import {
   pedidosService,
   type Apartado,
@@ -135,6 +137,28 @@ function getApartadoStatusLabel(status: Apartado["estado"]) {
 }
 
 const OrdersManager: React.FC = () => {
+  const { user } = useAuth();
+
+  const canReadOrders = canAccess(user, {
+    permissions: "ventas.pedidos.read",
+  });
+
+  const canUpdateOrders = canAccess(user, {
+    permissions: "ventas.pedidos.update",
+  });
+
+  const canCancelOrders = canAccess(user, {
+    permissions: "ventas.pedidos.cancel",
+  });
+
+  const canCreatePayments = canAccess(user, {
+    permissions: "ventas.pagos.create",
+  });
+
+  const canReadPayments = canAccess(user, {
+    permissions: "ventas.pagos.read",
+  });
+
   const [tabValue, setTabValue] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -176,6 +200,13 @@ const OrdersManager: React.FC = () => {
   const tipoParam = searchParams.get("tipo");
 
   const load = useCallback(async () => {
+    if (!canReadOrders) {
+      setOrders([]);
+      setApartados([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -195,7 +226,13 @@ const OrdersManager: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, webEstadoFilter, apartadoEstadoFilter, clienteIdParam]);
+  }, [
+    apartadoEstadoFilter,
+    canReadOrders,
+    clienteIdParam,
+    searchTerm,
+    webEstadoFilter,
+  ]);
 
   useEffect(() => {
     void load();
@@ -213,6 +250,8 @@ const OrdersManager: React.FC = () => {
   }, [tipoParam]);
 
   const handleOpenDetail = async (id: string) => {
+    if (!canReadOrders) return;
+
     try {
       setDetailOpen(true);
       setDetailLoading(true);
@@ -237,6 +276,11 @@ const OrdersManager: React.FC = () => {
   const skeletonCards = useMemo(() => Array.from({ length: 6 }), []);
 
   const openAbonoModal = (apartado: Apartado) => {
+    if (!canUpdateOrders || !canCreatePayments) {
+      alert("No tienes permiso para registrar abonos.");
+      return;
+    }
+
     setSelectedApartado(apartado);
     setAbonoMonto("");
     setMetodoPago("EFECTIVO");
@@ -245,6 +289,11 @@ const OrdersManager: React.FC = () => {
   };
 
   const openLiquidarModal = (apartado: Apartado) => {
+    if (!canUpdateOrders || !canCreatePayments) {
+      alert("No tienes permiso para liquidar apartados.");
+      return;
+    }
+
     setSelectedApartado(apartado);
     setMetodoPago("EFECTIVO");
     setReferenciaExterna("");
@@ -252,6 +301,11 @@ const OrdersManager: React.FC = () => {
   };
 
   const openCancelarModal = (apartado: Apartado) => {
+    if (!canCancelOrders) {
+      alert("No tienes permiso para cancelar apartados.");
+      return;
+    }
+
     setSelectedApartado(apartado);
     setMotivoCancelacion("");
     setCancelarOpen(true);
@@ -270,6 +324,11 @@ const OrdersManager: React.FC = () => {
   };
 
   const handleRegistrarAbono = async () => {
+    if (!canUpdateOrders || !canCreatePayments) {
+      alert("No tienes permiso para registrar abonos.");
+      return;
+    }
+
     if (!selectedApartado) return;
 
     const monto = Number(abonoMonto);
@@ -310,6 +369,11 @@ const OrdersManager: React.FC = () => {
   };
 
   const handleLiquidarApartado = async () => {
+    if (!canUpdateOrders || !canCreatePayments) {
+      alert("No tienes permiso para liquidar apartados.");
+      return;
+    }
+
     if (!selectedApartado) return;
 
     try {
@@ -339,6 +403,11 @@ const OrdersManager: React.FC = () => {
   };
 
   const handleCancelarApartado = async () => {
+    if (!canCancelOrders) {
+      alert("No tienes permiso para cancelar apartados.");
+      return;
+    }
+
     if (!selectedApartado) return;
 
     const motivo = motivoCancelacion.trim();
@@ -365,6 +434,8 @@ const OrdersManager: React.FC = () => {
   };
 
   const handleOpenTicketPdf = async (id: string | number) => {
+    if (!canReadOrders) return;
+
     try {
       setTicketLoading(true);
       await pedidosService.abrirTicketPdf(id);
@@ -377,6 +448,11 @@ const OrdersManager: React.FC = () => {
   };
 
   const handleOpenPagoTicketPdf = async (pedidoId: string, pagoId: string) => {
+    if (!canReadPayments) {
+      alert("No tienes permiso para consultar tickets de pago.");
+      return;
+    }
+
     try {
       setTicketLoading(true);
       await pedidosService.abrirTicketPagoPdf(pedidoId, pagoId);
@@ -387,6 +463,24 @@ const OrdersManager: React.FC = () => {
       setTicketLoading(false);
     }
   };
+
+  if (!canReadOrders) {
+    return (
+      <Box className={styles.root}>
+        <Typography variant="h4" className={styles.title}>
+          Gestión de Pedidos
+        </Typography>
+        <Paper className={styles.emptyPaper}>
+          <Box className={styles.emptyRow}>
+            <Warning fontSize="small" />
+            <Typography className={styles.emptyText}>
+              No tienes permiso para consultar pedidos y apartados.
+            </Typography>
+          </Box>
+        </Paper>
+      </Box>
+    );
+  }
 
   return (
     <Box className={styles.root}>
@@ -806,7 +900,11 @@ const OrdersManager: React.FC = () => {
                           variant="contained"
                           startIcon={<AttachMoney />}
                           className={styles.primaryButton}
-                          disabled={apartado.estado !== "ACTIVO"}
+                          disabled={
+                            apartado.estado !== "ACTIVO" ||
+                            !canUpdateOrders ||
+                            !canCreatePayments
+                          }
                           onClick={() => openAbonoModal(apartado)}
                         >
                           Abonar
@@ -816,7 +914,11 @@ const OrdersManager: React.FC = () => {
                           fullWidth
                           variant="contained"
                           className={styles.primaryButton}
-                          disabled={apartado.estado !== "ACTIVO"}
+                          disabled={
+                            apartado.estado !== "ACTIVO" ||
+                            !canUpdateOrders ||
+                            !canCreatePayments
+                          }
                           onClick={() => openLiquidarModal(apartado)}
                         >
                           Liquidar
@@ -827,7 +929,9 @@ const OrdersManager: React.FC = () => {
                           variant="outlined"
                           startIcon={<Cancel />}
                           className={styles.dangerButton}
-                          disabled={apartado.estado !== "ACTIVO"}
+                          disabled={
+                            apartado.estado !== "ACTIVO" || !canCancelOrders
+                          }
                           onClick={() => openCancelarModal(apartado)}
                         >
                           Cancelar

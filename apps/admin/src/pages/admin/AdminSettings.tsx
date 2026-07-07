@@ -1,3 +1,5 @@
+import { useAuth } from "@shared/context/AuthContext";
+import { canAccess, getCurrentUserId } from "../../utils/permissions";
 import { QRCodeSVG } from "qrcode.react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -72,6 +74,46 @@ type Role = SecurityRole;
 type PermissionItem = SecurityPermission;
 type SessionItem = SecuritySession;
 
+const SETTINGS_PERMISSIONS = {
+  employeesView: ["seguridad.empleados.view"],
+  employeesManage: ["seguridad.empleados.manage"],
+
+  rolesView: ["seguridad.roles.view", "seguridad.permisos.view"],
+  rolesManage: ["seguridad.roles.manage", "seguridad.permisos.manage"],
+
+  paymentMethodsView: ["configuracion.metodos_pago.view"],
+  paymentMethodsManage: ["configuracion.metodos_pago.manage"],
+
+  settingsView: ["configuracion.ajustes.view"],
+  settingsManage: ["configuracion.ajustes.manage"],
+
+  securityView: ["seguridad.sesiones.read"],
+  securityManage: ["seguridad.sesiones.revoke"],
+
+  auditView: [
+    "seguridad.usuarios.manage",
+    "seguridad.roles.manage",
+    "configuracion.ajustes.manage",
+  ],
+} as const;
+
+type SettingsTabConfig = {
+  index: TabKey;
+  label: string;
+  icon: React.ReactElement;
+  permissions: readonly string[];
+  mode?: "any" | "all";
+};
+
+async function runIf<T>(
+  allowed: boolean,
+  fn: () => Promise<T>,
+  fallback: T,
+): Promise<T> {
+  if (!allowed) return fallback;
+  return fn();
+}
+
 interface TabPanelProps {
   children?: React.ReactNode;
   index: number;
@@ -98,6 +140,9 @@ const TabPanel: React.FC<TabPanelProps> = ({
 };
 
 export default function AdminSettings() {
+  const { user } = useAuth();
+  const currentUserId = getCurrentUserId(user);
+
   const [tabValue, setTabValue] = useState<TabKey>(0);
 
   // Data
@@ -238,11 +283,72 @@ export default function AdminSettings() {
     instrucciones_web: "",
   });
 
+  const canViewEmployees = canAccess(user, {
+    permissions: SETTINGS_PERMISSIONS.employeesView,
+  });
+
+  const canManageEmployees = canAccess(user, {
+    permissions: SETTINGS_PERMISSIONS.employeesManage,
+  });
+
+  const canViewRoles = canAccess(user, {
+    permissions: SETTINGS_PERMISSIONS.rolesView,
+    mode: "all",
+  });
+
+  const canManageRoles = canAccess(user, {
+    permissions: SETTINGS_PERMISSIONS.rolesManage,
+    mode: "all",
+  });
+
+  const canViewPaymentMethods = canAccess(user, {
+    permissions: SETTINGS_PERMISSIONS.paymentMethodsView,
+  });
+
+  const canManagePaymentMethods = canAccess(user, {
+    permissions: SETTINGS_PERMISSIONS.paymentMethodsManage,
+  });
+
+  const canViewStoreSettings = canAccess(user, {
+    permissions: SETTINGS_PERMISSIONS.settingsView,
+  });
+
+  const canManageStoreSettings = canAccess(user, {
+    permissions: SETTINGS_PERMISSIONS.settingsManage,
+  });
+
+  const canViewInventorySettings = canAccess(user, {
+    permissions: SETTINGS_PERMISSIONS.settingsView,
+  });
+
+  const canManageInventorySettings = canAccess(user, {
+    permissions: SETTINGS_PERMISSIONS.settingsManage,
+  });
+
+  const canViewSecurity = canAccess(user, {
+    permissions: SETTINGS_PERMISSIONS.securityView,
+  });
+
+  const canManageSecurity = canAccess(user, {
+    permissions: SETTINGS_PERMISSIONS.securityManage,
+  });
+
+  const canViewAudit = canAccess(user, {
+    permissions: SETTINGS_PERMISSIONS.auditView,
+  });
+
+  const isCurrentEmployee = (employeeId: string | number) => {
+    return String(employeeId) === currentUserId;
+  };
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
+      const shouldLoadBaseSettings =
+        canViewPaymentMethods || canViewStoreSettings;
+
       const [
         data,
         inventarioParams,
@@ -253,25 +359,47 @@ export default function AdminSettings() {
         securityStatusData,
         auditLogsData,
       ] = await Promise.all([
-        configuracionService.getSettingsBase(),
-        configuracionService.getInventoryParams(),
-        securityService.getRolesWithPermisos(),
-        securityService.getPermisos(),
-        securityService.getEmployees({ includeInactive: true }),
-        securityService.getSessions(),
-        securityService.getSecurityStatus(),
-        auditLogsService.getAll(),
+        runIf(
+          shouldLoadBaseSettings,
+          () => configuracionService.getSettingsBase(),
+          {
+            metodosPago: [],
+            ticketParams: [],
+          },
+        ),
+
+        runIf(
+          canViewInventorySettings,
+          () => configuracionService.getInventoryParams(),
+          [],
+        ),
+
+        runIf(canViewRoles, () => securityService.getRolesWithPermisos(), []),
+
+        runIf(canViewRoles, () => securityService.getPermisos(), []),
+
+        runIf(
+          canViewEmployees,
+          () => securityService.getEmployees({ includeInactive: true }),
+          [],
+        ),
+
+        runIf(canViewSecurity, () => securityService.getSessions(), []),
+
+        runIf(canViewSecurity, () => securityService.getSecurityStatus(), null),
+
+        runIf(canViewAudit, () => auditLogsService.getAll(), []),
       ]);
 
-      setPaymentMethods(data.metodosPago);
-      setTicketParams(data.ticketParams);
-      setInventoryParams(inventarioParams);
-      setRoles(rolesData);
-      setAllPermissions(permisosData);
-      setEmployees(empleadosData);
-      setSecuritySessions(sesionesData);
-      setSecurityStatus(securityStatusData);
-      setAuditLogs(auditLogsData);
+      setPaymentMethods(canViewPaymentMethods ? data.metodosPago : []);
+      setTicketParams(canViewStoreSettings ? data.ticketParams : []);
+      setInventoryParams(canViewInventorySettings ? inventarioParams : []);
+      setRoles(canViewRoles ? rolesData : []);
+      setAllPermissions(canViewRoles ? permisosData : []);
+      setEmployees(canViewEmployees ? empleadosData : []);
+      setSecuritySessions(canViewSecurity ? sesionesData : []);
+      setSecurityStatus(canViewSecurity ? securityStatusData : null);
+      setAuditLogs(canViewAudit ? auditLogsData : []);
     } catch (err) {
       setError(
         err instanceof Error
@@ -281,24 +409,89 @@ export default function AdminSettings() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [
+    canViewAudit,
+    canViewEmployees,
+    canViewInventorySettings,
+    canViewPaymentMethods,
+    canViewRoles,
+    canViewSecurity,
+    canViewStoreSettings,
+  ]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  const tabs = useMemo(
+  const tabs = useMemo<SettingsTabConfig[]>(
     () => [
-      { label: "Empleados", icon: <People /> },
-      { label: "Roles y Permisos", icon: <Shield /> },
-      { label: "Métodos de Pago", icon: <CreditCard /> },
-      { label: "Datos de la Tienda", icon: <Store /> },
-      { label: "Inventario", icon: <Inventory2 /> },
-      { label: "Seguridad", icon: <Lock /> },
-      { label: "Bitácora", icon: <History /> },
+      {
+        index: 0,
+        label: "Empleados",
+        icon: <People />,
+        permissions: SETTINGS_PERMISSIONS.employeesView,
+      },
+      {
+        index: 1,
+        label: "Roles y Permisos",
+        icon: <Shield />,
+        permissions: SETTINGS_PERMISSIONS.rolesView,
+        mode: "all",
+      },
+      {
+        index: 2,
+        label: "Métodos de Pago",
+        icon: <CreditCard />,
+        permissions: SETTINGS_PERMISSIONS.paymentMethodsView,
+      },
+      {
+        index: 3,
+        label: "Datos de la Tienda",
+        icon: <Store />,
+        permissions: SETTINGS_PERMISSIONS.settingsView,
+      },
+      {
+        index: 4,
+        label: "Inventario",
+        icon: <Inventory2 />,
+        permissions: SETTINGS_PERMISSIONS.settingsView,
+      },
+      {
+        index: 5,
+        label: "Seguridad",
+        icon: <Lock />,
+        permissions: SETTINGS_PERMISSIONS.securityView,
+      },
+      {
+        index: 6,
+        label: "Bitácora",
+        icon: <History />,
+        permissions: SETTINGS_PERMISSIONS.auditView,
+      },
     ],
     [],
   );
+
+  const visibleTabs = useMemo(() => {
+    return tabs.filter((tab) =>
+      canAccess(user, {
+        permissions: tab.permissions,
+        mode: tab.mode ?? "any",
+      }),
+    );
+  }, [tabs, user]);
+
+  useEffect(() => {
+    if (visibleTabs.length === 0) return;
+
+    const activeTabIsVisible = visibleTabs.some(
+      (tab) => tab.index === tabValue,
+    );
+
+    if (!activeTabIsVisible) {
+      setTabValue(visibleTabs[0].index);
+    }
+  }, [tabValue, visibleTabs]);
 
   const activeRoles = useMemo(
     () => roles.filter((role) => role.activo),
@@ -334,6 +527,11 @@ export default function AdminSettings() {
   };
 
   const saveTicketParams = async () => {
+    if (!canManageStoreSettings) {
+      setError("No tienes permiso para modificar los datos de la tienda.");
+      return;
+    }
+
     setSavingTicket(true);
     setError(null);
 
@@ -377,6 +575,11 @@ export default function AdminSettings() {
   };
 
   const saveInventoryParams = async () => {
+    if (!canManageInventorySettings) {
+      setError("No tienes permiso para modificar los ajustes de inventario.");
+      return;
+    }
+
     setSavingInventory(true);
     setError(null);
 
@@ -407,6 +610,11 @@ export default function AdminSettings() {
 
   // --- Modal open helpers
   const openNewEmployee = () => {
+    if (!canManageEmployees) {
+      setError("No tienes permiso para crear empleados.");
+      return;
+    }
+
     setSelectedEmployee(null);
     setEmployeeForm({
       nombres: "",
@@ -420,6 +628,11 @@ export default function AdminSettings() {
   };
 
   const openEditEmployee = (emp: Employee) => {
+    if (!canManageEmployees) {
+      setError("No tienes permiso para editar empleados.");
+      return;
+    }
+
     setSelectedEmployee(emp);
     setEmployeeForm({
       nombres: emp.nombres ?? "",
@@ -433,6 +646,11 @@ export default function AdminSettings() {
   };
 
   const openNewRole = () => {
+    if (!canManageRoles) {
+      setError("No tienes permiso para crear roles.");
+      return;
+    }
+
     setSelectedRole(null);
     setRoleForm({ name: "", permissions: [] });
     setOpenRoleModal(true);
@@ -467,6 +685,11 @@ export default function AdminSettings() {
 
   // --- Submit placeholders / actions
   const submitEmployee = async () => {
+    if (!canManageEmployees) {
+      setError("No tienes permiso para guardar empleados.");
+      return;
+    }
+
     const nombres = employeeForm.nombres.trim();
     const apellidoPaterno = employeeForm.apellidoPaterno.trim();
     const apellidoMaterno = employeeForm.apellidoMaterno.trim();
@@ -535,6 +758,16 @@ export default function AdminSettings() {
   };
 
   const toggleEmployeeStatus = async (employee: Employee) => {
+    if (!canManageEmployees) {
+      setError("No tienes permiso para cambiar el estado de empleados.");
+      return;
+    }
+
+    if (employee.activo && isCurrentEmployee(employee.id)) {
+      setError("No puedes desactivar tu propia cuenta.");
+      return;
+    }
+
     const nextStatus = !employee.activo;
 
     const confirmMessage = nextStatus
@@ -591,6 +824,11 @@ export default function AdminSettings() {
   };
 
   const submitRole = async () => {
+    if (!canManageRoles) {
+      setError("No tienes permiso para guardar roles o permisos.");
+      return;
+    }
+
     const name = roleForm.name.trim();
 
     if (!name) {
@@ -633,6 +871,11 @@ export default function AdminSettings() {
   };
 
   const toggleRoleStatus = async (role: Role) => {
+    if (!canManageRoles) {
+      setError("No tienes permiso para activar o desactivar roles.");
+      return;
+    }
+
     if (role.isSystem) return;
 
     setLoading(true);
@@ -659,6 +902,11 @@ export default function AdminSettings() {
   );
 
   const reloadSecuritySessions = async () => {
+    if (!canViewSecurity) {
+      setError("No tienes permiso para consultar sesiones.");
+      return;
+    }
+
     setSavingSecurity(true);
     setError(null);
 
@@ -682,6 +930,11 @@ export default function AdminSettings() {
   };
 
   const revokeSession = async (session: SessionItem) => {
+    if (!canManageSecurity) {
+      setError("No tienes permiso para revocar sesiones.");
+      return;
+    }
+
     if (session.isCurrent) {
       setError("No puedes revocar tu sesión actual desde esta acción.");
       return;
@@ -705,6 +958,11 @@ export default function AdminSettings() {
   };
 
   const revokeOtherSessions = async () => {
+    if (!canManageSecurity) {
+      setError("No tienes permiso para revocar sesiones.");
+      return;
+    }
+
     if (
       !window.confirm(
         "¿Cerrar todas las demás sesiones activas? Tu sesión actual permanecerá abierta.",
@@ -731,6 +989,11 @@ export default function AdminSettings() {
   };
 
   const submitPayment = async () => {
+    if (!canManagePaymentMethods) {
+      setError("No tienes permiso para modificar métodos de pago.");
+      return;
+    }
+
     if (!selectedPayment) return;
 
     setSavingPayment(true);
@@ -806,12 +1069,7 @@ export default function AdminSettings() {
       const matchesArea =
         auditAreaFilter === "TODAS" || log.area === auditAreaFilter;
 
-      const searchText = [
-        log.responsible,
-        log.title,
-        log.area,
-        log.summary,
-      ]
+      const searchText = [log.responsible, log.title, log.area, log.summary]
         .join(" ")
         .toLowerCase();
 
@@ -822,6 +1080,11 @@ export default function AdminSettings() {
   }, [auditAreaFilter, auditLogs, auditSearch]);
 
   const reloadAuditLogs = async () => {
+    if (!canViewAudit) {
+      setError("No tienes permiso para consultar la bitácora.");
+      return;
+    }
+
     setSavingAuditLogs(true);
     setError(null);
 
@@ -830,9 +1093,7 @@ export default function AdminSettings() {
       setAuditLogs(data);
     } catch (err) {
       setError(
-        err instanceof Error
-          ? err.message
-          : "No se pudo cargar la bitácora.",
+        err instanceof Error ? err.message : "No se pudo cargar la bitácora.",
       );
     } finally {
       setSavingAuditLogs(false);
@@ -843,6 +1104,20 @@ export default function AdminSettings() {
     setSelectedAuditLog(log);
     setOpenAuditLogModal(true);
   };
+
+  if (visibleTabs.length === 0) {
+    return (
+      <Box className={styles.root}>
+        <Typography variant="h4" className={styles.title}>
+          Configuración del Sistema
+        </Typography>
+
+        <Alert severity="warning" className={styles.alert}>
+          No tienes permisos para consultar la configuración del sistema.
+        </Alert>
+      </Box>
+    );
+  }
 
   return (
     <Box className={styles.root}>
@@ -872,11 +1147,12 @@ export default function AdminSettings() {
           scrollButtons="auto"
           allowScrollButtonsMobile
         >
-          {tabs.map((t, idx) => (
+          {visibleTabs.map((t) => (
             <Tab
-              key={t.label}
-              id={`settings-tab-${idx}`}
-              aria-controls={`settings-tabpanel-${idx}`}
+              key={t.index}
+              value={t.index}
+              id={`settings-tab-${t.index}`}
+              aria-controls={`settings-tabpanel-${t.index}`}
               icon={t.icon}
               iconPosition="start"
               label={t.label}
@@ -886,963 +1162,1068 @@ export default function AdminSettings() {
       </Paper>
 
       {/* TAB 1: EMPLEADOS */}
-      <TabPanel value={tabValue} index={0}>
-        <Box className={styles.sectionHeader}>
-          <Typography variant="h6" className={styles.sectionTitle}>
-            Gestión de Empleados
-          </Typography>
+      {canViewEmployees && (
+        <TabPanel value={tabValue} index={0}>
+          <Box className={styles.sectionHeader}>
+            <Typography variant="h6" className={styles.sectionTitle}>
+              Gestión de Empleados
+            </Typography>
 
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={openNewEmployee}
-            className={styles.primaryBtn}
-          >
-            Nuevo Empleado
-          </Button>
-        </Box>
+            {canManageEmployees && (
+              <Button
+                variant="contained"
+                startIcon={<Add />}
+                onClick={openNewEmployee}
+                className={styles.primaryBtn}
+              >
+                Nuevo Empleado
+              </Button>
+            )}
+          </Box>
 
-        {employees.length === 0 ? (
-          <Alert severity="info" className={styles.alert}>
-            Sin empleados registrados.
-          </Alert>
-        ) : (
-          <Paper className={styles.paper}>
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow className={styles.tableHeadRow}>
-                    <TableCell className={styles.th}>Empleado</TableCell>
-                    <TableCell className={styles.th}>Rol</TableCell>
-                    <TableCell className={styles.th}>Último Acceso</TableCell>
-                    <TableCell className={styles.th} align="center">
-                      Estado
-                    </TableCell>
-                    <TableCell className={styles.th} align="center">
-                      Acciones
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-
-                <TableBody>
-                  {employees.map((employee) => (
-                    <TableRow
-                      key={employee.id}
-                      hover
-                      className={styles.tableRowHover}
-                    >
-                      <TableCell>
-                        <Box>
-                          <Typography fontWeight="bold">
-                            {employee.fullName}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {employee.email}
-                          </Typography>
-                        </Box>
+          {employees.length === 0 ? (
+            <Alert severity="info" className={styles.alert}>
+              Sin empleados registrados.
+            </Alert>
+          ) : (
+            <Paper className={styles.paper}>
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow className={styles.tableHeadRow}>
+                      <TableCell className={styles.th}>Empleado</TableCell>
+                      <TableCell className={styles.th}>Rol</TableCell>
+                      <TableCell className={styles.th}>Último Acceso</TableCell>
+                      <TableCell className={styles.th} align="center">
+                        Estado
                       </TableCell>
-
-                      <TableCell>{employee.rolName}</TableCell>
-
-                      <TableCell>
-                        <Typography variant="body2">
-                          {formatDateTime(employee.lastSession)}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {employee.tfaEnabled ? "2FA activo" : "2FA no activo"}
-                        </Typography>
-                      </TableCell>
-
-                      <TableCell align="center">
-                        <Chip
-                          label={employee.activo ? "Activo" : "Inactivo"}
-                          size="small"
-                          className={
-                            employee.activo ? styles.chipOk : styles.chipBad
-                          }
-                        />
-                      </TableCell>
-
-                      <TableCell align="center">
-                        <IconButton
-                          size="small"
-                          onClick={() => openEditEmployee(employee)}
-                          className={styles.iconPink}
-                        >
-                          <Edit />
-                        </IconButton>
-
-                        <IconButton
-                          size="small"
-                          className={
-                            employee.activo ? styles.iconRed : styles.iconGreen
-                          }
-                          onClick={() => toggleEmployeeStatus(employee)}
-                          disabled={loading}
-                        >
-                          {employee.activo ? <Lock /> : <LockOpen />}
-                        </IconButton>
+                      <TableCell className={styles.th} align="center">
+                        Acciones
                       </TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper>
-        )}
-      </TabPanel>
+                  </TableHead>
+
+                  <TableBody>
+                    {employees.map((employee) => (
+                      <TableRow
+                        key={employee.id}
+                        hover
+                        className={styles.tableRowHover}
+                      >
+                        <TableCell>
+                          <Box>
+                            <Typography fontWeight="bold">
+                              {employee.fullName}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              {employee.email}
+                            </Typography>
+                          </Box>
+                        </TableCell>
+
+                        <TableCell>{employee.rolName}</TableCell>
+
+                        <TableCell>
+                          <Typography variant="body2">
+                            {formatDateTime(employee.lastSession)}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {employee.tfaEnabled
+                              ? "2FA activo"
+                              : "2FA no activo"}
+                          </Typography>
+                        </TableCell>
+
+                        <TableCell align="center">
+                          <Chip
+                            label={employee.activo ? "Activo" : "Inactivo"}
+                            size="small"
+                            className={
+                              employee.activo ? styles.chipOk : styles.chipBad
+                            }
+                          />
+                        </TableCell>
+
+                        <TableCell align="center">
+                          {canManageEmployees ? (
+                            <>
+                              <IconButton
+                                size="small"
+                                onClick={() => openEditEmployee(employee)}
+                                className={styles.iconPink}
+                                title="Editar empleado"
+                              >
+                                <Edit />
+                              </IconButton>
+
+                              <IconButton
+                                size="small"
+                                className={
+                                  employee.activo
+                                    ? styles.iconRed
+                                    : styles.iconGreen
+                                }
+                                onClick={() => toggleEmployeeStatus(employee)}
+                                disabled={
+                                  loading ||
+                                  (employee.activo &&
+                                    isCurrentEmployee(employee.id))
+                                }
+                                title={
+                                  employee.activo &&
+                                  isCurrentEmployee(employee.id)
+                                    ? "No puedes desactivar tu propia cuenta"
+                                    : employee.activo
+                                      ? "Desactivar empleado"
+                                      : "Activar empleado"
+                                }
+                              >
+                                {employee.activo ? <Lock /> : <LockOpen />}
+                              </IconButton>
+                            </>
+                          ) : (
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              Solo lectura
+                            </Typography>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Paper>
+          )}
+        </TabPanel>
+      )}
 
       {/* TAB 2: ROLES Y PERMISOS */}
-      <TabPanel value={tabValue} index={1}>
-        <Box className={styles.sectionHeader}>
-          <Typography variant="h6" className={styles.sectionTitle}>
-            Roles y Permisos
-          </Typography>
+      {canViewRoles && (
+        <TabPanel value={tabValue} index={1}>
+          <Box className={styles.sectionHeader}>
+            <Typography variant="h6" className={styles.sectionTitle}>
+              Roles y Permisos
+            </Typography>
 
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={openNewRole}
-            className={styles.primaryBtn}
-          >
-            Nuevo Rol
-          </Button>
-        </Box>
+            {canManageRoles && (
+              <Button
+                variant="contained"
+                startIcon={<Add />}
+                onClick={openNewRole}
+                className={styles.primaryBtn}
+              >
+                Nuevo Rol
+              </Button>
+            )}
+          </Box>
 
-        {roles.length === 0 ? (
-          <Alert severity="info" className={styles.alert}>
-            Sin roles aún. Esta parte queda pendiente para conectar al módulo de
-            seguridad.
-          </Alert>
-        ) : (
-          <Paper className={styles.paper}>
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow className={styles.tableHeadRow}>
-                    <TableCell className={styles.th}>Nombre del Rol</TableCell>
-                    <TableCell className={styles.th}>Permisos</TableCell>
-                    <TableCell className={styles.th}>Usuarios</TableCell>
-                    <TableCell className={styles.th} align="center">
-                      Estado
-                    </TableCell>
-                    <TableCell className={styles.th} align="center">
-                      Acciones
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
+          {roles.length === 0 ? (
+            <Alert severity="info" className={styles.alert}>
+              Sin roles aún. Esta parte queda pendiente para conectar al módulo
+              de seguridad.
+            </Alert>
+          ) : (
+            <Paper className={styles.paper}>
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow className={styles.tableHeadRow}>
+                      <TableCell className={styles.th}>
+                        Nombre del Rol
+                      </TableCell>
+                      <TableCell className={styles.th}>Permisos</TableCell>
+                      <TableCell className={styles.th}>Usuarios</TableCell>
+                      <TableCell className={styles.th} align="center">
+                        Estado
+                      </TableCell>
+                      <TableCell className={styles.th} align="center">
+                        Acciones
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
 
-                <TableBody>
-                  {roles.map((role) => (
-                    <TableRow
-                      key={role.id}
-                      hover
-                      className={styles.tableRowHover}
-                    >
-                      <TableCell>
-                        <Box className={styles.rowFlex}>
-                          <Typography fontWeight="bold">{role.name}</Typography>
+                  <TableBody>
+                    {roles.map((role) => (
+                      <TableRow
+                        key={role.id}
+                        hover
+                        className={styles.tableRowHover}
+                      >
+                        <TableCell>
+                          <Box className={styles.rowFlex}>
+                            <Typography fontWeight="bold">
+                              {role.name}
+                            </Typography>
 
-                          {role.isSystem && (
+                            {role.isSystem && (
+                              <Chip
+                                label="Sistema"
+                                size="small"
+                                className={styles.chipSystem}
+                              />
+                            )}
+                          </Box>
+
+                          {role.descripcion && (
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              {role.descripcion}
+                            </Typography>
+                          )}
+                        </TableCell>
+
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary">
+                            {role.permissions?.[0] === "all"
+                              ? "Todos los permisos"
+                              : `${role.permissions?.length ?? 0} permisos`}
+                          </Typography>
+                        </TableCell>
+
+                        <TableCell>
+                          <Typography fontWeight="bold" component="span">
+                            {role.userCount ?? 0}
+                          </Typography>{" "}
+                          usuarios
+                        </TableCell>
+
+                        <TableCell align="center">
+                          {role.isSystem ? (
                             <Chip
-                              label="Sistema"
+                              label="Protegido"
                               size="small"
                               className={styles.chipSystem}
                             />
-                          )}
-                        </Box>
-
-                        {role.descripcion && (
-                          <Typography variant="caption" color="text.secondary">
-                            {role.descripcion}
-                          </Typography>
-                        )}
-                      </TableCell>
-
-                      <TableCell>
-                        <Typography variant="body2" color="text.secondary">
-                          {role.permissions?.[0] === "all"
-                            ? "Todos los permisos"
-                            : `${role.permissions?.length ?? 0} permisos`}
-                        </Typography>
-                      </TableCell>
-
-                      <TableCell>
-                        <Typography fontWeight="bold" component="span">
-                          {role.userCount ?? 0}
-                        </Typography>{" "}
-                        usuarios
-                      </TableCell>
-
-                      <TableCell align="center">
-                        {role.isSystem ? (
-                          <Chip
-                            label="Protegido"
-                            size="small"
-                            className={styles.chipSystem}
-                          />
-                        ) : (
-                          <Chip
-                            label={role.activo ? "Activo" : "Inactivo"}
-                            size="small"
-                            className={
-                              role.activo ? styles.chipOk : styles.chipBad
-                            }
-                          />
-                        )}
-                      </TableCell>
-
-                      <TableCell align="center">
-                        <Box
-                          sx={{
-                            display: "flex",
-                            justifyContent: "center",
-                            gap: 1,
-                            flexWrap: "wrap",
-                          }}
-                        >
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            startIcon={<Edit />}
-                            onClick={() => openEditRole(role)}
-                            className={styles.outlinedPinkBtn}
-                          >
-                            {role.isSystem ? "Ver" : "Editar"}
-                          </Button>
-
-                          {!role.isSystem && (
-                            <IconButton
+                          ) : (
+                            <Chip
+                              label={role.activo ? "Activo" : "Inactivo"}
                               size="small"
                               className={
-                                role.activo ? styles.iconRed : styles.iconGreen
+                                role.activo ? styles.chipOk : styles.chipBad
                               }
-                              onClick={() => toggleRoleStatus(role)}
-                              disabled={loading}
-                              title={
-                                role.activo ? "Desactivar rol" : "Activar rol"
-                              }
-                            >
-                              {role.activo ? <Lock /> : <LockOpen />}
-                            </IconButton>
+                            />
                           )}
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper>
-        )}
-      </TabPanel>
+                        </TableCell>
+
+                        <TableCell align="center">
+                          <Box
+                            sx={{
+                              display: "flex",
+                              justifyContent: "center",
+                              gap: 1,
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              startIcon={<Edit />}
+                              onClick={() => openEditRole(role)}
+                              className={styles.outlinedPinkBtn}
+                            >
+                              {canManageRoles && !role.isSystem
+                                ? "Editar"
+                                : "Ver"}
+                            </Button>
+
+                            {canManageRoles && !role.isSystem && (
+                              <IconButton
+                                size="small"
+                                className={
+                                  role.activo
+                                    ? styles.iconRed
+                                    : styles.iconGreen
+                                }
+                                onClick={() => toggleRoleStatus(role)}
+                                disabled={loading}
+                                title={
+                                  role.activo ? "Desactivar rol" : "Activar rol"
+                                }
+                              >
+                                {role.activo ? <Lock /> : <LockOpen />}
+                              </IconButton>
+                            )}
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Paper>
+          )}
+        </TabPanel>
+      )}
 
       {/* TAB 3: MÉTODOS DE PAGO */}
-      <TabPanel value={tabValue} index={2}>
-        <Box className={styles.sectionHeader}>
-          <Box>
-            <Typography variant="h6" className={styles.sectionTitle}>
-              Métodos de Pago
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Controla qué métodos aparecen en POS, tienda web y administración.
-            </Typography>
+      {canViewPaymentMethods && (
+        <TabPanel value={tabValue} index={2}>
+          <Box className={styles.sectionHeader}>
+            <Box>
+              <Typography variant="h6" className={styles.sectionTitle}>
+                Métodos de Pago
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Controla qué métodos aparecen en POS, tienda web y
+                administración.
+              </Typography>
+            </Box>
           </Box>
-        </Box>
 
-        {paymentMethods.length === 0 ? (
-          <Alert severity="info" className={styles.alert}>
-            Sin métodos de pago registrados.
-          </Alert>
-        ) : (
-          <Grid container spacing={2}>
-            {paymentMethods.map((method) => (
-              <Grid key={method.codigo} size={{ xs: 12, md: 6 }}>
-                <Card className={styles.card}>
+          {paymentMethods.length === 0 ? (
+            <Alert severity="info" className={styles.alert}>
+              Sin métodos de pago registrados.
+            </Alert>
+          ) : (
+            <Grid container spacing={2}>
+              {paymentMethods.map((method) => (
+                <Grid key={method.codigo} size={{ xs: 12, md: 6 }}>
+                  <Card className={styles.card}>
+                    <CardContent>
+                      <Box className={styles.cardHeader}>
+                        <Box>
+                          <Typography variant="h6" fontWeight="bold">
+                            {method.nombre}
+                          </Typography>
+
+                          <Typography variant="body2" color="text.secondary">
+                            {method.codigo}
+                          </Typography>
+
+                          {method.descripcion && (
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{ display: "block", mt: 0.5 }}
+                            >
+                              {method.descripcion}
+                            </Typography>
+                          )}
+                        </Box>
+
+                        <Box className={styles.cardActions}>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<Settings />}
+                            onClick={() => openConfigurePayment(method)}
+                            className={styles.outlinedPinkBtn}
+                          >
+                            {canManagePaymentMethods ? "Configurar" : "Ver"}
+                          </Button>
+                        </Box>
+                      </Box>
+
+                      <Box
+                        sx={{
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: 1,
+                          mt: 2,
+                        }}
+                      >
+                        <Chip
+                          label={
+                            method.activo_pos ? "POS activo" : "POS inactivo"
+                          }
+                          className={
+                            method.activo_pos ? styles.chipOk : styles.chipBad
+                          }
+                          size="small"
+                        />
+                        <Chip
+                          label={
+                            method.activo_web ? "Web activo" : "Web inactivo"
+                          }
+                          className={
+                            method.activo_web ? styles.chipOk : styles.chipBad
+                          }
+                          size="small"
+                        />
+                        <Chip
+                          label={
+                            method.activo_admin
+                              ? "Admin activo"
+                              : "Admin inactivo"
+                          }
+                          className={
+                            method.activo_admin ? styles.chipOk : styles.chipBad
+                          }
+                          size="small"
+                        />
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          )}
+        </TabPanel>
+      )}
+
+      {/* TAB 4: DATOS DE LA TIENDA */}
+      {canViewStoreSettings && (
+        <TabPanel value={tabValue} index={3}>
+          <Paper className={styles.paperPadded}>
+            <Box className={styles.sectionHeader}>
+              <Box>
+                <Typography variant="h6" className={styles.paperTitlePink}>
+                  Datos de la Tienda
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Estos datos se usan en los tickets PDF y en la configuración
+                  pública de la tienda.
+                </Typography>
+              </Box>
+
+              {canManageStoreSettings && (
+                <Button
+                  variant="contained"
+                  className={styles.primaryBtn}
+                  onClick={saveTicketParams}
+                  disabled={savingTicket || loading}
+                >
+                  {savingTicket ? "Guardando..." : "Guardar cambios"}
+                </Button>
+              )}
+            </Box>
+
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  fullWidth
+                  label="Nombre de la tienda"
+                  value={getTicketValue("ticket.nombre_tienda", "Moda Sarita")}
+                  disabled={!canManageStoreSettings}
+                  onChange={(e) =>
+                    updateTicketLocal("ticket.nombre_tienda", e.target.value)
+                  }
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  fullWidth
+                  label="Teléfono"
+                  value={getTicketValue("ticket.telefono", "")}
+                  disabled={!canManageStoreSettings}
+                  onChange={(e) =>
+                    updateTicketLocal("ticket.telefono", e.target.value)
+                  }
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12 }}>
+                <TextField
+                  fullWidth
+                  multiline
+                  minRows={2}
+                  label="Dirección"
+                  value={getTicketValue("ticket.direccion", "")}
+                  disabled={!canManageStoreSettings}
+                  onChange={(e) =>
+                    updateTicketLocal("ticket.direccion", e.target.value)
+                  }
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12 }}>
+                <TextField
+                  fullWidth
+                  multiline
+                  minRows={2}
+                  label="Mensaje final del ticket"
+                  value={getTicketValue(
+                    "ticket.mensaje_final",
+                    "Gracias por su compra",
+                  )}
+                  disabled={!canManageStoreSettings}
+                  onChange={(e) =>
+                    updateTicketLocal("ticket.mensaje_final", e.target.value)
+                  }
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12 }}>
+                <TextField
+                  fullWidth
+                  multiline
+                  minRows={3}
+                  label="Política de cambios"
+                  value={getTicketValue("ticket.politica_cambios", "")}
+                  disabled={!canManageStoreSettings}
+                  onChange={(e) =>
+                    updateTicketLocal("ticket.politica_cambios", e.target.value)
+                  }
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12 }}>
+                <TextField
+                  fullWidth
+                  multiline
+                  minRows={3}
+                  label="Política de apartado"
+                  value={getTicketValue("ticket.politica_apartado", "")}
+                  disabled={!canManageStoreSettings}
+                  onChange={(e) =>
+                    updateTicketLocal(
+                      "ticket.politica_apartado",
+                      e.target.value,
+                    )
+                  }
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 4 }}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Ancho del ticket (mm)"
+                  value={getTicketNumber("ticket.ancho_mm", 80)}
+                  disabled={!canManageStoreSettings}
+                  onChange={(e) =>
+                    updateTicketLocal(
+                      "ticket.ancho_mm",
+                      Number(e.target.value || 80),
+                    )
+                  }
+                  inputProps={{ min: 58, max: 80 }}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 8 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 2,
+                    height: "100%",
+                    alignItems: "center",
+                  }}
+                >
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={getTicketBool("ticket.mostrar_logo", true)}
+                        disabled={!canManageStoreSettings}
+                        onChange={(e) =>
+                          updateTicketLocal(
+                            "ticket.mostrar_logo",
+                            e.target.checked,
+                          )
+                        }
+                      />
+                    }
+                    label="Mostrar logo"
+                  />
+
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={getTicketBool("ticket.mostrar_cliente", true)}
+                        disabled={!canManageStoreSettings}
+                        onChange={(e) =>
+                          updateTicketLocal(
+                            "ticket.mostrar_cliente",
+                            e.target.checked,
+                          )
+                        }
+                      />
+                    }
+                    label="Mostrar cliente"
+                  />
+
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={getTicketBool("ticket.mostrar_vendedor", true)}
+                        disabled={!canManageStoreSettings}
+                        onChange={(e) =>
+                          updateTicketLocal(
+                            "ticket.mostrar_vendedor",
+                            e.target.checked,
+                          )
+                        }
+                      />
+                    }
+                    label="Mostrar vendedor"
+                  />
+                </Box>
+              </Grid>
+            </Grid>
+          </Paper>
+        </TabPanel>
+      )}
+
+      {/* TAB 5: INVENTARIO */}
+      {canViewInventorySettings && (
+        <TabPanel value={tabValue} index={4}>
+          <Paper className={styles.paperPadded}>
+            <Box className={styles.sectionHeader}>
+              <Box>
+                <Typography variant="h6" className={styles.paperTitlePink}>
+                  Inventario
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Configura reglas generales para stock mínimo y alertas de
+                  inventario.
+                </Typography>
+              </Box>
+
+              {canManageInventorySettings && (
+                <Button
+                  variant="contained"
+                  className={styles.primaryBtn}
+                  onClick={saveInventoryParams}
+                  disabled={savingInventory || loading}
+                >
+                  {savingInventory ? "Guardando..." : "Guardar cambios"}
+                </Button>
+              )}
+            </Box>
+
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, md: 5 }}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Stock mínimo general"
+                  value={getInventoryNumber(
+                    "inventario.stock_minimo_general",
+                    5,
+                  )}
+                  disabled={!canManageInventorySettings}
+                  onChange={(e) =>
+                    updateInventoryLocal(
+                      "inventario.stock_minimo_general",
+                      Number(e.target.value || 0),
+                    )
+                  }
+                  inputProps={{ min: 0 }}
+                  helperText="Se usará como valor sugerido al crear nuevas variantes."
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 1,
+                    mt: 1,
+                  }}
+                >
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={getInventoryBool(
+                          "inventario.mostrar_alertas_bajo_stock",
+                          true,
+                        )}
+                        disabled={!canManageInventorySettings}
+                        onChange={(e) =>
+                          updateInventoryLocal(
+                            "inventario.mostrar_alertas_bajo_stock",
+                            e.target.checked,
+                          )
+                        }
+                      />
+                    }
+                    label="Mostrar alertas de bajo stock"
+                  />
+
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={getInventoryBool(
+                          "inventario.alertar_productos_sin_imagen",
+                          true,
+                        )}
+                        disabled={!canManageInventorySettings}
+                        onChange={(e) =>
+                          updateInventoryLocal(
+                            "inventario.alertar_productos_sin_imagen",
+                            e.target.checked,
+                          )
+                        }
+                      />
+                    }
+                    label="Alertar productos sin imagen"
+                  />
+
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={getInventoryBool(
+                          "inventario.alertar_productos_sin_categoria",
+                          true,
+                        )}
+                        disabled={!canManageInventorySettings}
+                        onChange={(e) =>
+                          updateInventoryLocal(
+                            "inventario.alertar_productos_sin_categoria",
+                            e.target.checked,
+                          )
+                        }
+                      />
+                    }
+                    label="Alertar productos sin categoría"
+                  />
+                </Box>
+              </Grid>
+            </Grid>
+          </Paper>
+        </TabPanel>
+      )}
+
+      {/* TAB 6: SEGURIDAD */}
+      {canViewSecurity && (
+        <TabPanel value={tabValue} index={5}>
+          <Paper className={styles.paperPadded}>
+            <Box className={styles.sectionHeader}>
+              <Box>
+                <Typography variant="h6" className={styles.paperTitlePink}>
+                  Seguridad
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Revisa sesiones activas y cierra accesos que ya no deben
+                  seguir vigentes.
+                </Typography>
+              </Box>
+
+              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                <Button
+                  variant="outlined"
+                  className={styles.outlinedPinkBtn}
+                  onClick={reloadSecuritySessions}
+                  disabled={savingSecurity || loading}
+                >
+                  Recargar
+                </Button>
+
+                <Button
+                  variant="contained"
+                  className={styles.primaryBtn}
+                  onClick={revokeOtherSessions}
+                  disabled={
+                    !canManageSecurity ||
+                    savingSecurity ||
+                    loading ||
+                    activeSessionsCount <= 1
+                  }
+                >
+                  Cerrar otras sesiones
+                </Button>
+              </Box>
+            </Box>
+
+            <Grid container spacing={2} sx={{ mb: 2 }}>
+              <Grid size={{ xs: 12, md: 4 }}>
+                <Card className={styles.card} sx={{ height: "100%" }}>
                   <CardContent>
-                    <Box className={styles.cardHeader}>
-                      <Box>
+                    <Typography variant="body2" color="text.secondary">
+                      Sesiones activas
+                    </Typography>
+                    <Typography variant="h4" fontWeight="bold">
+                      {activeSessionsCount}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Sesiones abiertas actualmente en tu cuenta.
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 8 }}>
+                <Card className={styles.card} sx={{ height: "100%" }}>
+                  <CardContent>
+                    <Box
+                      className={styles.cardHeader}
+                      sx={{ alignItems: "center", gap: 2 }}
+                    >
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="body2" color="text.secondary">
+                          2FA
+                        </Typography>
+
                         <Typography variant="h6" fontWeight="bold">
-                          {method.nombre}
+                          {securityStatus?.tfaEnabled ? "Activo" : "Disponible"}
                         </Typography>
 
                         <Typography variant="body2" color="text.secondary">
-                          {method.codigo}
+                          {securityStatus?.tfaEnabled
+                            ? "Tu cuenta ya solicita código de autenticación al iniciar sesión."
+                            : "Protege tu cuenta usando una app como Google Authenticator, Microsoft Authenticator o Authy."}
                         </Typography>
-
-                        {method.descripcion && (
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            sx={{ display: "block", mt: 0.5 }}
-                          >
-                            {method.descripcion}
-                          </Typography>
-                        )}
                       </Box>
 
-                      <Box className={styles.cardActions}>
+                      {securityStatus?.tfaEnabled ? (
+                        <Chip label="Protegido" color="success" size="small" />
+                      ) : (
                         <Button
                           variant="outlined"
-                          size="small"
-                          startIcon={<Settings />}
-                          onClick={() => openConfigurePayment(method)}
                           className={styles.outlinedPinkBtn}
+                          onClick={start2FASetup}
+                          disabled={settingUp2FA}
                         >
-                          Configurar
+                          {settingUp2FA ? "Generando..." : "Activar 2FA"}
                         </Button>
-                      </Box>
-                    </Box>
-
-                    <Box
-                      sx={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: 1,
-                        mt: 2,
-                      }}
-                    >
-                      <Chip
-                        label={
-                          method.activo_pos ? "POS activo" : "POS inactivo"
-                        }
-                        className={
-                          method.activo_pos ? styles.chipOk : styles.chipBad
-                        }
-                        size="small"
-                      />
-                      <Chip
-                        label={
-                          method.activo_web ? "Web activo" : "Web inactivo"
-                        }
-                        className={
-                          method.activo_web ? styles.chipOk : styles.chipBad
-                        }
-                        size="small"
-                      />
-                      <Chip
-                        label={
-                          method.activo_admin
-                            ? "Admin activo"
-                            : "Admin inactivo"
-                        }
-                        className={
-                          method.activo_admin ? styles.chipOk : styles.chipBad
-                        }
-                        size="small"
-                      />
+                      )}
                     </Box>
                   </CardContent>
                 </Card>
               </Grid>
-            ))}
-          </Grid>
-        )}
-      </TabPanel>
-
-      {/* TAB 4: DATOS DE LA TIENDA */}
-      <TabPanel value={tabValue} index={3}>
-        <Paper className={styles.paperPadded}>
-          <Box className={styles.sectionHeader}>
-            <Box>
-              <Typography variant="h6" className={styles.paperTitlePink}>
-                Datos de la Tienda
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Estos datos se usan en los tickets PDF y en la configuración
-                pública de la tienda.
-              </Typography>
-            </Box>
-
-            <Button
-              variant="contained"
-              className={styles.primaryBtn}
-              onClick={saveTicketParams}
-              disabled={savingTicket || loading}
-            >
-              {savingTicket ? "Guardando..." : "Guardar cambios"}
-            </Button>
-          </Box>
-
-          <Grid container spacing={2}>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <TextField
-                fullWidth
-                label="Nombre de la tienda"
-                value={getTicketValue("ticket.nombre_tienda", "Moda Sarita")}
-                onChange={(e) =>
-                  updateTicketLocal("ticket.nombre_tienda", e.target.value)
-                }
-              />
             </Grid>
 
-            <Grid size={{ xs: 12, md: 6 }}>
-              <TextField
-                fullWidth
-                label="Teléfono"
-                value={getTicketValue("ticket.telefono", "")}
-                onChange={(e) =>
-                  updateTicketLocal("ticket.telefono", e.target.value)
-                }
-              />
-            </Grid>
+            {securitySessions.length === 0 ? (
+              <Alert severity="info" className={styles.alert}>
+                No hay sesiones registradas para este usuario.
+              </Alert>
+            ) : (
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow className={styles.tableHeadRow}>
+                      <TableCell className={styles.th}>Dispositivo</TableCell>
+                      <TableCell className={styles.th}>IP</TableCell>
+                      <TableCell className={styles.th}>Creada</TableCell>
+                      <TableCell className={styles.th}>Expira</TableCell>
+                      <TableCell className={styles.th} align="center">
+                        Estado
+                      </TableCell>
+                      <TableCell className={styles.th} align="center">
+                        Acciones
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
 
-            <Grid size={{ xs: 12 }}>
-              <TextField
-                fullWidth
-                multiline
-                minRows={2}
-                label="Dirección"
-                value={getTicketValue("ticket.direccion", "")}
-                onChange={(e) =>
-                  updateTicketLocal("ticket.direccion", e.target.value)
-                }
-              />
-            </Grid>
+                  <TableBody>
+                    {securitySessions.map((session) => (
+                      <TableRow
+                        key={session.id}
+                        hover
+                        className={styles.tableRowHover}
+                      >
+                        <TableCell>
+                          <Typography fontWeight="bold">
+                            {session.isCurrent
+                              ? "Sesión actual"
+                              : "Otra sesión"}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ display: "block", maxWidth: 420 }}
+                          >
+                            {session.userAgent || "Sin user agent"}
+                          </Typography>
+                        </TableCell>
 
-            <Grid size={{ xs: 12 }}>
-              <TextField
-                fullWidth
-                multiline
-                minRows={2}
-                label="Mensaje final del ticket"
-                value={getTicketValue(
-                  "ticket.mensaje_final",
-                  "Gracias por su compra",
-                )}
-                onChange={(e) =>
-                  updateTicketLocal("ticket.mensaje_final", e.target.value)
-                }
-              />
-            </Grid>
+                        <TableCell>{session.ipAddress || "—"}</TableCell>
+                        <TableCell>
+                          {formatDateTime(session.createdAt)}
+                        </TableCell>
+                        <TableCell>
+                          {formatDateTime(session.expiresAt)}
+                        </TableCell>
 
-            <Grid size={{ xs: 12 }}>
-              <TextField
-                fullWidth
-                multiline
-                minRows={3}
-                label="Política de cambios"
-                value={getTicketValue("ticket.politica_cambios", "")}
-                onChange={(e) =>
-                  updateTicketLocal("ticket.politica_cambios", e.target.value)
-                }
-              />
-            </Grid>
+                        <TableCell align="center">
+                          <Chip
+                            label={
+                              session.isCurrent
+                                ? "Actual"
+                                : session.status === "ACTIVA"
+                                  ? "Activa"
+                                  : session.status === "REVOCADA"
+                                    ? "Revocada"
+                                    : "Expirada"
+                            }
+                            size="small"
+                            className={
+                              session.status === "ACTIVA"
+                                ? styles.chipOk
+                                : styles.chipBad
+                            }
+                          />
+                        </TableCell>
 
-            <Grid size={{ xs: 12 }}>
-              <TextField
-                fullWidth
-                multiline
-                minRows={3}
-                label="Política de apartado"
-                value={getTicketValue("ticket.politica_apartado", "")}
-                onChange={(e) =>
-                  updateTicketLocal("ticket.politica_apartado", e.target.value)
-                }
-              />
-            </Grid>
+                        <TableCell align="center">
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            className={styles.outlinedPinkBtn}
+                            disabled={
+                              !canManageSecurity ||
+                              savingSecurity ||
+                              session.isCurrent ||
+                              session.status !== "ACTIVA"
+                            }
+                            onClick={() => revokeSession(session)}
+                          >
+                            Revocar
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </Paper>
+        </TabPanel>
+      )}
 
-            <Grid size={{ xs: 12, md: 4 }}>
-              <TextField
-                fullWidth
-                type="number"
-                label="Ancho del ticket (mm)"
-                value={getTicketNumber("ticket.ancho_mm", 80)}
-                onChange={(e) =>
-                  updateTicketLocal(
-                    "ticket.ancho_mm",
-                    Number(e.target.value || 80),
-                  )
-                }
-                inputProps={{ min: 58, max: 80 }}
-              />
-            </Grid>
-
-            <Grid size={{ xs: 12, md: 8 }}>
-              <Box
-                sx={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: 2,
-                  height: "100%",
-                  alignItems: "center",
-                }}
-              >
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={getTicketBool("ticket.mostrar_logo", true)}
-                      onChange={(e) =>
-                        updateTicketLocal(
-                          "ticket.mostrar_logo",
-                          e.target.checked,
-                        )
-                      }
-                    />
-                  }
-                  label="Mostrar logo"
-                />
-
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={getTicketBool("ticket.mostrar_cliente", true)}
-                      onChange={(e) =>
-                        updateTicketLocal(
-                          "ticket.mostrar_cliente",
-                          e.target.checked,
-                        )
-                      }
-                    />
-                  }
-                  label="Mostrar cliente"
-                />
-
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={getTicketBool("ticket.mostrar_vendedor", true)}
-                      onChange={(e) =>
-                        updateTicketLocal(
-                          "ticket.mostrar_vendedor",
-                          e.target.checked,
-                        )
-                      }
-                    />
-                  }
-                  label="Mostrar vendedor"
-                />
+      {/* TAB 7: BITÁCORA */}
+      {canViewAudit && (
+        <TabPanel value={tabValue} index={6}>
+          <Paper className={styles.paperPadded}>
+            <Box className={styles.sectionHeader}>
+              <Box>
+                <Typography variant="h6" className={styles.paperTitlePink}>
+                  Bitácora de actividades
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Revisa qué cambios importantes se han realizado en la tienda,
+                  quién los hizo y cuándo ocurrieron.
+                </Typography>
               </Box>
-            </Grid>
-          </Grid>
-        </Paper>
-      </TabPanel>
 
-      {/* TAB 5: INVENTARIO */}
-      <TabPanel value={tabValue} index={4}>
-        <Paper className={styles.paperPadded}>
-          <Box className={styles.sectionHeader}>
-            <Box>
-              <Typography variant="h6" className={styles.paperTitlePink}>
-                Inventario
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Configura reglas generales para stock mínimo y alertas de
-                inventario.
-              </Typography>
-            </Box>
-
-            <Button
-              variant="contained"
-              className={styles.primaryBtn}
-              onClick={saveInventoryParams}
-              disabled={savingInventory || loading}
-            >
-              {savingInventory ? "Guardando..." : "Guardar cambios"}
-            </Button>
-          </Box>
-
-          <Grid container spacing={2}>
-            <Grid size={{ xs: 12, md: 5 }}>
-              <TextField
-                fullWidth
-                type="number"
-                label="Stock mínimo general"
-                value={getInventoryNumber("inventario.stock_minimo_general", 5)}
-                onChange={(e) =>
-                  updateInventoryLocal(
-                    "inventario.stock_minimo_general",
-                    Number(e.target.value || 0),
-                  )
-                }
-                inputProps={{ min: 0 }}
-                helperText="Se usará como valor sugerido al crear nuevas variantes."
-              />
-            </Grid>
-
-            <Grid size={{ xs: 12 }}>
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 1,
-                  mt: 1,
-                }}
-              >
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={getInventoryBool(
-                        "inventario.mostrar_alertas_bajo_stock",
-                        true,
-                      )}
-                      onChange={(e) =>
-                        updateInventoryLocal(
-                          "inventario.mostrar_alertas_bajo_stock",
-                          e.target.checked,
-                        )
-                      }
-                    />
-                  }
-                  label="Mostrar alertas de bajo stock"
-                />
-
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={getInventoryBool(
-                        "inventario.alertar_productos_sin_imagen",
-                        true,
-                      )}
-                      onChange={(e) =>
-                        updateInventoryLocal(
-                          "inventario.alertar_productos_sin_imagen",
-                          e.target.checked,
-                        )
-                      }
-                    />
-                  }
-                  label="Alertar productos sin imagen"
-                />
-
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={getInventoryBool(
-                        "inventario.alertar_productos_sin_categoria",
-                        true,
-                      )}
-                      onChange={(e) =>
-                        updateInventoryLocal(
-                          "inventario.alertar_productos_sin_categoria",
-                          e.target.checked,
-                        )
-                      }
-                    />
-                  }
-                  label="Alertar productos sin categoría"
-                />
-              </Box>
-            </Grid>
-          </Grid>
-        </Paper>
-      </TabPanel>
-
-      {/* TAB 6: SEGURIDAD */}
-      <TabPanel value={tabValue} index={5}>
-        <Paper className={styles.paperPadded}>
-          <Box className={styles.sectionHeader}>
-            <Box>
-              <Typography variant="h6" className={styles.paperTitlePink}>
-                Seguridad
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Revisa sesiones activas y cierra accesos que ya no deben seguir
-                vigentes.
-              </Typography>
-            </Box>
-
-            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
               <Button
                 variant="outlined"
                 className={styles.outlinedPinkBtn}
-                onClick={reloadSecuritySessions}
-                disabled={savingSecurity || loading}
+                onClick={() => reloadAuditLogs()}
+                disabled={savingAuditLogs || loading}
               >
-                Recargar
-              </Button>
-
-              <Button
-                variant="contained"
-                className={styles.primaryBtn}
-                onClick={revokeOtherSessions}
-                disabled={savingSecurity || loading || activeSessionsCount <= 1}
-              >
-                Cerrar otras sesiones
+                {savingAuditLogs ? "Recargando..." : "Recargar"}
               </Button>
             </Box>
-          </Box>
 
-          <Grid container spacing={2} sx={{ mb: 2 }}>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <Card className={styles.card} sx={{ height: "100%" }}>
-                <CardContent>
-                  <Typography variant="body2" color="text.secondary">
-                    Sesiones activas
-                  </Typography>
-                  <Typography variant="h4" fontWeight="bold">
-                    {activeSessionsCount}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Sesiones abiertas actualmente en tu cuenta.
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
+            <Grid container spacing={2} sx={{ mb: 2 }}>
+              <Grid size={{ xs: 12, md: 7 }}>
+                <TextField
+                  fullWidth
+                  label="Buscar actividad"
+                  value={auditSearch}
+                  onChange={(event) => setAuditSearch(event.target.value)}
+                  placeholder="Buscar por responsable, actividad, área o detalle"
+                />
+              </Grid>
 
-            <Grid size={{ xs: 12, md: 8 }}>
-              <Card className={styles.card} sx={{ height: "100%" }}>
-                <CardContent>
-                  <Box
-                    className={styles.cardHeader}
-                    sx={{ alignItems: "center", gap: 2 }}
+              <Grid size={{ xs: 12, md: 3 }}>
+                <FormControl fullWidth>
+                  <InputLabel>Área</InputLabel>
+                  <Select
+                    value={auditAreaFilter}
+                    label="Área"
+                    onChange={(event) =>
+                      setAuditAreaFilter(String(event.target.value))
+                    }
                   >
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        2FA
-                      </Typography>
+                    <MenuItem value="TODAS">Todas las áreas</MenuItem>
+                    {auditAreas.map((area) => (
+                      <MenuItem key={area} value={area}>
+                        {area}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
 
-                      <Typography variant="h6" fontWeight="bold">
-                        {securityStatus?.tfaEnabled ? "Activo" : "Disponible"}
-                      </Typography>
+            {filteredAuditLogs.length === 0 ? (
+              <Alert severity="info" className={styles.alert}>
+                No hay actividades para mostrar con los filtros actuales.
+              </Alert>
+            ) : (
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow className={styles.tableHeadRow}>
+                      <TableCell className={styles.th}>Fecha</TableCell>
+                      <TableCell className={styles.th}>Responsable</TableCell>
+                      <TableCell className={styles.th}>Actividad</TableCell>
+                      <TableCell className={styles.th}>Área</TableCell>
+                      <TableCell className={styles.th}>Resumen</TableCell>
+                      <TableCell className={styles.th} align="center">
+                        Detalle
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
 
-                      <Typography variant="body2" color="text.secondary">
-                        {securityStatus?.tfaEnabled
-                          ? "Tu cuenta ya solicita código de autenticación al iniciar sesión."
-                          : "Protege tu cuenta usando una app como Google Authenticator, Microsoft Authenticator o Authy."}
-                      </Typography>
-                    </Box>
-
-                    {securityStatus?.tfaEnabled ? (
-                      <Chip label="Protegido" color="success" size="small" />
-                    ) : (
-                      <Button
-                        variant="outlined"
-                        className={styles.outlinedPinkBtn}
-                        onClick={start2FASetup}
-                        disabled={settingUp2FA}
+                  <TableBody>
+                    {filteredAuditLogs.map((log) => (
+                      <TableRow
+                        key={log.id}
+                        hover
+                        className={styles.tableRowHover}
                       >
-                        {settingUp2FA ? "Generando..." : "Activar 2FA"}
-                      </Button>
-                    )}
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-
-          {securitySessions.length === 0 ? (
-            <Alert severity="info" className={styles.alert}>
-              No hay sesiones registradas para este usuario.
-            </Alert>
-          ) : (
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow className={styles.tableHeadRow}>
-                    <TableCell className={styles.th}>Dispositivo</TableCell>
-                    <TableCell className={styles.th}>IP</TableCell>
-                    <TableCell className={styles.th}>Creada</TableCell>
-                    <TableCell className={styles.th}>Expira</TableCell>
-                    <TableCell className={styles.th} align="center">
-                      Estado
-                    </TableCell>
-                    <TableCell className={styles.th} align="center">
-                      Acciones
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-
-                <TableBody>
-                  {securitySessions.map((session) => (
-                    <TableRow
-                      key={session.id}
-                      hover
-                      className={styles.tableRowHover}
-                    >
-                      <TableCell>
-                        <Typography fontWeight="bold">
-                          {session.isCurrent ? "Sesión actual" : "Otra sesión"}
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{ display: "block", maxWidth: 420 }}
-                        >
-                          {session.userAgent || "Sin user agent"}
-                        </Typography>
-                      </TableCell>
-
-                      <TableCell>{session.ipAddress || "—"}</TableCell>
-                      <TableCell>{formatDateTime(session.createdAt)}</TableCell>
-                      <TableCell>{formatDateTime(session.expiresAt)}</TableCell>
-
-                      <TableCell align="center">
-                        <Chip
-                          label={
-                            session.isCurrent
-                              ? "Actual"
-                              : session.status === "ACTIVA"
-                                ? "Activa"
-                                : session.status === "REVOCADA"
-                                  ? "Revocada"
-                                  : "Expirada"
-                          }
-                          size="small"
-                          className={
-                            session.status === "ACTIVA"
-                              ? styles.chipOk
-                              : styles.chipBad
-                          }
-                        />
-                      </TableCell>
-
-                      <TableCell align="center">
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          className={styles.outlinedPinkBtn}
-                          disabled={
-                            savingSecurity ||
-                            session.isCurrent ||
-                            session.status !== "ACTIVA"
-                          }
-                          onClick={() => revokeSession(session)}
-                        >
-                          Revocar
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-        </Paper>
-      </TabPanel>
-
-      {/* TAB 7: BITÁCORA */}
-      <TabPanel value={tabValue} index={6}>
-        <Paper className={styles.paperPadded}>
-          <Box className={styles.sectionHeader}>
-            <Box>
-              <Typography variant="h6" className={styles.paperTitlePink}>
-                Bitácora de actividades
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Revisa qué cambios importantes se han realizado en la tienda,
-                quién los hizo y cuándo ocurrieron.
-              </Typography>
-            </Box>
-
-            <Button
-              variant="outlined"
-              className={styles.outlinedPinkBtn}
-              onClick={() => reloadAuditLogs()}
-              disabled={savingAuditLogs || loading}
-            >
-              {savingAuditLogs ? "Recargando..." : "Recargar"}
-            </Button>
-          </Box>
-
-          <Grid container spacing={2} sx={{ mb: 2 }}>
-            <Grid size={{ xs: 12, md: 7 }}>
-              <TextField
-                fullWidth
-                label="Buscar actividad"
-                value={auditSearch}
-                onChange={(event) => setAuditSearch(event.target.value)}
-                placeholder="Buscar por responsable, actividad, área o detalle"
-              />
-            </Grid>
-
-            <Grid size={{ xs: 12, md: 3 }}>
-              <FormControl fullWidth>
-                <InputLabel>Área</InputLabel>
-                <Select
-                  value={auditAreaFilter}
-                  label="Área"
-                  onChange={(event) =>
-                    setAuditAreaFilter(String(event.target.value))
-                  }
-                >
-                  <MenuItem value="TODAS">Todas las áreas</MenuItem>
-                  {auditAreas.map((area) => (
-                    <MenuItem key={area} value={area}>
-                      {area}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-          </Grid>
-
-          {filteredAuditLogs.length === 0 ? (
-            <Alert severity="info" className={styles.alert}>
-              No hay actividades para mostrar con los filtros actuales.
-            </Alert>
-          ) : (
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow className={styles.tableHeadRow}>
-                    <TableCell className={styles.th}>Fecha</TableCell>
-                    <TableCell className={styles.th}>Responsable</TableCell>
-                    <TableCell className={styles.th}>Actividad</TableCell>
-                    <TableCell className={styles.th}>Área</TableCell>
-                    <TableCell className={styles.th}>Resumen</TableCell>
-                    <TableCell className={styles.th} align="center">
-                      Detalle
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-
-                <TableBody>
-                  {filteredAuditLogs.map((log) => (
-                    <TableRow key={log.id} hover className={styles.tableRowHover}>
-                      <TableCell>
-                        <Typography variant="body2">
-                          {formatDateTime(log.createdAt)}
-                        </Typography>
-                      </TableCell>
-
-                      <TableCell>
-                        <Typography variant="body2" fontWeight="bold">
-                          {log.responsible}
-                        </Typography>
-                      </TableCell>
-
-                      <TableCell>
-                        <Typography variant="body2">
-                          {log.title.charAt(0).toUpperCase() + log.title.slice(1)}
-                        </Typography>
-                        {log.technical && (
-                          <Typography variant="caption" color="text.secondary">
-                            Registro técnico
+                        <TableCell>
+                          <Typography variant="body2">
+                            {formatDateTime(log.createdAt)}
                           </Typography>
-                        )}
-                      </TableCell>
+                        </TableCell>
 
-                      <TableCell>
-                        <Chip
-                          label={log.area}
-                          size="small"
-                          className={styles.chipSystem}
-                        />
-                      </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" fontWeight="bold">
+                            {log.responsible}
+                          </Typography>
+                        </TableCell>
 
-                      <TableCell>
-                        <Typography variant="body2">{log.summary}</Typography>
-                      </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {log.title.charAt(0).toUpperCase() +
+                              log.title.slice(1)}
+                          </Typography>
+                          {log.technical && (
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              Registro técnico
+                            </Typography>
+                          )}
+                        </TableCell>
 
-                      <TableCell align="center">
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          className={styles.outlinedPinkBtn}
-                          onClick={() => openAuditDetail(log)}
-                        >
-                          Ver detalle
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-        </Paper>
-      </TabPanel>
+                        <TableCell>
+                          <Chip
+                            label={log.area}
+                            size="small"
+                            className={styles.chipSystem}
+                          />
+                        </TableCell>
+
+                        <TableCell>
+                          <Typography variant="body2">{log.summary}</Typography>
+                        </TableCell>
+
+                        <TableCell align="center">
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            className={styles.outlinedPinkBtn}
+                            onClick={() => openAuditDetail(log)}
+                          >
+                            Ver detalle
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </Paper>
+        </TabPanel>
+      )}
 
       {/* MODAL: DETALLE BITÁCORA */}
       <Dialog
@@ -1867,7 +2248,8 @@ export default function AdminSettings() {
                     Actividad
                   </Typography>
                   <Typography variant="body2" fontWeight="bold">
-                    {selectedAuditLog.title.charAt(0).toUpperCase() + selectedAuditLog.title.slice(1)}
+                    {selectedAuditLog.title.charAt(0).toUpperCase() +
+                      selectedAuditLog.title.slice(1)}
                   </Typography>
                 </Grid>
 
@@ -1999,9 +2381,7 @@ export default function AdminSettings() {
             label="Código 2FA"
             value={twoFaCode}
             onChange={(event) =>
-              setTwoFaCode(
-                event.target.value.replace(/\D/g, "").slice(0, 6),
-              )
+              setTwoFaCode(event.target.value.replace(/\D/g, "").slice(0, 6))
             }
             placeholder="123456"
             inputProps={{
@@ -2190,8 +2570,11 @@ export default function AdminSettings() {
           setOpenRoleModal(false);
           setSelectedRole(null);
         }}
-        maxWidth="md"
+        maxWidth="lg"
         fullWidth
+        PaperProps={{
+          className: styles.roleDialogPaper,
+        }}
       >
         <DialogTitle className={styles.dialogTitle}>
           {selectedRole ? `Editar Rol: ${selectedRole.name}` : "Nuevo Rol"}
@@ -2206,13 +2589,20 @@ export default function AdminSettings() {
               setRoleForm((p) => ({ ...p, name: e.target.value }))
             }
             placeholder="Ej: Cajero, Vendedor"
-            disabled={selectedRole?.isSystem ?? false}
+            disabled={(selectedRole?.isSystem ?? false) || !canManageRoles}
             sx={{ mb: 3 }}
           />
 
-          <Typography variant="subtitle2" gutterBottom>
-            Permisos
-          </Typography>
+          <Box className={styles.permissionsHeader}>
+            <Typography variant="subtitle2" className={styles.permissionsTitle}>
+              Permisos
+            </Typography>
+
+            <Typography variant="caption" className={styles.permissionsCounter}>
+              {roleForm.permissions.length} de {allPermissions.length}{" "}
+              seleccionados
+            </Typography>
+          </Box>
 
           <Box className={styles.permsBox}>
             {allPermissions.length === 0 ? (
@@ -2230,33 +2620,43 @@ export default function AdminSettings() {
                       {category}
                     </Typography>
 
-                    {permissions.map((permission) => {
-                      const disabled = selectedRole?.isSystem ?? false;
-                      const checked = roleForm.permissions.includes(
-                        permission.id,
-                      );
+                    <div className={styles.permissionsGrid}>
+                      {permissions.map((permission) => {
+                        const disabled =
+                          (selectedRole?.isSystem ?? false) || !canManageRoles;
 
-                      return (
-                        <FormControlLabel
-                          key={permission.id}
-                          control={
+                        const checked = roleForm.permissions.includes(
+                          permission.id,
+                        );
+
+                        return (
+                          <label
+                            key={permission.id}
+                            className={`${styles.permissionItem} ${
+                              checked ? styles.permissionItemChecked : ""
+                            } ${disabled ? styles.permissionItemDisabled : ""}`}
+                          >
                             <Checkbox
                               checked={checked}
                               onChange={() => togglePermission(permission.id)}
                               disabled={disabled}
+                              size="small"
+                              className={styles.permissionCheckbox}
                             />
-                          }
-                          label={
-                            <Box>
-                              <Typography variant="body2">
+
+                            <span className={styles.permissionText}>
+                              <span className={styles.permissionName}>
                                 {permission.name}
-                              </Typography>
-                            </Box>
-                          }
-                          sx={{ display: "block", mb: 1 }}
-                        />
-                      );
-                    })}
+                              </span>
+
+                              <span className={styles.permissionSlug}>
+                                {permission.id}
+                              </span>
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
                   </Box>
                 ),
               )
@@ -2282,14 +2682,16 @@ export default function AdminSettings() {
           >
             Cancelar
           </Button>
-          <Button
-            onClick={submitRole}
-            variant="contained"
-            disabled={selectedRole?.isSystem ?? false}
-            className={styles.primaryBtn}
-          >
-            {selectedRole ? "Actualizar" : "Crear"}
-          </Button>
+          {canManageRoles && (
+            <Button
+              onClick={submitRole}
+              variant="contained"
+              disabled={selectedRole?.isSystem ?? false}
+              className={styles.primaryBtn}
+            >
+              {selectedRole ? "Actualizar" : "Crear"}
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
 
@@ -2314,6 +2716,7 @@ export default function AdminSettings() {
                 fullWidth
                 label="Nombre"
                 value={paymentForm.nombre}
+                disabled={!canManagePaymentMethods}
                 onChange={(e) =>
                   setPaymentForm((p) => ({ ...p, nombre: e.target.value }))
                 }
@@ -2325,6 +2728,7 @@ export default function AdminSettings() {
                 fullWidth
                 label="Descripción"
                 value={paymentForm.descripcion}
+                disabled={!canManagePaymentMethods}
                 onChange={(e) =>
                   setPaymentForm((p) => ({ ...p, descripcion: e.target.value }))
                 }
@@ -2336,6 +2740,7 @@ export default function AdminSettings() {
                 control={
                   <Switch
                     checked={paymentForm.activo_pos}
+                    disabled={!canManagePaymentMethods}
                     onChange={(e) =>
                       setPaymentForm((p) => ({
                         ...p,
@@ -2353,6 +2758,7 @@ export default function AdminSettings() {
                 control={
                   <Switch
                     checked={paymentForm.activo_web}
+                    disabled={!canManagePaymentMethods}
                     onChange={(e) =>
                       setPaymentForm((p) => ({
                         ...p,
@@ -2370,6 +2776,7 @@ export default function AdminSettings() {
                 control={
                   <Switch
                     checked={paymentForm.activo_admin}
+                    disabled={!canManagePaymentMethods}
                     onChange={(e) =>
                       setPaymentForm((p) => ({
                         ...p,
@@ -2387,6 +2794,7 @@ export default function AdminSettings() {
                 control={
                   <Switch
                     checked={paymentForm.requiere_referencia}
+                    disabled={!canManagePaymentMethods}
                     onChange={(e) =>
                       setPaymentForm((p) => ({
                         ...p,
@@ -2404,6 +2812,7 @@ export default function AdminSettings() {
                 control={
                   <Switch
                     checked={paymentForm.permite_cambio}
+                    disabled={!canManagePaymentMethods}
                     onChange={(e) =>
                       setPaymentForm((p) => ({
                         ...p,
@@ -2421,6 +2830,7 @@ export default function AdminSettings() {
                 control={
                   <Switch
                     checked={paymentForm.requiere_confirmacion_manual}
+                    disabled={!canManagePaymentMethods}
                     onChange={(e) =>
                       setPaymentForm((p) => ({
                         ...p,
@@ -2438,6 +2848,7 @@ export default function AdminSettings() {
                 control={
                   <Switch
                     checked={paymentForm.es_credito}
+                    disabled={!canManagePaymentMethods}
                     onChange={(e) =>
                       setPaymentForm((p) => ({
                         ...p,
@@ -2456,6 +2867,7 @@ export default function AdminSettings() {
                 type="number"
                 label="Orden"
                 value={paymentForm.orden}
+                disabled={!canManagePaymentMethods}
                 onChange={(e) =>
                   setPaymentForm((p) => ({
                     ...p,
@@ -2472,6 +2884,7 @@ export default function AdminSettings() {
                 minRows={2}
                 label="Instrucciones POS"
                 value={paymentForm.instrucciones_pos}
+                disabled={!canManagePaymentMethods}
                 onChange={(e) =>
                   setPaymentForm((p) => ({
                     ...p,
@@ -2488,6 +2901,7 @@ export default function AdminSettings() {
                 minRows={2}
                 label="Instrucciones Web"
                 value={paymentForm.instrucciones_web}
+                disabled={!canManagePaymentMethods}
                 onChange={(e) =>
                   setPaymentForm((p) => ({
                     ...p,
@@ -2510,14 +2924,16 @@ export default function AdminSettings() {
             Cancelar
           </Button>
 
-          <Button
-            onClick={submitPayment}
-            variant="contained"
-            className={styles.primaryBtn}
-            disabled={savingPayment}
-          >
-            {savingPayment ? "Guardando..." : "Guardar"}
-          </Button>
+          {canManagePaymentMethods && (
+            <Button
+              onClick={submitPayment}
+              variant="contained"
+              className={styles.primaryBtn}
+              disabled={savingPayment}
+            >
+              {savingPayment ? "Guardando..." : "Guardar"}
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
     </Box>

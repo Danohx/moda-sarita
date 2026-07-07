@@ -337,10 +337,7 @@ export default function CortesTab({ data, loading }: CortesTabProps) {
               value={formatMoney(totalSistema)}
             />
 
-            <SummaryItem
-              label="Total real"
-              value={formatMoney(totalReal)}
-            />
+            <SummaryItem label="Total real" value={formatMoney(totalReal)} />
 
             <SummaryItem
               label="Diferencia"
@@ -361,7 +358,8 @@ export default function CortesTab({ data, loading }: CortesTabProps) {
         <header className={styles.cardHeader}>
           <h3 className={styles.cardTitle}>Detalle de cortes</h3>
           <p className={styles.cardSubtitle}>
-            Cortes cerrados con responsable, totales, diferencias y observaciones.
+            Cortes cerrados con responsable, totales, diferencias y
+            observaciones.
           </p>
         </header>
 

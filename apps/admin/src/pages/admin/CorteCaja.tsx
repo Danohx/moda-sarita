@@ -16,6 +16,8 @@ import {
   Banknote,
 } from "lucide-react";
 import styles from "../../../styles/CorteCaja.module.css";
+import { useAuth } from "@shared/context/AuthContext";
+import { canAccess } from "../../utils/permissions";
 import { ventasService } from "@admin/services/ventas.service";
 import AdminBreadcrumbs from "@admin/components/layout/AdminBreadcrumbs";
 
@@ -87,21 +89,49 @@ function getMetodoIcon(codigo: string) {
   const code = String(codigo || "").toUpperCase();
 
   if (code === "EFECTIVO" || code.includes("EFECTIVO")) {
-    return <Banknote size={14} style={{ verticalAlign: "middle", marginRight: 6 }} />;
+    return (
+      <Banknote size={14} style={{ verticalAlign: "middle", marginRight: 6 }} />
+    );
   }
 
   if (code.includes("TARJETA") || code.includes("CARD")) {
-    return <CreditCard size={14} style={{ verticalAlign: "middle", marginRight: 6 }} />;
+    return (
+      <CreditCard
+        size={14}
+        style={{ verticalAlign: "middle", marginRight: 6 }}
+      />
+    );
   }
 
   if (code.includes("TRANSFERENCIA") || code.includes("BANCO")) {
-    return <Landmark size={14} style={{ verticalAlign: "middle", marginRight: 6 }} />;
+    return (
+      <Landmark size={14} style={{ verticalAlign: "middle", marginRight: 6 }} />
+    );
   }
 
-  return <CircleDollarSign size={14} style={{ verticalAlign: "middle", marginRight: 6 }} />;
+  return (
+    <CircleDollarSign
+      size={14}
+      style={{ verticalAlign: "middle", marginRight: 6 }}
+    />
+  );
 }
 
 export default function CorteCaja() {
+  const { user } = useAuth();
+
+  const canReadCorte = canAccess(user, {
+    permissions: "ventas.corte_caja.read",
+  });
+
+  const canCreateCorte = canAccess(user, {
+    permissions: "ventas.corte_caja.create",
+  });
+
+  const canCloseCorte = canAccess(user, {
+    permissions: "ventas.corte_caja.close",
+  });
+
   const [estado, setEstado] = useState<EstadoCorte>("sin_corte");
   const [corteActual, setCorteActual] = useState<CorteData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -112,6 +142,12 @@ export default function CorteCaja() {
   const [observaciones, setObservaciones] = useState("");
 
   const loadCorte = async () => {
+    if (!canReadCorte) {
+      setLoading(false);
+      setError("No tienes permiso para consultar corte de caja.");
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -153,6 +189,11 @@ export default function CorteCaja() {
   };
 
   const handleAbrirCorte = async () => {
+    if (!canCreateCorte) {
+      setError("No tienes permiso para abrir cortes de caja.");
+      return;
+    }
+
     const fondo = Number(fondoInicial) || 0;
 
     if (fondo < 0) {
@@ -210,7 +251,7 @@ export default function CorteCaja() {
   ];
 
   const metodosCorte = hasDesgloseDinamico
-    ? corteActual?.desglose_metodos ?? []
+    ? (corteActual?.desglose_metodos ?? [])
     : fallbackMetodos;
 
   const totalEfectivo = toNumber(
@@ -278,6 +319,11 @@ export default function CorteCaja() {
   const requiereJustificacion = totalRealNumber !== totalEsperadoVista;
 
   const handleCerrarCorte = async () => {
+    if (!canCloseCorte) {
+      setError("No tienes permiso para cerrar cortes de caja.");
+      return;
+    }
+
     if (!corteActual) return;
 
     const real = Number(montoContado);
@@ -318,6 +364,23 @@ export default function CorteCaja() {
     }
   };
 
+  if (!canReadCorte) {
+    return (
+      <div className={styles.page}>
+        <AdminBreadcrumbs items={[{ label: "Corte de Caja" }]} />
+        <div className={styles.emptyState}>
+          <div className={styles.emptyStateTop}>
+            <Lock size={28} />
+            <div>
+              <strong>Acceso restringido</strong>
+              <p>No tienes permiso para consultar el corte de caja.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className={styles.page}>
@@ -339,7 +402,8 @@ export default function CorteCaja() {
             <Clock3 size={13} /> {fechaLabel}
           </span>
           <span className={styles.meta}>
-            <User size={13} /> {corteActual?.usuario_nombre ?? "Cajero en turno"}
+            <User size={13} />{" "}
+            {corteActual?.usuario_nombre ?? "Cajero en turno"}
           </span>
         </div>
 
@@ -422,7 +486,7 @@ export default function CorteCaja() {
                   step="0.01"
                   value={fondoInicial}
                   onChange={(e) => setFondoInicial(e.target.value)}
-                  disabled={procesando}
+                  disabled={procesando || !canCreateCorte}
                 />
               </div>
             </label>
@@ -432,7 +496,7 @@ export default function CorteCaja() {
               className={styles.primaryBtn}
               style={{ flex: 1, maxWidth: 220 }}
               onClick={handleAbrirCorte}
-              disabled={procesando}
+              disabled={procesando || !canCreateCorte}
             >
               {procesando ? "Abriendo..." : "Abrir corte"}
             </button>
@@ -581,7 +645,7 @@ export default function CorteCaja() {
                       type="number"
                       value={montoContado}
                       onChange={(e) => setMontoContado(e.target.value)}
-                      readOnly={isClosed}
+                      readOnly={isClosed || !canCloseCorte}
                       placeholder="0.00"
                       min="0"
                       step="0.01"
@@ -599,7 +663,7 @@ export default function CorteCaja() {
                   <textarea
                     value={observaciones}
                     onChange={(e) => setObservaciones(e.target.value)}
-                    readOnly={isClosed}
+                    readOnly={isClosed || !canCloseCorte}
                     rows={3}
                     placeholder={
                       !isClosed
@@ -695,15 +759,17 @@ export default function CorteCaja() {
                     }}
                   >
                     El cierre compara únicamente el efectivo esperado contra el
-                    efectivo contado. Los métodos marcados como referencia no forman
-                    parte del dinero físico en caja.
+                    efectivo contado. Los métodos marcados como referencia no
+                    forman parte del dinero físico en caja.
                   </div>
 
                   <div className={styles.actions}>
                     <button
                       type="button"
                       className={styles.primaryBtn}
-                      disabled={procesando || montoContado === ""}
+                      disabled={
+                        procesando || montoContado === "" || !canCloseCorte
+                      }
                       onClick={handleCerrarCorte}
                     >
                       {procesando ? "Cerrando..." : "Cerrar corte"}
