@@ -1,0 +1,13 @@
+.page { min-height:calc(100vh - 180px); display:grid; place-items:center; padding:3rem 1rem 5rem; }
+.card { width:min(100%,760px); text-align:center; padding:clamp(2rem,6vw,4rem); background:#fff; border:1px solid #eadde5; border-radius:28px; box-shadow:0 22px 65px rgba(34,16,25,.1); }
+.icon { width:82px; height:82px; margin:0 auto 1rem; border-radius:50%; display:grid; place-items:center; background:#eaf9f1; color:#188452; }
+.eyebrow { color:#ec1380; text-transform:uppercase; letter-spacing:.16em; font-size:.78rem; font-weight:800; }
+.card h1 { color:#221019; font-size:clamp(2rem,4vw,3rem); margin:.3rem 0 .8rem; }
+.intro { color:#735e6b; line-height:1.7; }
+.statusGrid { margin:2rem 0; display:grid; grid-template-columns:repeat(3,1fr); gap:.8rem; text-align:left; }
+.statusGrid div { padding:1rem; border-radius:16px; background:#fcf8fa; display:flex; gap:.65rem; color:#ec1380; }
+.statusGrid span { color:#6d5262; font-size:.9rem; }
+.statusGrid strong { color:#2f1c27; display:block; margin-bottom:.2rem; }
+.notice { padding:1rem; border-radius:15px; color:#83571c; background:#fff7e7; border:1px solid #f0dcae; line-height:1.55; }
+.actions { margin-top:1.5rem; display:flex; justify-content:center; gap:.8rem; flex-wrap:wrap; }
+@media(max-width:620px){.statusGrid{grid-template-columns:1fr}.card{border-radius:22px;padding:1.5rem}.actions a{width:100%}}

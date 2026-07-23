@@ -28,7 +28,7 @@ export const categoriasApi = {
   getAllPublic: () =>
     apiFetch<CategoriasResponse>(API_ENDPOINTS.categorias.list, {
       method: "GET",
-      withAuth: true,
+      withAuth: false,
     }),
 
   create: (payload: Partial<Categoria>) =>

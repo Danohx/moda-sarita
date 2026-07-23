@@ -1,0 +1,131 @@
+.header { display:flex; justify-content:space-between; align-items:flex-end; gap:1rem; margin-bottom:1.4rem; }
+.header p { margin:0 0 .35rem; color:#ec1380; text-transform:uppercase; letter-spacing:.14em; font-size:.75rem; font-weight:800; }
+.header h1 { margin:0; color:#221019; font-size:clamp(1.8rem,4vw,2.65rem); }
+.header > span { color:#806878; font-size:.9rem; }
+.card { background:#fff; border:1px solid #eadde5; border-radius:21px; padding:1.4rem; box-shadow:0 14px 40px rgba(34,16,25,.055); }
+.stats { display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; margin-bottom:1.2rem; }
+.stat { display:flex; align-items:center; gap:.85rem; }
+.stat > span { width:45px;height:45px;border-radius:14px;display:grid;place-items:center;background:#fff0f7;color:#ec1380; }
+.stat small { display:block;color:#8b7281;font-size:.76rem; }
+.stat strong { display:block;color:#2d1b25;font-size:1.3rem;margin-top:.15rem; }
+.grid { display:grid; grid-template-columns:1.15fr .85fr; gap:1.2rem; }
+.card h2 { margin:0 0 1rem; color:#2f1d28; font-size:1.15rem; }
+.quickLinks { display:grid; gap:.7rem; }
+.quickLinks a { display:flex; align-items:center; gap:.7rem; padding:.85rem; border-radius:14px; background:#fcf8fa; color:#664b5b; text-decoration:none; font-weight:700; }
+.quickLinks a:hover { color:#c80e6b; background:#fff0f7; }
+.orderList { display:grid; gap:.8rem; }
+.order { border:1px solid #eadfe5; border-radius:16px; padding:1rem; display:grid; grid-template-columns:1fr auto; gap:.7rem; text-decoration:none; color:inherit; }
+.order:hover { border-color:#ec1380; }
+.order strong { color:#2e1c27; }
+.order p { margin:.25rem 0 0;color:#846d7a;font-size:.84rem; }
+.order > span { text-align:right;color:#2f1d28;font-weight:800; }
+.badge { display:inline-flex; margin-top:.45rem; padding:.25rem .55rem; border-radius:999px; background:#fff0f7; color:#c70d6a; font-size:.7rem; font-weight:800; }
+.form { display:grid; gap:1rem; }
+.formGrid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+.field { display:grid; gap:.4rem; }
+.fieldFull { grid-column:1/-1; }
+.field label { font-size:.82rem; font-weight:800; color:#4c3543; }
+.field input,.field textarea { width:100%; border:1px solid #e5d8e0; border-radius:13px; padding:.78rem .9rem; outline:none; color:#221019; }
+.field input:focus,.field textarea:focus { border-color:#ec1380;box-shadow:0 0 0 3px rgba(236,19,128,.08); }
+.field input:disabled { background:#f8f4f6;color:#8d7684; }
+.field textarea { min-height:90px;resize:vertical; }
+.actions { display:flex; justify-content:flex-end; gap:.7rem; }
+.primary,.secondary,.danger { min-height:44px;border-radius:13px;padding:.7rem 1rem;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:.45rem; }
+.primary { border:0;background:#ec1380;color:#fff; }
+.secondary { border:1px solid #e2ced9;background:#fff;color:#c70d6a; }
+.danger { border:1px solid #efc3d3;background:#fff4f7;color:#a52252; }
+.feedback { padding:.85rem 1rem;border-radius:13px;margin-bottom:1rem; }
+.error { color:#9a234e;background:#fff0f5;border:1px solid #fac6d9; }
+.success { color:#1d6b49;background:#eefaf5;border:1px solid #bde8d4; }
+.addressGrid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; }
+.address { position:relative; }
+.addressTop { display:flex; justify-content:space-between; gap:.7rem; margin-bottom:.7rem; }
+.addressTop strong { color:#2f1d28; }
+.address p { margin:.25rem 0;color:#755d6c;line-height:1.55;font-size:.88rem; }
+.addressActions { display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem; }
+.tableWrap { overflow:auto; border:1px solid #eadde5; border-radius:18px; background:#fff; }
+.table { width:100%; border-collapse:collapse; min-width:690px; }
+.table th,.table td { padding:1rem; text-align:left; border-bottom:1px solid #eee4e9; }
+.table th { color:#806978;font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;background:#fcf9fa; }
+.table td { color:#4e3845;font-size:.88rem; }
+.table tr:last-child td { border-bottom:0; }
+.table a { color:#c70d6a;font-weight:800;text-decoration:none; }
+.empty { text-align:center;padding:3rem 1rem;color:#806978; }
+.empty h2 { color:#2f1d28; }
+.detailGrid { display:grid; grid-template-columns:1fr 330px; gap:1.2rem; align-items:start; }
+.productList { display:grid; gap:.8rem; }
+.product { display:grid;grid-template-columns:70px 1fr auto;gap:.8rem;align-items:center;padding:.8rem 0;border-bottom:1px solid #eee4e9; }
+.product:last-child{border-bottom:0}.product img{width:70px;height:82px;object-fit:cover;border-radius:11px;background:#f7f0f4}.product strong{color:#2f1d28}.product p{margin:.2rem 0;color:#806978;font-size:.82rem}.product>span{font-weight:800;color:#2f1d28}
+.summaryRows { display:grid;gap:.65rem; }.summaryRows div{display:flex;justify-content:space-between;gap:1rem;color:#735e6b}.summaryRows .total{padding-top:.8rem;margin-top:.2rem;border-top:1px solid #eee4e9;color:#2f1d28;font-size:1.05rem}
+.meta { display:grid;gap:.75rem;margin-bottom:1rem; }.meta div{display:flex;gap:.65rem;align-items:flex-start;color:#6f5665}.meta strong{display:block;color:#2f1d28;font-size:.83rem}.meta span{font-size:.88rem;line-height:1.5}
+@media(max-width:900px){.stats{grid-template-columns:1fr}.grid,.detailGrid{grid-template-columns:1fr}.addressGrid{grid-template-columns:1fr}}
+@media(max-width:560px){.header{align-items:flex-start;flex-direction:column}.formGrid{grid-template-columns:1fr}.fieldFull{grid-column:auto}.actions{flex-direction:column}.actions button,.actions a{width:100%}.product{grid-template-columns:58px 1fr}.product>span{grid-column:2}.product img{width:58px;height:68px}}
+
+.statLink { text-decoration:none; transition:transform .2s ease,border-color .2s ease; }
+.statLink:hover { transform:translateY(-2px); border-color:#ec1380; }
+.statLink strong { font-size:1.02rem; }
+.creditLoading { min-height:360px;display:grid;place-items:center;align-content:center;gap:.8rem;color:#806978; }
+.creditLoading p { margin:0;font-weight:700; }
+.spin { animation:creditSpin .9s linear infinite; }
+@keyframes creditSpin { to { transform:rotate(360deg); } }
+.creditError { min-height:330px;display:grid;place-items:center;align-content:center;text-align:center;gap:.75rem;color:#806978; }
+.creditError h1 { margin:0;color:#2f1d28; }
+.creditError p { max-width:520px;margin:0 0 .5rem; }
+.creditHero { background:linear-gradient(135deg,#29141f 0%,#4c1834 58%,#84104c 100%);color:#fff;border:0;overflow:hidden;position:relative; }
+.creditHero::after { content:"";position:absolute;width:260px;height:260px;border-radius:50%;background:rgba(255,255,255,.07);right:-70px;top:-110px;pointer-events:none; }
+.creditHeroTop { display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;position:relative;z-index:1; }
+.creditHeroTop h2 { max-width:680px;margin:.8rem 0 0;color:#fff;font-size:1.08rem;line-height:1.55;font-weight:600; }
+.creditHeroIcon { width:58px;height:58px;border-radius:18px;display:grid;place-items:center;background:rgba(255,255,255,.13); }
+.creditStatus { display:inline-flex;border-radius:999px;padding:.4rem .7rem;font-size:.73rem;font-weight:900;letter-spacing:.04em;background:rgba(255,255,255,.13); }
+.creditStatus_NO_HABILITADO,.creditStatus_SIN_LIMITE { background:rgba(255,220,157,.18);color:#ffe3ae; }
+.creditStatus_SIN_DEUDA { background:rgba(174,242,208,.18);color:#bff8dc; }
+.creditStatus_CON_SALDO { background:rgba(255,255,255,.14);color:#fff; }
+.creditStatus_LIMITE_ALCANZADO,.creditStatus_SOBREGIRADO { background:rgba(255,178,196,.18);color:#ffc4d2; }
+.creditAmounts { display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:2rem;position:relative;z-index:1; }
+.creditAmounts div { padding:1rem;border-radius:16px;background:rgba(255,255,255,.09);backdrop-filter:blur(4px); }
+.creditAmounts small { display:block;color:#edd8e4;font-size:.76rem; }
+.creditAmounts strong { display:block;margin-top:.35rem;font-size:clamp(1.25rem,2.5vw,1.75rem);color:#fff; }
+.creditProgressBlock { margin-top:1.3rem;position:relative;z-index:1; }
+.creditProgressBlock > div:first-child { display:flex;justify-content:space-between;gap:1rem;font-size:.82rem;color:#f3dce8; }
+.creditProgressBlock > div:first-child strong { color:#fff; }
+.creditProgress { height:10px;border-radius:999px;background:rgba(255,255,255,.16);overflow:hidden;margin-top:.55rem; }
+.creditProgress span { display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#ff8ac2,#fff);transition:width .35s ease; }
+.creditExceeded { color:#ffd0db;margin:.65rem 0 0;font-size:.82rem;font-weight:700; }
+.creditInfoGrid { display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin:1rem 0; }
+.creditInfoCard { display:flex;align-items:center;gap:.85rem; }
+.creditInfoCard > span { width:45px;height:45px;border-radius:14px;display:grid;place-items:center;background:#fff0f7;color:#ec1380;flex:0 0 auto; }
+.creditInfoCard small { display:block;color:#8b7281;font-size:.76rem; }
+.creditInfoCard strong { display:block;color:#2d1b25;font-size:.92rem;margin-top:.2rem;line-height:1.35; }
+.creditNotice { display:flex;align-items:flex-start;gap:.8rem;padding:1rem 1.1rem;margin-bottom:1rem;border-radius:16px;background:#fff8e8;border:1px solid #f0dba9;color:#765b24; }
+.creditNotice > svg { flex:0 0 auto;margin-top:.1rem; }
+.creditNotice strong { display:block;color:#5d4518; }
+.creditNotice p { margin:.3rem 0 0;font-size:.86rem;line-height:1.55; }
+.creditHistory { margin-top:1rem; }
+.creditHistoryHeader { display:flex;justify-content:space-between;align-items:flex-end;gap:1rem;margin-bottom:.6rem; }
+.creditHistoryHeader p { margin:0 0 .25rem;color:#ec1380;text-transform:uppercase;letter-spacing:.12em;font-size:.7rem;font-weight:900; }
+.creditHistoryHeader h2 { margin:0; }
+.creditHistoryHeader > span { color:#806978;font-size:.82rem; }
+.creditMovementList { display:grid; }
+.creditMovement { display:grid;grid-template-columns:auto 1fr auto;gap:.9rem;align-items:flex-start;padding:1rem 0;border-bottom:1px solid #eee4e9; }
+.creditMovement:last-child { border-bottom:0; }
+.movementIcon { width:42px;height:42px;border-radius:13px;display:grid;place-items:center; }
+.movementPurchase { background:#fff0f5;color:#c20e65; }
+.movementPayment { background:#eefaf5;color:#18704a; }
+.movementAdjustment { background:#f3efff;color:#6250a4; }
+.movementMain > div:first-child { display:flex;align-items:center;gap:.65rem;flex-wrap:wrap; }
+.movementMain strong { color:#2f1d28; }
+.movementMain > div:first-child span { color:#8a7280;font-size:.76rem; }
+.movementMain p { margin:.3rem 0;color:#715968;font-size:.86rem;line-height:1.5; }
+.movementMeta { display:flex;gap:.4rem;flex-wrap:wrap; }
+.movementMeta span { padding:.22rem .5rem;border-radius:999px;background:#f8f3f6;color:#806978;font-size:.68rem;font-weight:700;text-transform:capitalize; }
+.movementAmount { text-align:right;min-width:130px; }
+.movementAmount strong { display:block;font-size:1rem; }
+.movementAmount span { display:block;margin-top:.3rem;color:#806978;font-size:.76rem; }
+.amountPositive { color:#a80c58; }
+.amountNegative { color:#18704a; }
+.creditLoadMore { margin:1rem auto 0;min-height:43px;border:1px solid #e2ced9;background:#fff;color:#c70d6a;border-radius:13px;padding:.7rem 1rem;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.5rem; }
+.creditLoadMore:hover:not(:disabled) { border-color:#ec1380;background:#fff7fb; }
+.creditLoadMore:disabled { cursor:not-allowed;opacity:.65; }
+@media(max-width:1100px){.stats{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:760px){.creditAmounts,.creditInfoGrid{grid-template-columns:1fr}.creditHeroTop{align-items:center}.creditHistoryHeader{align-items:flex-start;flex-direction:column}.creditMovement{grid-template-columns:auto 1fr}.movementAmount{grid-column:2;text-align:left;min-width:0;display:flex;gap:.7rem;align-items:center;flex-wrap:wrap}.movementAmount span{margin-top:0}}
+@media(max-width:560px){.stats{grid-template-columns:1fr}.creditHeroIcon{width:48px;height:48px}.creditHeroTop h2{font-size:.95rem}.creditMovement{grid-template-columns:1fr}.movementIcon{display:none}.movementAmount{grid-column:1}.creditInfoCard{padding:1rem}}

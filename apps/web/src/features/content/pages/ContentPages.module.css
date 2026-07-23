@@ -1,0 +1,13 @@
+.page { padding:3rem 0 5rem; }
+.hero { max-width:760px; margin-bottom:2rem; }
+.hero p { color:#ec1380;text-transform:uppercase;letter-spacing:.15em;font-size:.76rem;font-weight:800;margin:0 0 .5rem; }
+.hero h1 { margin:0;color:#221019;font-size:clamp(2.1rem,5vw,3.5rem); }
+.hero span { display:block;margin-top:.8rem;color:#765f6d;line-height:1.7; }
+.content { background:#fff;border:1px solid #eadde5;border-radius:24px;padding:clamp(1.4rem,4vw,2.5rem);box-shadow:0 16px 45px rgba(34,16,25,.06);color:#5f4755;line-height:1.8; }
+.content h2,.content h3 { color:#2f1d28;margin-top:1.6rem; }
+.content a { color:#c70d6a; }
+.notice { padding:1rem;border-radius:15px;background:#fff6fa;border:1px solid #f3cadc;color:#73495c; }
+.faqList { display:grid;gap:.8rem; }
+.faq { background:#fff;border:1px solid #eadde5;border-radius:18px;overflow:hidden; }
+.faq summary { list-style:none;cursor:pointer;padding:1.1rem 1.2rem;color:#2f1d28;font-weight:800;display:flex;justify-content:space-between;gap:1rem; }
+.faq summary::-webkit-details-marker{display:none}.faq summary::after{content:'+';color:#ec1380;font-size:1.25rem}.faq[open] summary::after{content:'−'}.answer{padding:0 1.2rem 1.2rem;color:#6f5866;line-height:1.7}.empty{text-align:center;padding:3rem 1rem;background:#fff;border:1px solid #eadde5;border-radius:22px}.empty h2{color:#2f1d28}

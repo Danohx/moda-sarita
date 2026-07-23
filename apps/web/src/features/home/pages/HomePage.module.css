@@ -1,0 +1,9 @@
+.apiWarning {
+  padding: 0.6rem 1rem;
+  color: #6c3d16;
+  background: #fff4db;
+  border-bottom: 1px solid #f5ddb1;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+}

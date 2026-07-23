@@ -80,11 +80,33 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  text-decoration: none; /* Importante para NavLinks que actúan como botones */
+  text-decoration: none;
+  position: relative;
+}
+
+.iconButtonActive {
+  color: #ec1380;
 }
 
 .iconButton:hover { 
   background-color: #f7d5e9; /* Fondo rosa claro al pasar mouse */
+}
+
+.cartBadge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #ec1380;
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 18px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(236, 19, 128, 0.35);
 }
 
 .hamburger {

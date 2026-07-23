@@ -1,0 +1,132 @@
+.footer {
+  margin-top: auto;
+  color: #f8edf3;
+  background: var(--color-ink);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1.35fr repeat(3, 1fr);
+  gap: clamp(2rem, 5vw, 5rem);
+  padding-top: clamp(3.5rem, 7vw, 5rem);
+  padding-bottom: clamp(3rem, 6vw, 4.5rem);
+}
+
+.footer :global(.BrandLogo_brand__placeholder) {
+  color: white;
+}
+
+.brandColumn > a:first-child {
+  color: white;
+}
+
+.brandColumn p {
+  max-width: 24rem;
+  margin: 1rem 0 1.25rem;
+  color: #d8c7d0;
+  line-height: 1.75;
+}
+
+.facebook {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: #ff78b9;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.grid h2 {
+  margin: 0 0 1.15rem;
+  color: white;
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.links,
+.contactList {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.links a,
+.contactList a {
+  color: #d8c7d0;
+  text-decoration: none;
+  transition: color 160ms ease;
+}
+
+.links a:hover,
+.contactList a:hover {
+  color: white;
+}
+
+.contactList a {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  line-height: 1.55;
+}
+
+.contactList svg {
+  flex: 0 0 auto;
+  margin-top: 0.12rem;
+  color: #ff78b9;
+}
+
+.bottom {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.bottomInner {
+  min-height: 4.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: #bba9b2;
+  font-size: 0.82rem;
+}
+
+.bottomInner p {
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1.4fr 1fr 1fr;
+  }
+
+  .grid > div:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .contactList {
+    grid-template-columns: minmax(12rem, 0.5fr) minmax(18rem, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 2.5rem 1.5rem;
+  }
+
+  .brandColumn,
+  .grid > div:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .contactList {
+    grid-template-columns: 1fr;
+  }
+
+  .bottomInner {
+    align-items: flex-start;
+    flex-direction: column;
+    justify-content: center;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+}

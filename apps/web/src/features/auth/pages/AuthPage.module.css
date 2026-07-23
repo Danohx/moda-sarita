@@ -1,0 +1,73 @@
+.page {
+  min-height: calc(100vh - 160px);
+  display: grid;
+  place-items: center;
+  padding: 3rem 1rem 5rem;
+  background:
+    radial-gradient(circle at 12% 15%, rgba(236, 19, 128, 0.09), transparent 30%),
+    linear-gradient(180deg, #fff 0%, #fdf8fb 100%);
+}
+.shell {
+  width: min(100%, 1040px);
+  display: grid;
+  grid-template-columns: minmax(0, .92fr) minmax(360px, 1fr);
+  border: 1px solid rgba(34, 16, 25, .09);
+  border-radius: 30px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(34, 16, 25, .12);
+}
+.visual {
+  padding: 3.2rem;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 2rem;
+  background:
+    linear-gradient(145deg, rgba(34, 16, 25, .95), rgba(83, 20, 53, .9)),
+    url('/images/hero-boutique.svg') center/cover;
+}
+.visual small { text-transform: uppercase; letter-spacing: .18em; font-weight: 800; color: #f8bddb; }
+.visual h1 { margin: .8rem 0 1rem; font-size: clamp(2.2rem, 4vw, 3.8rem); line-height: 1; }
+.visual p { color: rgba(255,255,255,.78); max-width: 36ch; line-height: 1.7; }
+.benefits { display: grid; gap: .8rem; }
+.benefits span { display: flex; align-items: center; gap: .65rem; font-size: .94rem; }
+.formPanel { padding: clamp(2rem, 5vw, 4rem); }
+.eyebrow { margin: 0 0 .5rem; color: #ec1380; font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .15em; }
+.formPanel h2 { margin: 0; color: #221019; font-size: clamp(1.8rem, 3vw, 2.5rem); }
+.intro { margin: .75rem 0 1.8rem; color: #735e6b; line-height: 1.65; }
+.form { display: grid; gap: 1rem; }
+.twoColumns { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.field { display: grid; gap: .45rem; }
+.field label { font-size: .85rem; font-weight: 800; color: #4c3543; }
+.inputWrap { position: relative; }
+.inputWrap > svg { position: absolute; left: .95rem; top: 50%; transform: translateY(-50%); color: #a38195; pointer-events: none; }
+.inputWrap input { width: 100%; min-height: 48px; padding: .75rem 2.8rem .75rem 2.8rem; border-radius: 14px; border: 1px solid #e8dce3; color: #221019; background: #fff; outline: none; }
+.inputWrap input:focus { border-color: #ec1380; box-shadow: 0 0 0 4px rgba(236,19,128,.1); }
+.togglePassword { position: absolute; right: .65rem; top: 50%; transform: translateY(-50%); border: 0; background: transparent; color: #7f6173; cursor: pointer; padding: .4rem; }
+.actionsRow { display: flex; justify-content: space-between; gap: 1rem; align-items: center; font-size: .86rem; }
+.actionsRow a, .footerLink a, .linkButton { color: #d40f72; font-weight: 800; text-decoration: none; }
+.linkButton { border: 0; background: transparent; cursor: pointer; padding: 0; }
+.submit { width: 100%; min-height: 50px; border: 0; border-radius: 15px; background: #ec1380; color: #fff; font-weight: 800; cursor: pointer; display: inline-flex; justify-content: center; align-items: center; gap: .6rem; }
+.submit:hover { background: #ce0d6f; }
+.submit:disabled { opacity: .65; cursor: wait; }
+.secondary { width: 100%; min-height: 48px; border-radius: 15px; border: 1px solid #e7d7e0; background: #fff; color: #4c3543; font-weight: 800; cursor: pointer; }
+.feedback { border-radius: 13px; padding: .8rem 1rem; font-size: .88rem; line-height: 1.5; }
+.error { color: #9a234e; background: #fff0f5; border: 1px solid #fac6d9; }
+.success { color: #1d6b49; background: #eefaf5; border: 1px solid #bde8d4; }
+.footerLink { margin: 1.35rem 0 0; text-align: center; color: #77616e; font-size: .9rem; }
+.passwordHelp { margin: -.3rem 0 .3rem; color: #8a7180; font-size: .78rem; line-height: 1.45; }
+@media (max-width: 800px) {
+  .shell { grid-template-columns: 1fr; max-width: 580px; }
+  .visual { min-height: 260px; padding: 2rem; }
+  .visual h1 { max-width: 12ch; }
+}
+@media (max-width: 520px) {
+  .page { padding: 1.3rem .75rem 3rem; }
+  .shell { border-radius: 22px; }
+  .visual { display: none; }
+  .formPanel { padding: 1.5rem; }
+  .twoColumns { grid-template-columns: 1fr; }
+  .actionsRow { align-items: flex-start; flex-direction: column; }
+}

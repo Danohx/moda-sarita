@@ -1,0 +1,123 @@
+.card {
+  display: grid;
+  grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+  gap: clamp(2rem, 5vw, 5rem);
+  padding-top: clamp(2rem, 5vw, 4rem);
+  padding-bottom: clamp(2rem, 5vw, 4rem);
+  border-radius: 2rem;
+  color: white;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(236, 19, 128, 0.38), transparent 30%),
+    linear-gradient(135deg, #2b151f 0%, var(--color-ink) 55%, #4a2036 100%);
+}
+
+.intro {
+  align-self: center;
+  padding-left: clamp(0.25rem, 3vw, 2rem);
+}
+
+.intro > p {
+  margin: 0 0 0.7rem;
+  color: #ff85be;
+  font-size: 0.74rem;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.intro h2 {
+  max-width: 33rem;
+  margin: 0;
+  font-size: clamp(2rem, 4.3vw, 3.5rem);
+  line-height: 1.08;
+  letter-spacing: -0.05em;
+}
+
+.intro > span {
+  display: block;
+  max-width: 33rem;
+  margin: 1rem 0 1.4rem;
+  color: #d7c3cd;
+  line-height: 1.75;
+}
+
+.intro :global(.text-link) {
+  color: #ff85be;
+}
+
+.options {
+  display: grid;
+  gap: 1rem;
+  padding-right: clamp(0.25rem, 3vw, 2rem);
+}
+
+.options article {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 1.35rem;
+  background: rgba(255, 255, 255, 0.075);
+  backdrop-filter: blur(12px);
+}
+
+.icon {
+  flex: 0 0 auto;
+  width: 3.1rem;
+  height: 3.1rem;
+  display: grid;
+  place-items: center;
+  border-radius: 1rem;
+  color: #ff85be;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.options h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1.08rem;
+}
+
+.options p {
+  margin: 0;
+  color: #d7c3cd;
+  line-height: 1.65;
+}
+
+.options small {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin-top: 0.8rem;
+  color: #ffb4d6;
+  font-size: 0.76rem;
+  line-height: 1.55;
+}
+
+.options small svg {
+  flex: 0 0 auto;
+  margin-top: 0.1rem;
+}
+
+@media (max-width: 840px) {
+  .card {
+    grid-template-columns: 1fr;
+  }
+
+  .intro,
+  .options {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+@media (max-width: 520px) {
+  .card {
+    border-radius: 1.4rem;
+  }
+
+  .options article {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

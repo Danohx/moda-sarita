@@ -1,0 +1,11 @@
+<svg width="640" height="800" viewBox="0 0 640 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="640" height="800" fill="#F8F3F6"/>
+  <circle cx="510" cy="135" r="90" fill="#F7D5E9"/>
+  <circle cx="90" cy="690" r="120" fill="#FBE4EF"/>
+  <path d="M320 182C320 212 289 221 270 237" stroke="#3A202D" stroke-width="12" stroke-linecap="round"/>
+  <path d="M270 237L214 275" stroke="#3A202D" stroke-width="12" stroke-linecap="round"/>
+  <path d="M270 237L326 275" stroke="#3A202D" stroke-width="12" stroke-linecap="round"/>
+  <path d="M225 273C243 332 226 378 198 442C172 504 174 579 207 677H370C403 579 405 504 379 442C351 378 334 332 352 273C319 286 306 293 288 293C271 293 258 286 225 273Z" fill="#EC1380"/>
+  <path d="M242 360C269 374 307 374 334 360" stroke="white" stroke-opacity="0.72" stroke-width="9" stroke-linecap="round"/>
+  <text x="320" y="744" text-anchor="middle" fill="#6A5260" font-family="Arial, sans-serif" font-size="24" font-weight="700">Moda Sarita</text>
+</svg>

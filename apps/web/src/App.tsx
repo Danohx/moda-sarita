@@ -1,13 +1,7 @@
-import '@shared/index.css'
-import { AuthProvider } from '@shared/context/AuthProvider'
-import { AppRouter } from './routes/AppRouter';
+import { AppRouter } from "./app/router";
 
 function App() {
-  return (
-    <AuthProvider>
-      <AppRouter />
-    </AuthProvider>
-  );
+  return <AppRouter />;
 }
 
 export default App;
