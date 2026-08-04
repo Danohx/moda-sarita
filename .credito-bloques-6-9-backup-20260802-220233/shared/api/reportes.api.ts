@@ -1,6 +1,5 @@
 import { apiFetch, apiFetchBlob } from "./client";
 import { API_ENDPOINTS } from "./endpoints";
-import { creditoApi } from "./credito.api";
 import type {
   ApiOk,
   ApartadosTabData,
@@ -272,13 +271,12 @@ export const reportesApi = {
   },
 
   getCreditoTab: async (filters: ReporteFiltros): Promise<CreditoTabData> => {
-    const response = await creditoApi.getReporteOperativo({
-      from: filters.from,
-      to: filters.to,
-      limit: filters.limit,
-    });
+    const [resumen, cuentasCobrar] = await Promise.all([
+      reportesApi.getCreditoResumen(filters),
+      reportesApi.getCuentasCobrar(filters),
+    ]);
 
-    return response.data as unknown as CreditoTabData;
+    return { resumen, cuentasCobrar };
   },
 
   getApartadosTab: async (
@@ -295,16 +293,12 @@ export const reportesApi = {
   getFinancieroTab: async (
     filters: ReporteFiltros,
   ): Promise<FinancieroTabData> => {
-    const [resumen, metodosPago, credito] = await Promise.all([
+    const [resumen, metodosPago] = await Promise.all([
       reportesApi.getFinancieroResumen(filters),
       reportesApi.getFinancieroMetodosPago(filters),
-      creditoApi.getReporteFinanciero({ from: filters.from, to: filters.to }),
     ]);
 
-    return {
-      resumen: { ...resumen, ...credito.data },
-      metodosPago,
-    } as unknown as FinancieroTabData;
+    return { resumen, metodosPago };
   },
 
   getCortesTab: async (filters: ReporteFiltros): Promise<CortesTabData> => {
@@ -317,15 +311,6 @@ export const reportesApi = {
   },
 
   exportPdf: async (reporte: ReporteExportable, filters: ReporteFiltros) => {
-    if (reporte === "credito") {
-      await creditoApi.exportarReporteOperativo("pdf", filters);
-      return;
-    }
-    if (reporte === "financiero") {
-      await creditoApi.exportarReporteFinanciero("pdf", filters);
-      return;
-    }
-
     const blob = await apiFetchBlob(
       `${API_ENDPOINTS.reportes.export.pdf}${buildExportQuery(reporte, filters)}`,
     );
@@ -334,15 +319,6 @@ export const reportesApi = {
   },
 
   exportExcel: async (reporte: ReporteExportable, filters: ReporteFiltros) => {
-    if (reporte === "credito") {
-      await creditoApi.exportarReporteOperativo("excel", filters);
-      return;
-    }
-    if (reporte === "financiero") {
-      await creditoApi.exportarReporteFinanciero("excel", filters);
-      return;
-    }
-
     const blob = await apiFetchBlob(
       `${API_ENDPOINTS.reportes.export.excel}${buildExportQuery(reporte, filters)}`,
     );

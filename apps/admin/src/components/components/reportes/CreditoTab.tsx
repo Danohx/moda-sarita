@@ -1,76 +1,17 @@
+import { Link } from "react-router-dom";
+import type { CreditoTabData } from "@admin/types/reportes.types";
 import type {
-  CreditoTabData,
-  ReporteCuentaCobrar,
-  ReporteValor,
-} from "@admin/types/reportes.types";
+  CreditoResumen,
+  ReporteCreditoOperativo,
+} from "@admin/types/credito.types";
 import { formatMoney, formatNumber } from "@admin/utils/reportesFormat";
+import CreditStatusChip from "@admin/components/components/creditos/CreditStatusChip";
 import styles from "../../../../styles/components/reportes/CreditoTab.module.css";
+import creditStyles from "../../../../styles/components/reportes/CreditoTabCredito.module.css";
 
-type CreditoTabProps = {
-  data: CreditoTabData | null;
-  loading: boolean;
-};
+type Props = { data: CreditoTabData | null; loading: boolean };
 
-function toNumber(value: ReporteValor | undefined): number {
-  const number = Number(value ?? 0);
-  return Number.isFinite(number) ? number : 0;
-}
-
-function getInitials(name: string): string {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-
-  if (words.length === 0) return "CL";
-  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
-
-  return `${words[0][0] ?? ""}${words[1][0] ?? ""}`.toUpperCase();
-}
-
-function getUsoCredito(cliente: ReporteCuentaCobrar): number {
-  const limite = toNumber(cliente.limite_credito);
-  const saldo = toNumber(cliente.saldo_deudor);
-
-  if (limite <= 0) {
-    return saldo > 0 ? 100 : 0;
-  }
-
-  return Math.min((saldo / limite) * 100, 100);
-}
-
-function getEstadoCredito(cliente: ReporteCuentaCobrar): {
-  label: string;
-  className: string;
-} {
-  const uso = getUsoCredito(cliente);
-
-  if (uso >= 90) {
-    return {
-      label: "Crítico",
-      className: `${styles.badge} ${styles.badgeDanger}`,
-    };
-  }
-
-  if (uso >= 60) {
-    return {
-      label: "Alto",
-      className: `${styles.badge} ${styles.badgeWarning}`,
-    };
-  }
-
-  return {
-    label: "Controlado",
-    className: `${styles.badge} ${styles.badgeOk}`,
-  };
-}
-
-function CreditoMetricCard({
-  label,
-  value,
-  helper,
-}: {
-  label: string;
-  value: string;
-  helper: string;
-}) {
+function Metric({ label, value, helper }: { label: string; value: string; helper: string }) {
   return (
     <article className={styles.metricCard}>
       <p className={styles.metricLabel}>{label}</p>
@@ -80,22 +21,17 @@ function CreditoMetricCard({
   );
 }
 
-function SummaryItem({ label, value }: { label: string; value: string }) {
-  return (
-    <article className={styles.summaryItem}>
-      <p className={styles.summaryLabel}>{label}</p>
-      <strong className={styles.summaryValue}>{value}</strong>
-    </article>
-  );
+function dateLabel(value?: string | null) {
+  if (!value) return "Sin fecha";
+  const parsed = new Date(`${String(value).slice(0, 10)}T12:00:00`);
+  return Number.isNaN(parsed.getTime())
+    ? String(value)
+    : parsed.toLocaleDateString("es-MX");
 }
 
-function CuentasCobrarTable({ clientes }: { clientes: ReporteCuentaCobrar[] }) {
-  if (clientes.length === 0) {
-    return (
-      <div className={styles.emptyState}>
-        No hay clientes con saldo deudor actualmente.
-      </div>
-    );
+function AccountsTable({ rows }: { rows: CreditoResumen[] }) {
+  if (!rows.length) {
+    return <div className={styles.emptyState}>No existen saldos pendientes.</div>;
   }
 
   return (
@@ -104,183 +40,88 @@ function CuentasCobrarTable({ clientes }: { clientes: ReporteCuentaCobrar[] }) {
         <thead>
           <tr>
             <th>Cliente</th>
-            <th>Teléfono</th>
-            <th>Email</th>
-            <th>Límite crédito</th>
-            <th>Saldo deudor</th>
-            <th>Disponible</th>
-            <th>Uso crédito</th>
+            <th>Pedido</th>
             <th>Estado</th>
+            <th>Financiado</th>
+            <th>Saldo</th>
+            <th>Vencido</th>
+            <th>Próximo pago</th>
+            <th>Origen</th>
+            <th />
           </tr>
         </thead>
-
         <tbody>
-          {clientes.map((cliente) => {
-            const usoCredito = getUsoCredito(cliente);
-            const estado = getEstadoCredito(cliente);
-
-            return (
-              <tr key={cliente.cliente_id}>
-                <td>
-                  <div className={styles.clientCell}>
-                    <div className={styles.avatar}>
-                      {getInitials(cliente.cliente)}
-                    </div>
-
-                    <div>
-                      <span className={styles.clientName}>
-                        {cliente.cliente}
-                      </span>
-                      <span className={styles.clientMeta}>
-                        ID: {cliente.cliente_id.slice(0, 8)}
-                      </span>
-                    </div>
-                  </div>
-                </td>
-
-                <td>{cliente.telefono ?? "Sin teléfono"}</td>
-
-                <td>{cliente.email ?? "Sin email"}</td>
-
-                <td>{formatMoney(cliente.limite_credito)}</td>
-
-                <td className={styles.debtText}>
-                  {formatMoney(cliente.saldo_deudor)}
-                </td>
-
-                <td className={styles.availableText}>
-                  {formatMoney(cliente.credito_disponible)}
-                </td>
-
-                <td className={styles.progressCell}>
-                  <div className={styles.progressTrack}>
-                    <div
-                      className={styles.progressBar}
-                      style={{ width: `${usoCredito}%` }}
-                    />
-                  </div>
-
-                  <div className={styles.progressMeta}>
-                    <span>{usoCredito.toFixed(1)}%</span>
-                    <span>{formatMoney(cliente.saldo_deudor)}</span>
-                  </div>
-                </td>
-
-                <td>
-                  <span className={estado.className}>{estado.label}</span>
-                </td>
-              </tr>
-            );
-          })}
+          {rows.map((item) => (
+            <tr key={item.credito_id}>
+              <td>
+                <strong>{item.cliente_nombre}</strong>
+                <span className={creditStyles.subtext}>
+                  {item.telefono || "Sin teléfono"}
+                </span>
+              </td>
+              <td>{item.pedido_folio ? `#${item.pedido_folio}` : "Legacy"}</td>
+              <td><CreditStatusChip estado={item.estado} /></td>
+              <td>{formatMoney(item.monto_financiado)}</td>
+              <td className={creditStyles.strong}>{formatMoney(item.saldo_pendiente)}</td>
+              <td className={Number(item.total_vencido) > 0 ? creditStyles.danger : ""}>
+                {formatMoney(item.total_vencido)}
+              </td>
+              <td>
+                {item.datos_calendario_completos ? (
+                  <>
+                    <span>{dateLabel(item.proximo_vencimiento)}</span>
+                    <span className={creditStyles.subtext}>
+                      {formatMoney(item.monto_proxima_cuota)}
+                    </span>
+                  </>
+                ) : (
+                  <span className={creditStyles.legacy}>Sin calendario</span>
+                )}
+              </td>
+              <td>{item.origen}</td>
+              <td><Link className={creditStyles.link} to={`/credits/${item.credito_id}`}>Detalle</Link></td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>
   );
 }
 
-export default function CreditoTab({ data, loading }: CreditoTabProps) {
-  if (loading) {
-    return <div className={styles.loadingState}>Cargando crédito...</div>;
-  }
+export default function CreditoTab({ data, loading }: Props) {
+  if (loading) return <div className={styles.loadingState}>Cargando crédito...</div>;
+  if (!data) return <div className={styles.emptyState}>No se pudo cargar crédito.</div>;
 
-  if (!data) {
-    return (
-      <div className={styles.emptyState}>
-        No se pudo cargar la información de crédito.
-      </div>
-    );
-  }
-
-  const resumen = data.resumen;
-  const cuentas = data.cuentasCobrar;
-
-  const totalSaldoDeudor = cuentas.reduce(
-    (sum, cliente) => sum + toNumber(cliente.saldo_deudor),
-    0,
-  );
-
-  const totalLimiteCredito = cuentas.reduce(
-    (sum, cliente) => sum + toNumber(cliente.limite_credito),
-    0,
-  );
-
-  const totalDisponible = cuentas.reduce(
-    (sum, cliente) => sum + toNumber(cliente.credito_disponible),
-    0,
-  );
-
-  const usoPromedio =
-    totalLimiteCredito > 0 ? (totalSaldoDeudor / totalLimiteCredito) * 100 : 0;
+  const operativo = data as unknown as ReporteCreditoOperativo;
+  const resumen = operativo.resumen;
+  const rows = operativo.cuentasCobrar || [];
 
   return (
     <section className={styles.creditoTab}>
       <div className={styles.metricsGrid}>
-        <CreditoMetricCard
-          label="Cuentas por cobrar"
-          value={formatMoney(resumen.cuentas_por_cobrar)}
-          helper="Saldo pendiente actual"
-        />
-
-        <CreditoMetricCard
-          label="Clientes deudores"
-          value={formatNumber(cuentas.length)}
-          helper="Clientes con saldo pendiente"
-        />
-
-        <CreditoMetricCard
-          label="Límite autorizado"
-          value={formatMoney(totalLimiteCredito)}
-          helper="Suma de límites de clientes deudores"
-        />
-
-        <CreditoMetricCard
-          label="Crédito disponible"
-          value={formatMoney(totalDisponible)}
-          helper="Disponible de clientes con deuda"
-        />
-
-        <CreditoMetricCard
-          label="Uso promedio"
-          value={`${usoPromedio.toFixed(1)}%`}
-          helper="Saldo deudor vs límite autorizado"
-        />
-
-        <CreditoMetricCard
-          label="Pagos confirmados"
-          value={formatNumber(resumen.pagos_confirmados)}
-          helper="Pagos confirmados en el periodo"
-        />
+        <Metric label="Créditos activos" value={formatNumber(resumen.creditos_activos)} helper="Al corriente o pendientes" />
+        <Metric label="En mora" value={formatNumber(resumen.creditos_en_mora)} helper="Con al menos una cuota vencida" />
+        <Metric label="Incumplidos" value={formatNumber(resumen.creditos_incumplidos)} helper="Atraso grave configurado" />
+        <Metric label="Saldo por cobrar" value={formatMoney(resumen.saldo_pendiente_total)} helper="Cartera actual" />
+        <Metric label="Saldo vencido" value={formatMoney(resumen.saldo_vencido_total)} helper="Cuotas exigibles no cubiertas" />
+        <Metric label="Financiado" value={formatMoney(resumen.monto_financiado_periodo)} helper="Créditos otorgados en el periodo" />
+        <Metric label="Cobranza" value={formatMoney(resumen.cobranza_periodo)} helper="Enganches y abonos recibidos" />
+        <Metric label="Cobranza / financiado" value={`${Number(resumen.tasa_recuperacion || 0).toFixed(1)}%`} helper="Indicador del periodo, no cohorte" />
       </div>
 
       <article className={styles.card}>
         <header className={styles.cardHeader}>
-          <h3 className={styles.cardTitle}>Resumen de crédito</h3>
+          <h3 className={styles.cardTitle}>Separación financiera</h3>
           <p className={styles.cardSubtitle}>
-            Vista rápida del saldo pendiente y capacidad de crédito de clientes.
+            Lo financiado no se cuenta como dinero cobrado. Solo enganches, abonos y liquidaciones confirmadas ingresan a caja.
           </p>
         </header>
-
         <div className={styles.cardBody}>
-          <div className={styles.summaryStrip}>
-            <SummaryItem
-              label="Saldo deudor"
-              value={formatMoney(totalSaldoDeudor)}
-            />
-
-            <SummaryItem
-              label="Límite acumulado"
-              value={formatMoney(totalLimiteCredito)}
-            />
-
-            <SummaryItem
-              label="Disponible acumulado"
-              value={formatMoney(totalDisponible)}
-            />
-
-            <SummaryItem
-              label="Uso promedio"
-              value={`${usoPromedio.toFixed(1)}%`}
-            />
+          <div className={creditStyles.strip}>
+            <div><span>Enganches</span><strong>{formatMoney(resumen.enganches_periodo)}</strong></div>
+            <div><span>Abonos</span><strong>{formatMoney(resumen.abonos_periodo)}</strong></div>
+            <div><span>Liquidados</span><strong>{formatNumber(resumen.creditos_liquidados_periodo)}</strong></div>
+            <div><span>Cuentas activas</span><strong>{formatNumber(rows.length)}</strong></div>
           </div>
         </div>
       </article>
@@ -288,14 +129,9 @@ export default function CreditoTab({ data, loading }: CreditoTabProps) {
       <article className={styles.card}>
         <header className={styles.cardHeader}>
           <h3 className={styles.cardTitle}>Cuentas por cobrar</h3>
-          <p className={styles.cardSubtitle}>
-            Clientes con saldo deudor, límite autorizado y crédito disponible.
-          </p>
+          <p className={styles.cardSubtitle}>Créditos individuales ordenados por riesgo y vencimiento.</p>
         </header>
-
-        <div className={styles.cardBody}>
-          <CuentasCobrarTable clientes={cuentas} />
-        </div>
+        <div className={styles.cardBody}><AccountsTable rows={rows} /></div>
       </article>
     </section>
   );

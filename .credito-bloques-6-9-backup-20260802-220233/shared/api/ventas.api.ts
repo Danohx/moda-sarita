@@ -96,15 +96,6 @@ export type VentaItem = {
   precio_unitario?: number | null;
 };
 
-export type CreditoVentaPOSPayload = {
-  enganche: number;
-  metodo_enganche?: string | null;
-  referencia_enganche?: string | null;
-  plazo_meses: number;
-  frecuencia_pago: "SEMANAL" | "QUINCENAL" | "MENSUAL";
-  fecha_primer_vencimiento: string;
-};
-
 export type VentaPOSPayload = {
   cliente_id?: string | number | null;
   vendedor_id: string | number;
@@ -115,7 +106,6 @@ export type VentaPOSPayload = {
   metodo_pago: string;
   referencia_externa?: string | null;
   tipo?: string;
-  credito?: CreditoVentaPOSPayload;
 };
 
 export type ApartadoPayload = {
@@ -164,17 +154,7 @@ export type Pedido = {
   cupon_id?: string | number | null;
   fecha_limite_apartado?: string | null;
   fecha_creacion?: string;
-  folio?: string | number;
-  credito?: {
-    id: string;
-    monto_financiado: string | number;
-    saldo_pendiente: string | number;
-    enganche: string | number;
-    estado: string;
-  } | null;
-  cuotas?: unknown[];
-  enganche_pago?: unknown | null;
-  idempotent_replay?: boolean;
+  folio?: string;
 };
 
 export type AbonoResult = {
@@ -184,68 +164,15 @@ export type AbonoResult = {
   saldo: number;
 };
 
-export type CorteMetodoDesgloseApi = {
-  codigo: string;
-  nombre: string;
-  total: string | number;
-  operaciones: string | number;
-  afecta_caja: boolean;
-  permite_cambio: boolean;
-  es_credito: boolean;
-  activo_pos: boolean;
-};
-
-export type CorteConceptoDesgloseApi = {
-  codigo: string;
-  nombre: string;
-  total: string | number;
-  operaciones: string | number;
-};
-
-export type CorteCobranzaCreditosApi = {
-  enganches: string | number;
-  operaciones_enganches: string | number;
-  abonos: string | number;
-  operaciones_abonos: string | number;
-  liquidaciones: string | number;
-  operaciones_liquidaciones: string | number;
-  total: string | number;
-};
-
-export type CorteFinanciamientoCreditosApi = {
-  ventas_credito: string | number;
-  monto_ventas_credito: string | number;
-  enganches_pactados: string | number;
-  monto_financiado: string | number;
-};
-
 export type CorteCaja = {
   id: string | number;
   usuario_id: string | number;
   usuario_nombre?: string;
   inicio_turno: string;
   fin_turno?: string | null;
-  fondo_inicial?: string | number;
-  total_sistema: string | number;
-  total_real: string | number | null;
+  total_sistema: number;
+  total_real: number;
   observaciones?: string | null;
-  desglose_metodos?: CorteMetodoDesgloseApi[];
-  desglose_conceptos?: CorteConceptoDesgloseApi[];
-  cobranza_creditos?: CorteCobranzaCreditosApi;
-  financiamiento_creditos?: CorteFinanciamientoCreditosApi;
-  totales_metodos?: {
-    total_caja?: string | number;
-    total_pagos?: string | number;
-    efectivo_esperado?: string | number;
-  };
-  resumen?: {
-    fondo_inicial?: string | number;
-    total_efectivo?: string | number;
-    total_tarjeta?: string | number;
-    total_transferencia?: string | number;
-    total_pagos?: string | number;
-    efectivo_esperado?: string | number;
-  };
 };
 
 export type AbrirCortePayload = {
@@ -285,13 +212,10 @@ function buildQuery(params: ListVentasHistorialParams = {}) {
 }
 
 export const ventasApi = {
-  crearVentaPOS: (payload: VentaPOSPayload, idempotencyKey?: string) =>
+  crearVentaPOS: (payload: VentaPOSPayload) =>
     apiFetch<PedidoResponse>(API_ENDPOINTS.ventas.pos, {
       method: "POST",
       body: payload,
-      headers: idempotencyKey
-        ? { "Idempotency-Key": idempotencyKey }
-        : undefined,
     }),
 
   crearApartado: (payload: ApartadoPayload) =>
@@ -325,9 +249,8 @@ export const ventasApi = {
     }),
 
   getCorteActual: () =>
-    apiFetch<CorteCajaResponse>("/corte-caja/actual", {
+    apiFetch<CorteCajaResponse>(API_ENDPOINTS.ventas.corteActual, {
       method: "GET",
-      withAuth: true,
     }),
 
   cerrarCorte: (id: string | number, payload: CerrarCortePayload) =>
@@ -342,9 +265,8 @@ export const ventasApi = {
     }),
 
   getCorteById: (id: string | number) =>
-    apiFetch<CorteCajaResponse>(`/corte-caja/${id}`, {
+    apiFetch<CorteCajaResponse>(API_ENDPOINTS.ventas.corteById(id), {
       method: "GET",
-      withAuth: true,
     }),
 
   getTicketPdf: (id: string | number, modo: TicketPdfModo = 'reimpresion') =>
@@ -368,4 +290,3 @@ export const ventasApi = {
       },
     ),
 };
-

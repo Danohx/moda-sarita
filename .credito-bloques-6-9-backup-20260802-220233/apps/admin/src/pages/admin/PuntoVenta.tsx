@@ -25,9 +25,7 @@ import ModalVariantes from "@admin/components/components/ModalVariantes";
 import ModalCliente, {
   type ClientePOS,
 } from "@admin/components/components/ModalClientes";
-import ModalCheckout, {
-  type CreditCheckoutConfig,
-} from "@admin/components/components/ModalCheckout";
+import ModalCheckout from "@admin/components/components/ModalCheckout";
 import ModalApartado from "@admin/components/components/ModalApartado";
 import {
   configuracionService,
@@ -130,10 +128,6 @@ export const POS: React.FC = () => {
     permissions: "ventas.pagos.create",
   });
 
-  const canCreateCredit = canAccess(user, {
-    permissions: "credito.create",
-  });
-
   const canReadProducts = canAccess(user, {
     permissions: "inventario.productos.read",
   });
@@ -181,7 +175,6 @@ export const POS: React.FC = () => {
   const [referenciaExterna, setReferenciaExterna] = useState("");
   const [montoRecibido, setMontoRecibido] = useState(0);
   const [estadoCaja, setEstadoCaja] = useState(false);
-  const [idempotencyKey, setIdempotencyKey] = useState("");
 
   const productosFiltrados = useMemo(() => {
     const productosActivos = products.filter((p) => p.activo);
@@ -520,7 +513,7 @@ export const POS: React.FC = () => {
     }
   };
 
-  const handlePagarVenta = async (creditoConfig?: CreditCheckoutConfig) => {
+  const handlePagarVenta = async () => {
     if (!canCreateSales || !canCreatePayments) {
       setError("No tienes permiso para registrar ventas o pagos.");
       return;
@@ -535,7 +528,7 @@ export const POS: React.FC = () => {
         return;
       }
 
-      if (!esMetodoCredito && requiereReferencia && !referenciaExterna.trim()) {
+      if (requiereReferencia && !referenciaExterna.trim()) {
         setError("Este método de pago requiere referencia.");
         return;
       }
@@ -552,24 +545,13 @@ export const POS: React.FC = () => {
         return;
       }
 
-      if (esMetodoCredito && !canCreateCredit) {
-        setError("No tienes permiso para autorizar créditos.");
-        return;
-      }
-
-      if (esMetodoCredito && !creditoConfig) {
-        setError("Simula y confirma el plan de crédito antes de continuar.");
-        return;
-      }
-
       const payload: Parameters<typeof ventasService.crearVentaPOS>[0] = {
         cliente_id: cliente ? cliente.id : null,
         vendedor_id: "1",
         metodo_pago: metodoPago,
-        referencia_externa:
-          !esMetodoCredito && requiereReferencia
-            ? referenciaExterna.trim()
-            : null,
+        referencia_externa: requiereReferencia
+          ? referenciaExterna.trim()
+          : null,
         tipo: "PUNTO_VENTA",
         items: carrito.map((item) => {
           const cant = Number(item.cantidad);
@@ -594,36 +576,17 @@ export const POS: React.FC = () => {
         }),
         descuento: 0,
         costo_envio: 0,
-        credito:
-          esMetodoCredito && creditoConfig
-            ? {
-                enganche: creditoConfig.enganche,
-                metodo_enganche: creditoConfig.metodo_enganche,
-                referencia_enganche: creditoConfig.referencia_enganche,
-                plazo_meses: creditoConfig.plazo_meses,
-                frecuencia_pago: creditoConfig.frecuencia_pago,
-                fecha_primer_vencimiento:
-                  creditoConfig.fecha_primer_vencimiento,
-              }
-            : undefined,
       };
 
-      const venta = await ventasService.crearVentaPOS(payload, idempotencyKey);
+      const venta = await ventasService.crearVentaPOS(payload);
 
       setCarrito([]);
       setCliente(null);
       setReferenciaExterna("");
       setMontoRecibido(0);
-      setIdempotencyKey("");
       setModalCheckoutAbierto(false);
 
-      if (venta?.credito?.id) {
-        alert(
-          `Venta a crédito registrada. Saldo financiado: ${formatMoneda(
-            Number(venta.credito.saldo_pendiente || 0),
-          )}.`,
-        );
-      } else if (permiteCambio && cambio > 0) {
+      if (permiteCambio && cambio > 0) {
         alert(`¡Venta registrada con éxito! Cambio: ${formatMoneda(cambio)}`);
       }
 
@@ -722,11 +685,8 @@ export const POS: React.FC = () => {
     [carrito],
   );
 
-  // Los precios del catálogo ya son precios finales con IVA incluido.
-  // Volver a sumar 16% aquí provocaba que el total del frontend no coincidiera
-  // con el total transaccional calculado por la API.
-  const total = subtotal;
-  const iva = total > 0 ? total - total / 1.16 : 0;
+  const iva = subtotal * 0.16;
+  const total = subtotal + iva;
 
   const cambiarCantidad = useCallback((id: string, delta: number) => {
     setCarrito((prev) =>
@@ -815,10 +775,6 @@ export const POS: React.FC = () => {
 
     setReferenciaExterna("");
     setMontoRecibido(total);
-    setIdempotencyKey(
-      globalThis.crypto?.randomUUID?.() ??
-        `pos-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    );
     setModalCheckoutAbierto(true);
   }, [canCreatePayments, canCreateSales, carrito.length, total]);
 
@@ -1323,7 +1279,7 @@ export const POS: React.FC = () => {
         subtotal={subtotal}
         iva={iva}
         total={total}
-        cliente={cliente}
+        clienteNombre={clienteNombreCheckout}
         procesando={procesandoPago}
         onPagar={handlePagarVenta}
         onCerrar={() => setModalCheckoutAbierto(false)}
@@ -1344,7 +1300,6 @@ export const POS: React.FC = () => {
         pagoEfectivoInsuficiente={pagoEfectivoInsuficiente}
         esMetodoCredito={esMetodoCredito}
         creditoSinCliente={creditoSinCliente}
-        canAuthorizeCredit={canCreateCredit}
       />
 
       <ModalApartado

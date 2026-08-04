@@ -1,0 +1,7 @@
+.flow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
+.flow div { padding: 1rem; border: 1px solid var(--color-border); border-radius: var(--border-radius-medium); background: var(--color-surface-soft); }
+.flow span { display: block; opacity: .65; font-size: .78rem; }
+.flow strong { display: block; margin-top: .35rem; font-size: 1.15rem; }
+.note { margin: 1rem 0 0; padding: .9rem 1rem; border-left: 4px solid var(--color-primary-vibrant); background: rgba(236, 19, 128, .06); border-radius: .4rem; }
+@media (max-width: 900px) { .flow { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .flow { grid-template-columns: 1fr; } }

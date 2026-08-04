@@ -414,36 +414,3 @@
   border: 1px solid var(--color-border);
   border-radius: var(--border-radius-medium);
 }
-
-
-/* Bloque 7 — Plan de crédito */
-.creditPlanSection {
-  margin-top: 1rem;
-  padding: 1rem;
-  border: 1px solid rgba(236, 19, 128, .22);
-  border-radius: 14px;
-  background: linear-gradient(180deg, rgba(247, 213, 233, .28), #fff);
-}
-.creditPlanHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; color: var(--color-text); }
-.creditPlanHeader h3 { margin: 0; font-size: 1rem; }
-.creditPlanHeader p { margin: .25rem 0 0; font-size: .78rem; opacity: .68; }
-.creditFieldsGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin-top: .8rem; }
-.creditFieldsGrid label { display: flex; flex-direction: column; gap: .35rem; font-size: .76rem; font-weight: 700; color: var(--color-text); }
-.creditFieldsGrid input, .creditFieldsGrid select { width: 100%; min-height: 40px; border: 1px solid var(--color-border); border-radius: 9px; padding: .55rem .65rem; background: #fff; color: var(--color-text); font: inherit; }
-.creditFieldsGrid input:focus, .creditFieldsGrid select:focus { outline: 2px solid rgba(236, 19, 128, .18); border-color: var(--color-primary-vibrant); }
-.simulateButton { width: 100%; margin-top: .9rem; padding: .7rem 1rem; border: 0; border-radius: 10px; background: var(--color-primary-vibrant); color: #fff; font-weight: 800; cursor: pointer; }
-.simulateButton:disabled { opacity: .55; cursor: not-allowed; }
-.creditError { display: flex; gap: .5rem; align-items: flex-start; margin-top: .8rem; padding: .7rem .8rem; border-radius: 9px; background: #fff1f0; color: #b42318; font-size: .8rem; }
-.creditSimulation { margin-top: .9rem; border: 1px solid var(--color-border); border-radius: 10px; overflow: hidden; background: #fff; }
-.creditSimulationSummary { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; padding: .8rem; background: var(--color-surface-soft); font-size: .75rem; }
-.creditSimulationSummary span { display: flex; flex-direction: column; gap: .2rem; }
-.creditSimulationSummary strong { font-size: .9rem; }
-.creditEligible { display: flex; align-items: center; gap: .4rem; padding: .65rem .8rem; color: #067647; font-size: .8rem; font-weight: 800; }
-.creditSchedule { max-height: 210px; overflow: auto; }
-.creditSchedule table { width: 100%; border-collapse: collapse; font-size: .78rem; }
-.creditSchedule th, .creditSchedule td { padding: .55rem .7rem; border-top: 1px solid var(--color-border); text-align: left; }
-.creditSchedule th { position: sticky; top: 0; background: #fff; }
-.creditInfo { margin: 0; color: var(--color-text); }
-@media (max-width: 640px) {
-  .creditFieldsGrid, .creditSimulationSummary { grid-template-columns: 1fr; }
-}

@@ -1,19 +1,3 @@
-const rawApiUrl = import.meta.env.VITE_API_URL;
-
-if (!rawApiUrl || typeof rawApiUrl !== "string") {
-  throw new Error("No se definió VITE_API_URL");
-}
-
-export const API_CONFIG = {
-  baseUrl: rawApiUrl.replace(/\/+$/, ""),
-  timeoutMs: 15000,
-  withCredentials: true,
-  authHeaderName: "Authorization",
-  bearerPrefix: "Bearer",
-} as const;
-
-export const API_BASE_URL = API_CONFIG.baseUrl;
-
 export const API_ENDPOINTS = {
   auth: {
     register: "/auth/register",
@@ -139,24 +123,6 @@ export const API_ENDPOINTS = {
     direccionById: (id: string | number, direccionId: string | number) =>
       `/clientes/${id}/direcciones/${direccionId}`,
     puedeApartar: (id: string | number) => `/clientes/${id}/puede-apartar`,
-  },
-  creditos: {
-    list: "/creditos",
-    simular: "/creditos/simular",
-    byId: (id: string | number) => `/creditos/${id}`,
-    byCliente: (id: string | number) => `/clientes/${id}/creditos`,
-    abonos: (id: string | number) => `/creditos/${id}/abonos`,
-    cancelar: (id: string | number) => `/creditos/${id}/cancelar`,
-    comprobante: (creditoId: string | number, pagoId: string | number) =>
-      `/creditos/${creditoId}/pagos/${pagoId}/comprobante`,
-    procesarVencimientos: "/creditos/procesar-vencimientos",
-    ultimaEjecucionVencimientos: "/creditos/vencimientos/ultima-ejecucion",
-    reporteOperativo: "/creditos/reportes/operativo",
-    reporteFinanciero: "/creditos/reportes/financiero",
-    reporteOperativoPdf: "/creditos/reportes/operativo/export/pdf",
-    reporteOperativoExcel: "/creditos/reportes/operativo/export/excel",
-    reporteFinancieroPdf: "/creditos/reportes/financiero/export/pdf",
-    reporteFinancieroExcel: "/creditos/reportes/financiero/export/excel",
   },
   ventas: {
     pos: "/ventas/pos",

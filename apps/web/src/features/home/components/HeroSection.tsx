@@ -43,7 +43,7 @@ export function HeroSection() {
         </div>
 
         <div className={styles.visual} aria-hidden="true">
-          <img src="/images/hero-boutique.svg" alt="" />
+          <img src="hero-boutique.svg" alt="" />
           <div className={styles.floatingCard}>
             <span>Selección boutique</span>
             <strong>Moda con personalidad</strong>

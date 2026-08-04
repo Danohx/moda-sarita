@@ -1,0 +1,29 @@
+.content {
+  display: grid;
+  gap: 16px;
+  padding-top: 12px !important;
+}
+.summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #fdf3f8;
+  color: #5c4b57;
+}
+.primaryButton,
+.secondaryButton,
+.dangerButton {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.primaryButton { background: #ec1380; color: white; }
+.secondaryButton { background: #f2edf0; color: #5c4b57; }
+.dangerButton { background: #b4233f; color: white; }
+.primaryButton:disabled,
+.secondaryButton:disabled,
+.dangerButton:disabled { opacity: 0.55; cursor: not-allowed; }

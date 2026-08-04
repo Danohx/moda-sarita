@@ -1,4 +1,5 @@
-import { reportesApi, type ReporteFiltros } from "@shared/api/reportes.api";
+import { reportesApi } from "@shared/api/reportes.api";
+import {type ReporteFiltros} from "@admin/types/reportes.types"
 
 export const reportesService = {
   getResumenGeneral(filters: ReporteFiltros) {

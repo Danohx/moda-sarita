@@ -1,0 +1,37 @@
+.page { display: grid; gap: 18px; padding: 24px; color: #5c4b57; }
+.header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.header h4 { color: #221019; font-weight: 900; margin-top: 8px; }
+.header p { margin: 4px 0 0; }
+.back { display: inline-flex; gap: 4px; align-items: center; color: #c2116d; text-decoration: none; font-weight: 800; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.summaryGrid { display: grid; grid-template-columns: repeat(6, minmax(130px, 1fr)); gap: 12px; }
+.summaryGrid article { background: white; border: 1px solid #f0e4ea; border-radius: 14px; padding: 14px; }
+.summaryGrid span { display: block; font-size: .76rem; opacity: .68; margin-bottom: 8px; }
+.summaryGrid strong { color: #221019; }
+.progressCard, .card { background: white; border: 1px solid #f0e4ea; border-radius: 14px; padding: 18px; }
+.progressCard > div:first-child { display: flex; justify-content: space-between; margin-bottom: 10px; }
+.progressTrack { height: 10px; border-radius: 999px; overflow: hidden; background: #f3e8ee; }
+.progressTrack div { height: 100%; background: #ec1380; border-radius: inherit; }
+.card h2 { margin: 0 0 16px; color: #221019; font-size: 1.05rem; }
+.tableWrap { overflow-x: auto; }
+.tableWrap table { width: 100%; border-collapse: collapse; min-width: 760px; }
+.tableWrap th { text-align: left; background: #fdf7fa; padding: 11px; font-size: .75rem; }
+.tableWrap td { border-top: 1px solid #f3e8ee; padding: 11px; }
+.installmentStatus { display: inline-flex; padding: 4px 8px; border-radius: 999px; font-size: .72rem; font-weight: 800; }
+.installment_PENDIENTE { background: #eef1ff; color: #3949a0; }
+.installment_PARCIAL { background: #fff2d8; color: #8a5800; }
+.installment_PAGADA { background: #e9f8ef; color: #176b3a; }
+.installment_VENCIDA { background: #ffe5e9; color: #a3243d; }
+.installment_CONDONADA { background: #eeeeee; color: #666; }
+.timeline { display: grid; gap: 10px; }
+.timeline article { display: flex; justify-content: space-between; gap: 16px; padding: 12px; border-radius: 10px; background: #fdf9fb; }
+.timeline article > div { display: grid; gap: 4px; }
+.timeline article > div:last-child { text-align: right; }
+.timeline span { font-size: .78rem; opacity: .68; }
+.downloadButton { display: inline-flex; align-items: center; gap: 5px; border: 0; background: none; color: #c2116d; font-weight: 800; cursor: pointer; }
+.loading { min-height: 50vh; display: flex; align-items: center; justify-content: center; gap: 12px; }
+.empty { opacity: .65; }
+.danger { color: #a3243d !important; }
+.positive { color: #176b3a !important; }
+@media (max-width: 1100px) { .summaryGrid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 680px) { .page { padding: 14px; } .header { flex-direction: column; } .summaryGrid { grid-template-columns: 1fr 1fr; } .timeline article { flex-direction: column; } .timeline article > div:last-child { text-align: left; } }

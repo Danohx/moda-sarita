@@ -225,8 +225,7 @@ export const ventasService = {
   },
 
   async cerrarCorte(id: string | number, payload: CreateCerrarCorte) {
-    await ventasApi.cerrarCorte(id, payload);
-    const response = await ventasApi.getCorteById(id);
+    const response = await ventasApi.cerrarCorte(id, payload);
     return response.data;
   },
 
@@ -273,4 +272,3 @@ export const ventasService = {
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
   },
 };
-

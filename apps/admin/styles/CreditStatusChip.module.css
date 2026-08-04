@@ -1,0 +1,15 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.chip_ACTIVO { background: #e9f8ef; color: #176b3a; }
+.chip_EN_MORA { background: #fff2d8; color: #8a5800; }
+.chip_LIQUIDADO { background: #eef1ff; color: #3949a0; }
+.chip_INCUMPLIDO { background: #ffe5e9; color: #a3243d; }
+.chip_CANCELADO { background: #eeeeee; color: #666666; }

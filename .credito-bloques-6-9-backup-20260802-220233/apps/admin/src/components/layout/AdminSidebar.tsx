@@ -16,7 +16,6 @@ import {
   ScrollText,
   MessageSquare,
   Megaphone,
-  HandCoins,
 } from "lucide-react";
 
 import styles from "../../../styles/AdminSidebar.module.css";
@@ -186,13 +185,6 @@ const MAIN_ITEMS: SidebarItem[] = [
       "clientes.clientes.update",
     ],
     activePaths: ["/customers"],
-  },
-  {
-    label: "Créditos",
-    to: "/credits",
-    icon: HandCoins,
-    permissions: ["credito.view"],
-    activePaths: ["/credits"],
   },
 ];
 

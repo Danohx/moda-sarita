@@ -22,8 +22,6 @@ import InventoryMovements from "../pages/admin/InventoryMovements";
 
 import AdminCustomers from "../pages/admin/AdminCustomers";
 import CustomerCreditPanel from "@admin/pages/admin/CustomCreditPanel";
-import CreditsManager from "../pages/admin/CreditsManager";
-import CreditDetail from "../pages/admin/CreditDetail";
 
 import AdminUsers from "../pages/admin/AdminUsers";
 import AdminSettings from "../pages/admin/AdminSettings";
@@ -81,8 +79,6 @@ const PERMS = {
   ],
 
   creditoClientes: ["clientes.clientes.credito.manage"],
-
-  creditos: ["credito.view"],
 
   usuarios: [
     "seguridad.usuarios.read",
@@ -189,9 +185,9 @@ export const AppRouter = () => {
               <Route path="customers" element={<AdminCustomers />} />
             </Route>
 
-            <Route element={<PermissionRoute permissions={PERMS.creditos} />}>
-              <Route path="credits" element={<CreditsManager />} />
-              <Route path="credits/:creditoId" element={<CreditDetail />} />
+            <Route
+              element={<PermissionRoute permissions={PERMS.creditoClientes} />}
+            >
               <Route
                 path="customers/:id/credit"
                 element={<CustomerCreditPanel />}
