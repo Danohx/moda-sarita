@@ -178,7 +178,7 @@ const MAIN_ITEMS: SidebarItem[] = [
     activePaths: ["/inventory"],
   },
   {
-    label: "GestiÃ³n de Clientes",
+    label: "Gestión de Clientes",
     to: "/customers",
     icon: Users,
     permissions: [
@@ -189,7 +189,7 @@ const MAIN_ITEMS: SidebarItem[] = [
     activePaths: ["/customers"],
   },
   {
-    label: "CrÃ©ditos",
+    label: "Créditos",
     to: "/credits",
     icon: HandCoins,
     permissions: ["credito.view"],
@@ -449,7 +449,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ role }) => {
         {visibleAdminItems.length > 0 && (
           <>
             {!collapsed && (
-              <div className={styles.adminSectionTitle}>AdministraciÃ³n</div>
+              <div className={styles.adminSectionTitle}>Administración</div>
             )}
 
             {visibleAdminItems.map(renderItem)}
@@ -465,7 +465,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ role }) => {
       >
         <LogOut size={20} className={styles.icon} />
         {!collapsed && (
-          <span>{loggingOut ? "Saliendo..." : "Cerrar SesiÃ³n"}</span>
+          <span>{loggingOut ? "Saliendo..." : "Cerrar Sesión"}</span>
         )}
       </button>
     </aside>
