@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+﻿import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import AdminLayout from "../components/layout/AdminLayout";
 import AdminLogin from "../pages/admin/AdminLogin";
@@ -28,6 +28,7 @@ import CreditDetail from "../pages/admin/CreditDetail";
 import AdminUsers from "../pages/admin/AdminUsers";
 import AdminSettings from "../pages/admin/AdminSettings";
 import AdminReports from "../pages/admin/AdminReports";
+import AdminAnalytics from "../pages/admin/AdminAnalytics";
 import AdminContent from "@admin/pages/admin/AdminContent";
 import AdminContactMessages from "@admin/pages/admin/AdminContactMessages";
 import Marketing from "@admin/pages/admin/Marketing";
@@ -121,6 +122,13 @@ const PERMS = {
     "reportes.marketing.view",
   ],
 
+  analitica: [
+    "clientes.clientes.credito.manage",
+    "credito.view",
+    "reportes.productos.view",
+    "inventario.productos.read",
+  ],
+
   marketing: [
     "marketing.suscripciones.view",
     "marketing.cupones.view",
@@ -179,6 +187,10 @@ export const AppRouter = () => {
 
             <Route element={<PermissionRoute permissions={PERMS.reportes} />}>
               <Route path="reports" element={<AdminReports />} />
+            </Route>
+
+            <Route element={<PermissionRoute permissions={PERMS.analitica} />}>
+              <Route path="analytics" element={<AdminAnalytics />} />
             </Route>
 
             <Route element={<PermissionRoute permissions={PERMS.marketing} />}>
@@ -254,3 +266,6 @@ export const AppRouter = () => {
 };
 
 export default AppRouter;
+
+
+

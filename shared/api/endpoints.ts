@@ -1,7 +1,7 @@
-const rawApiUrl = import.meta.env.VITE_API_URL;
+﻿const rawApiUrl = import.meta.env.VITE_API_URL;
 
 if (!rawApiUrl || typeof rawApiUrl !== "string") {
-  throw new Error("No se definió VITE_API_URL");
+  throw new Error("No se definiÃ³ VITE_API_URL");
 }
 
 export const API_CONFIG = {
@@ -255,6 +255,14 @@ export const API_ENDPOINTS = {
       excel: "/reportes/export/excel",
     },
   },
+  analitica: {
+    health: "/analitica/health",
+    creditoCliente: (id: string | number) =>
+      `/analitica/clientes/${id}/credito`,
+    ventasProducto: (id: string | number) =>
+      `/analitica/productos/${id}/ventas`,
+  },
+
   contenido: {
     paginasAdmin: "/contenido/admin/paginas",
     paginaById: (id: string) => `/contenido/admin/paginas/${id}`,
@@ -309,3 +317,4 @@ export const API_ENDPOINTS = {
       `/marketing/admin/plantillas/${id}/test-send`,
   },
 } as const;
+

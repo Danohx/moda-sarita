@@ -1,0 +1,159 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.titleIcon,
+.cardIcon {
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: rgba(236, 19, 128, 0.1);
+  color: #ec1380;
+}
+
+.titleIcon {
+  width: 52px;
+  height: 52px;
+}
+
+.cardIcon {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+}
+
+.title {
+  color: #221019;
+  font-weight: 800 !important;
+}
+
+.subtitle,
+.muted {
+  color: #6f5a65;
+}
+
+.loading {
+  min-height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #6f5a65;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.card {
+  border: 1px solid rgba(34, 16, 25, 0.08);
+  border-radius: 20px !important;
+  box-shadow: 0 10px 32px rgba(34, 16, 25, 0.06) !important;
+}
+
+.cardHeading {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.primaryButton {
+  background: #ec1380 !important;
+  border-radius: 12px !important;
+  text-transform: none !important;
+  font-weight: 700 !important;
+}
+
+.primaryButton:hover {
+  background: #c90f6c !important;
+}
+
+.resultHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.eyebrow {
+  display: block;
+  margin-bottom: 4px;
+  color: #8a7280;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.metricGrid > div {
+  padding: 14px;
+  border-radius: 14px;
+  background: #fdf8fb;
+  border: 1px solid rgba(236, 19, 128, 0.08);
+}
+
+.metricGrid span {
+  display: block;
+  margin-bottom: 4px;
+  color: #7e6975;
+  font-size: 0.8rem;
+}
+
+.metricGrid strong {
+  color: #221019;
+  font-size: 1rem;
+}
+
+.salesHero {
+  padding: 20px;
+  border-radius: 18px;
+  background: linear-gradient(
+    135deg,
+    rgba(236, 19, 128, 0.08),
+    rgba(247, 213, 233, 0.45)
+  );
+}
+
+.salesHero strong {
+  display: block;
+  color: #221019;
+  font-size: clamp(1.8rem, 4vw, 2.7rem);
+  line-height: 1.1;
+}
+
+@media (max-width: 980px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .header {
+    align-items: flex-start;
+  }
+
+  .metricGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .resultHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -17,6 +17,7 @@ import {
   MessageSquare,
   Megaphone,
   HandCoins,
+  BrainCircuit,
 } from "lucide-react";
 
 import styles from "../../../styles/AdminSidebar.module.css";
@@ -177,7 +178,7 @@ const MAIN_ITEMS: SidebarItem[] = [
     activePaths: ["/inventory"],
   },
   {
-    label: "Gestión de Clientes",
+    label: "GestiÃ³n de Clientes",
     to: "/customers",
     icon: Users,
     permissions: [
@@ -188,7 +189,7 @@ const MAIN_ITEMS: SidebarItem[] = [
     activePaths: ["/customers"],
   },
   {
-    label: "Créditos",
+    label: "CrÃ©ditos",
     to: "/credits",
     icon: HandCoins,
     permissions: ["credito.view"],
@@ -215,6 +216,17 @@ function buildAdminItems(mensajesNuevos: number): SidebarItem[] {
         "reportes.cortes.view",
         "reportes.financiero.view",
         "reportes.marketing.view",
+      ],
+    },
+    {
+      label: "Analítica",
+      to: "/analytics",
+      icon: BrainCircuit,
+      permissions: [
+        "clientes.clientes.credito.manage",
+        "credito.view",
+        "reportes.productos.view",
+        "inventario.productos.read",
       ],
     },
     {
@@ -313,7 +325,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ role }) => {
       await logout();
       navigate("/login", { replace: true });
     } catch (error) {
-      console.error("Error al cerrar sesión:", error);
+      console.error("Error al cerrar sesiÃ³n:", error);
       navigate("/login", { replace: true });
     } finally {
       setLoggingOut(false);
@@ -437,7 +449,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ role }) => {
         {visibleAdminItems.length > 0 && (
           <>
             {!collapsed && (
-              <div className={styles.adminSectionTitle}>Administración</div>
+              <div className={styles.adminSectionTitle}>AdministraciÃ³n</div>
             )}
 
             {visibleAdminItems.map(renderItem)}
@@ -453,7 +465,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ role }) => {
       >
         <LogOut size={20} className={styles.icon} />
         {!collapsed && (
-          <span>{loggingOut ? "Saliendo..." : "Cerrar Sesión"}</span>
+          <span>{loggingOut ? "Saliendo..." : "Cerrar SesiÃ³n"}</span>
         )}
       </button>
     </aside>
@@ -461,3 +473,5 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ role }) => {
 };
 
 export default AdminSidebar;
+
+
