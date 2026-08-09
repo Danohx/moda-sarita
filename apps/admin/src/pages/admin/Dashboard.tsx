@@ -25,6 +25,7 @@ import type {
   DashboardQuery,
   DashboardRangeKey,
 } from "@shared/api/dashboard.api";
+import { useNavigate } from "react-router-dom";
 
 interface Metric {
   title: string;
@@ -58,7 +59,6 @@ const TOP_PRODUCTS_LIMIT = 5;
 const ALERTS_LIMIT = 3;
 const ACTIVITY_LIMIT = 5;
 const CRITICAL_PRODUCTS_LIMIT = 6;
-const AUTO_REFRESH_MS = 60_000;
 
 const QUICK_ACTIONS = [
   {
@@ -158,11 +158,6 @@ function formatRelativeTime(value: string | null) {
   }).format(date);
 }
 
-function navigateTo(path?: string) {
-  if (!path) return;
-  window.location.href = path;
-}
-
 function getActivityIcon(tipo: string, severity?: string) {
   if (severity === "alta") return AlertCircle;
 
@@ -251,7 +246,17 @@ function getRangeDescription(range?: DashboardApiData["range"]) {
 }
 
 export const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
+
+  const navigateTo = (path?: string) => {
+    if (!path) return;
+    navigate(path);
+  };
+
   const { user } = useAuth();
+
+  const AUTO_REFRESH_STORAGE_KEY = "moda-sarita-dashboard-auto-refresh";
+
   const [loading, setLoading] = useState(true);
   const [dashboard, setDashboard] = useState<DashboardApiData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -260,6 +265,13 @@ export const Dashboard: React.FC = () => {
   const [range, setRange] = useState<DashboardRangeKey>("7d");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
+
+  const userId = user?.id ? String(user.id) : null;
+
+  const autoRefreshStorageKey = userId
+    ? `${AUTO_REFRESH_STORAGE_KEY}:${userId}`
+    : null;
+
   const [autoRefresh, setAutoRefresh] = useState(true);
 
   const canViewSales = canAccess(user, {
@@ -336,14 +348,67 @@ export const Dashboard: React.FC = () => {
   }, [load]);
 
   useEffect(() => {
+    localStorage.setItem(AUTO_REFRESH_STORAGE_KEY, String(autoRefresh));
+  }, [autoRefresh]);
+
+  useEffect(() => {
     if (!autoRefresh) return;
 
-    const id = window.setInterval(() => {
-      void load();
-    }, AUTO_REFRESH_MS);
+    const refreshIfVisible = () => {
+      if (document.visibilityState === "visible") {
+        void load();
+      }
+    };
 
-    return () => window.clearInterval(id);
+    const intervalId = window.setInterval(refreshIfVisible, 60_000);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void load();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [autoRefresh, load]);
+
+  useEffect(() => {
+    if (!autoRefreshStorageKey) return;
+
+    try {
+      const saved = localStorage.getItem(autoRefreshStorageKey);
+
+      if (saved === null) {
+        setAutoRefresh(true);
+        return;
+      }
+
+      setAutoRefresh(saved === "true");
+    } catch {
+      setAutoRefresh(true);
+    }
+  }, [autoRefreshStorageKey]);
+
+  const handleToggleAutoRefresh = () => {
+    setAutoRefresh((prev) => {
+      const nextValue = !prev;
+
+      if (autoRefreshStorageKey) {
+        try {
+          localStorage.setItem(autoRefreshStorageKey, String(nextValue));
+        } catch {
+          // Si localStorage no está disponible,
+          // el botón sigue funcionando durante la sesión.
+        }
+      }
+
+      return nextValue;
+    });
+  };
 
   const metrics = useMemo<Metric[]>(() => {
     const resumen = dashboard?.resumen;
@@ -536,7 +601,7 @@ export const Dashboard: React.FC = () => {
             className={`${styles.autoRefreshButton} ${
               autoRefresh ? styles.autoRefreshActive : ""
             }`}
-            onClick={() => setAutoRefresh((value) => !value)}
+            onClick={handleToggleAutoRefresh}
           >
             Auto 60s
           </button>

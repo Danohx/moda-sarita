@@ -1,6 +1,5 @@
 import React from "react";
 import { Navigate, Outlet } from "react-router-dom";
-import { Box, CircularProgress } from "@mui/material";
 import { useAuth } from "@shared/context/AuthContext";
 import { canAccess } from "../utils/permissions";
 
@@ -9,16 +8,17 @@ const AdminRoute: React.FC = () => {
 
   if (loading) {
     return (
-      <Box
-        sx={{
+      <div
+        style={{
           minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          display: "grid",
+          placeItems: "center",
+          fontFamily: "Manrope, sans-serif",
+          color: "#ec1380",
         }}
       >
-        <CircularProgress />
-      </Box>
+        Cargando...
+      </div>
     );
   }
 

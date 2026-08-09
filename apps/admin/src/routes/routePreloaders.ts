@@ -1,0 +1,17 @@
+export const adminRoutePreloaders = {
+  dashboard: () => import("../pages/admin/Dashboard"),
+  pos: () => import("../pages/admin/PuntoVenta"),
+  orders: () => import("../pages/admin/OrdersManager"),
+  historyOrders: () => import("../pages/admin/HistorialVentas"),
+  corteCaja: () => import("../pages/admin/CorteCaja"),
+  products: () => import("../pages/admin/AdminProducts"),
+  inventory: () => import("../pages/admin/Inventory"),
+  customers: () => import("../pages/admin/AdminCustomers"),
+  credits: () => import("../pages/admin/CreditsManager"),
+  reports: () => import("../pages/admin/AdminReports"),
+  analytics: () => import("../pages/admin/AdminAnalytics"),
+  marketing: () => import("../pages/admin/Marketing"),
+  settings: () => import("../pages/admin/AdminSettings"),
+  legalContent: () => import("../pages/admin/AdminContent"),
+  contactMessages: () => import("../pages/admin/AdminContactMessages"),
+};

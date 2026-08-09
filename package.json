@@ -7,7 +7,9 @@
     "dev:web": "vite --config apps/web/vite.config.ts",
     "dev:admin": "vite --config apps/admin/vite.config.ts",
     "build:web": "vite build --config apps/web/vite.config.ts",
-    "build:admin": "vite build --config apps/admin/vite.config.ts"
+    "build:admin": "vite build --config apps/admin/vite.config.ts",
+    "preview:web": "vite preview --config apps/web/vite.config.ts",
+    "preview:admin": "vite preview --config apps/admin/vite.config.ts"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

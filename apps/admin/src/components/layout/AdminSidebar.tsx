@@ -1,4 +1,5 @@
 ﻿import React, { useEffect, useMemo, useState } from "react";
+import { adminRoutePreloaders } from "../../routes/routePreloaders";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -55,6 +56,7 @@ type SidebarItem = {
   permissions?: string | string[];
   activePaths?: string[];
   badge?: number;
+  preload?: () => Promise<unknown>;
 };
 
 function getUserDisplayName(user: unknown): string {
@@ -125,18 +127,21 @@ const MAIN_ITEMS: SidebarItem[] = [
     label: "Inicio",
     to: "/dashboard",
     icon: LayoutDashboard,
+    preload: adminRoutePreloaders.dashboard,
   },
   {
     label: "Punto de Venta",
     to: "/pos",
     icon: Store,
     permissions: ["ventas.pedidos.create", "ventas.pedidos.read"],
+    preload: adminRoutePreloaders.pos,
   },
   {
     label: "Historial de Ventas",
     to: "/historial-ventas",
     icon: FileClock,
     permissions: ["ventas.pedidos.read", "ventas.pagos.read"],
+    preload: adminRoutePreloaders.historyOrders,    
   },
   {
     label: "Corte de Caja",
@@ -148,6 +153,7 @@ const MAIN_ITEMS: SidebarItem[] = [
       "ventas.corte_caja.close",
     ],
     activePaths: ["/corte", "/corte/history"],
+    preload: adminRoutePreloaders.corteCaja,
   },
   {
     label: "Pedidos",
@@ -158,6 +164,7 @@ const MAIN_ITEMS: SidebarItem[] = [
       "ventas.pedidos.update",
       "ventas.pedidos.cancel",
     ],
+    preload: adminRoutePreloaders.orders,
   },
   {
     label: "Productos",
@@ -165,6 +172,7 @@ const MAIN_ITEMS: SidebarItem[] = [
     icon: Tag,
     permissions: ["inventario.productos.read"],
     activePaths: ["/products"],
+    preload: adminRoutePreloaders.products,
   },
   {
     label: "Inventario",
@@ -176,6 +184,7 @@ const MAIN_ITEMS: SidebarItem[] = [
       "inventario.movimientos.create",
     ],
     activePaths: ["/inventory"],
+    preload: adminRoutePreloaders.inventory,
   },
   {
     label: "Gestión de Clientes",
@@ -187,6 +196,7 @@ const MAIN_ITEMS: SidebarItem[] = [
       "clientes.clientes.update",
     ],
     activePaths: ["/customers"],
+    preload: adminRoutePreloaders.customers,
   },
   {
     label: "Créditos",
@@ -194,6 +204,7 @@ const MAIN_ITEMS: SidebarItem[] = [
     icon: HandCoins,
     permissions: ["credito.view"],
     activePaths: ["/credits"],
+    preload: adminRoutePreloaders.credits,
   },
 ];
 
@@ -217,6 +228,7 @@ function buildAdminItems(mensajesNuevos: number): SidebarItem[] {
         "reportes.financiero.view",
         "reportes.marketing.view",
       ],
+      preload: adminRoutePreloaders.reports,
     },
     {
       label: "Analítica",
@@ -228,12 +240,14 @@ function buildAdminItems(mensajesNuevos: number): SidebarItem[] {
         "reportes.productos.view",
         "inventario.productos.read",
       ],
+      preload: adminRoutePreloaders.analytics,
     },
     {
       label: "Contenido Legal",
       to: "/content",
       icon: ScrollText,
       permissions: ["contenido.paginas.view", "contenido.faq.view"],
+      preload: adminRoutePreloaders.legalContent,
     },
     {
       label: "Contacto",
@@ -241,6 +255,7 @@ function buildAdminItems(mensajesNuevos: number): SidebarItem[] {
       icon: MessageSquare,
       permissions: ["contenido.contacto.view"],
       badge: mensajesNuevos,
+      preload: adminRoutePreloaders.contactMessages,
     },
     {
       label: "Marketing",
@@ -252,6 +267,7 @@ function buildAdminItems(mensajesNuevos: number): SidebarItem[] {
         "marketing.segmentos.view",
         "marketing.plantillas.view",
       ],
+      preload: adminRoutePreloaders.marketing,
     },
     {
       label: "Ajustes",
@@ -271,6 +287,7 @@ function buildAdminItems(mensajesNuevos: number): SidebarItem[] {
         "seguridad.sesiones.read",
         "seguridad.sesiones.revoke",
       ],
+      preload: adminRoutePreloaders.settings,
     },
   ];
 }
@@ -383,7 +400,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ role }) => {
     const badge = item.badge ?? 0;
 
     return (
-      <Link key={item.to} to={item.to} className={getLinkClass(item)}>
+      <Link key={item.to} to={item.to} className={getLinkClass(item)} onMouseEnter={() => item.preload?.()} onFocus={() => item.preload?.()}>
         <Icon size={20} className={styles.icon} />
 
         {!collapsed && (

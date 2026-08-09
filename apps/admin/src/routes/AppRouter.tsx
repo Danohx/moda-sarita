@@ -1,41 +1,42 @@
-﻿import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+﻿import { lazy, Suspense } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { adminRoutePreloaders } from "./routePreloaders";
 
 import AdminLayout from "../components/layout/AdminLayout";
-import AdminLogin from "../pages/admin/AdminLogin";
-
-import { Dashboard } from "../pages/admin/Dashboard";
-import { POS } from "../pages/admin/PuntoVenta";
-import HistorialVentasPOS from "@admin/pages/admin/HistorialVentas";
-import CorteCaja from "@admin/pages/admin/CorteCaja";
-import HistorialCortes from "@admin/pages/admin/HistorialCortes";
-import OrdersManager from "../pages/admin/OrdersManager";
-
-import AdminProducts from "../pages/admin/AdminProducts";
-import ProductForm from "../pages/admin/ProductForm";
-import ProductDetailAdmin from "../pages/admin/ProductDetailAdmin";
-import ProductVariantsManager from "../pages/admin/ProductVariantsManager";
-import ProductImagesManager from "../pages/admin/ProductImagesManager";
-import ProductCatalogs from "../pages/admin/ProductCategorias";
-
-import Inventory from "../pages/admin/Inventory";
-import InventoryMovements from "../pages/admin/InventoryMovements";
-
-import AdminCustomers from "../pages/admin/AdminCustomers";
-import CustomerCreditPanel from "@admin/pages/admin/CustomCreditPanel";
-import CreditsManager from "../pages/admin/CreditsManager";
-import CreditDetail from "../pages/admin/CreditDetail";
-
-import AdminUsers from "../pages/admin/AdminUsers";
-import AdminSettings from "../pages/admin/AdminSettings";
-import AdminReports from "../pages/admin/AdminReports";
-import AdminAnalytics from "../pages/admin/AdminAnalytics";
-import AdminContent from "@admin/pages/admin/AdminContent";
-import AdminContactMessages from "@admin/pages/admin/AdminContactMessages";
-import Marketing from "@admin/pages/admin/Marketing";
-
 import AdminRoute from "../guards/AdminRoute";
 import GuestRoute from "../guards/GuestRoute";
 import PermissionRoute from "../guards/PermissionRoute";
+
+const AdminLogin = lazy(() => import("../pages/admin/AdminLogin"));
+
+const Dashboard = lazy(adminRoutePreloaders.dashboard);
+const POS = lazy(adminRoutePreloaders.pos);
+const OrdersManager = lazy(adminRoutePreloaders.orders);
+const HistorialVentasPOS = lazy(adminRoutePreloaders.historyOrders);
+const CorteCaja = lazy(adminRoutePreloaders.corteCaja);
+const AdminProducts = lazy(adminRoutePreloaders.products);
+const Inventory = lazy(adminRoutePreloaders.inventory);
+const AdminCustomers = lazy(adminRoutePreloaders.customers);
+const CreditsManager = lazy(adminRoutePreloaders.credits);
+const AdminReports = lazy(adminRoutePreloaders.reports);
+const AdminAnalytics = lazy(adminRoutePreloaders.analytics);
+const Marketing = lazy(adminRoutePreloaders.marketing);
+const AdminSettings = lazy(adminRoutePreloaders.settings);
+const AdminContent = lazy(adminRoutePreloaders.legalContent);
+const AdminContactMessages = lazy(adminRoutePreloaders.contactMessages);
+
+const HistorialCortes = lazy(() => import("../pages/admin/HistorialCortes"));
+const ProductForm = lazy(() => import("../pages/admin/ProductForm"));
+const ProductDetailAdmin = lazy(() => import("../pages/admin/ProductDetailAdmin"));
+const ProductVariantsManager = lazy(() => import("../pages/admin/ProductVariantsManager"));
+const ProductImagesManager = lazy(() => import("../pages/admin/ProductImagesManager"));
+const ProductCatalogs = lazy(() => import("../pages/admin/ProductCategorias"));
+const InventoryMovements = lazy(() => import("../pages/admin/InventoryMovements"));
+const CustomerCreditPanel = lazy(() => import("@admin/pages/admin/CustomCreditPanel"));
+const CreditDetail = lazy(() => import("../pages/admin/CreditDetail"));
+const AdminUsers = lazy(() => import("../pages/admin/AdminUsers"));
+
+
 
 const PERMS = {
   pos: ["ventas.pedidos.create", "ventas.pedidos.read"],
@@ -144,128 +145,129 @@ const PERMS = {
 export const AppRouter = () => {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route element={<GuestRoute />}>
-          <Route path="/login" element={<AdminLogin />} />
-        </Route>
+        <Routes>
+          <Route element={<GuestRoute />}>
+            <Route path="/login" element={
+              <Suspense fallback={<div>Cargando...</div>}>
+                <AdminLogin />
+              </Suspense>
+              } />
+          </Route>
 
-        <Route element={<AdminRoute />}>
-          <Route path="/" element={<AdminLayout />}>
-            <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route element={<AdminRoute />}>
+            <Route path="/" element={<AdminLayout />}>
+              <Route index element={<Navigate to="/dashboard" replace />} />
 
-            <Route element={<PermissionRoute permissions="dashboard.view" />}>
-              <Route path="dashboard" element={<Dashboard />} />
-            </Route>
+              <Route element={<PermissionRoute permissions="dashboard.view" />}>
+                <Route path="dashboard" element={<Dashboard />} />
+              </Route>
 
-            <Route element={<PermissionRoute permissions={PERMS.pos} />}>
-              <Route path="pos" element={<POS />} />
-            </Route>
+              <Route element={<PermissionRoute permissions={PERMS.pos} />}>
+                <Route path="pos" element={<POS />} />
+              </Route>
 
-            <Route
-              element={<PermissionRoute permissions={PERMS.ventasHistorial} />}
-            >
-              <Route path="historial-ventas" element={<HistorialVentasPOS />} />
-            </Route>
-
-            <Route element={<PermissionRoute permissions={PERMS.corteCaja} />}>
-              <Route path="corte" element={<CorteCaja />} />
-              <Route path="corte/history" element={<HistorialCortes />} />
-              <Route path="corte/history/:id" element={<CorteCaja />} />
-            </Route>
-
-            <Route element={<PermissionRoute permissions={PERMS.pedidos} />}>
-              <Route path="orders" element={<OrdersManager />} />
-            </Route>
-
-            <Route element={<PermissionRoute permissions={PERMS.usuarios} />}>
-              <Route path="users" element={<AdminUsers />} />
-            </Route>
-
-            <Route element={<PermissionRoute permissions={PERMS.ajustes} />}>
-              <Route path="settings" element={<AdminSettings />} />
-            </Route>
-
-            <Route element={<PermissionRoute permissions={PERMS.reportes} />}>
-              <Route path="reports" element={<AdminReports />} />
-            </Route>
-
-            <Route element={<PermissionRoute permissions={PERMS.analitica} />}>
-              <Route path="analytics" element={<AdminAnalytics />} />
-            </Route>
-
-            <Route element={<PermissionRoute permissions={PERMS.marketing} />}>
-              <Route path="marketing" element={<Marketing />} />
-            </Route>
-
-            <Route element={<PermissionRoute permissions={PERMS.clientes} />}>
-              <Route path="customers" element={<AdminCustomers />} />
-            </Route>
-
-            <Route element={<PermissionRoute permissions={PERMS.creditos} />}>
-              <Route path="credits" element={<CreditsManager />} />
-              <Route path="credits/:creditoId" element={<CreditDetail />} />
               <Route
-                path="customers/:id/credit"
-                element={<CustomerCreditPanel />}
-              />
-            </Route>
+                element={<PermissionRoute permissions={PERMS.ventasHistorial} />}
+              >
+                <Route path="historial-ventas" element={<HistorialVentasPOS />} />
+              </Route>
 
-            <Route
-              element={<PermissionRoute permissions={PERMS.productosRead} />}
-            >
-              <Route path="products" element={<AdminProducts />} />
-              <Route path="products/:id" element={<ProductDetailAdmin />} />
-            </Route>
+              <Route element={<PermissionRoute permissions={PERMS.corteCaja} />}>
+                <Route path="corte" element={<CorteCaja />} />
+                <Route path="corte/history" element={<HistorialCortes />} />
+                <Route path="corte/history/:id" element={<CorteCaja />} />
+              </Route>
 
-            <Route
-              element={<PermissionRoute permissions={PERMS.productosManage} />}
-            >
-              <Route path="products/new" element={<ProductForm />} />
-              <Route path="products/:id/edit" element={<ProductForm />} />
+              <Route element={<PermissionRoute permissions={PERMS.pedidos} />}>
+                <Route path="orders" element={<OrdersManager />} />
+              </Route>
+
+              <Route element={<PermissionRoute permissions={PERMS.usuarios} />}>
+                <Route path="users" element={<AdminUsers />} />
+              </Route>
+
+              <Route element={<PermissionRoute permissions={PERMS.ajustes} />}>
+                <Route path="settings" element={<AdminSettings />} />
+              </Route>
+
+              <Route element={<PermissionRoute permissions={PERMS.reportes} />}>
+                <Route path="reports" element={<AdminReports />} />
+              </Route>
+
+              <Route element={<PermissionRoute permissions={PERMS.analitica} />}>
+                <Route path="analytics" element={<AdminAnalytics />} />
+              </Route>
+
+              <Route element={<PermissionRoute permissions={PERMS.marketing} />}>
+                <Route path="marketing" element={<Marketing />} />
+              </Route>
+
+              <Route element={<PermissionRoute permissions={PERMS.clientes} />}>
+                <Route path="customers" element={<AdminCustomers />} />
+              </Route>
+
+              <Route element={<PermissionRoute permissions={PERMS.creditos} />}>
+                <Route path="credits" element={<CreditsManager />} />
+                <Route path="credits/:creditoId" element={<CreditDetail />} />
+                <Route
+                  path="customers/:id/credit"
+                  element={<CustomerCreditPanel />}
+                />
+              </Route>
+
               <Route
-                path="products/:id/variants"
-                element={<ProductVariantsManager />}
-              />
+                element={<PermissionRoute permissions={PERMS.productosRead} />}
+              >
+                <Route path="products" element={<AdminProducts />} />
+                <Route path="products/:id" element={<ProductDetailAdmin />} />
+              </Route>
+
               <Route
-                path="products/:id/images"
-                element={<ProductImagesManager />}
-              />
-            </Route>
+                element={<PermissionRoute permissions={PERMS.productosManage} />}
+              >
+                <Route path="products/new" element={<ProductForm />} />
+                <Route path="products/:id/edit" element={<ProductForm />} />
+                <Route
+                  path="products/:id/variants"
+                  element={<ProductVariantsManager />}
+                />
+                <Route
+                  path="products/:id/images"
+                  element={<ProductImagesManager />}
+                />
+              </Route>
 
-            <Route element={<PermissionRoute permissions={PERMS.catalogos} />}>
-              <Route path="products/catalogs" element={<ProductCatalogs />} />
-            </Route>
+              <Route element={<PermissionRoute permissions={PERMS.catalogos} />}>
+                <Route path="products/catalogs" element={<ProductCatalogs />} />
+              </Route>
 
-            <Route element={<PermissionRoute permissions={PERMS.inventario} />}>
-              <Route path="inventory" element={<Inventory />} />
-              <Route
-                path="inventory/variants/:id/movements"
-                element={<InventoryMovements />}
-              />
-            </Route>
+              <Route element={<PermissionRoute permissions={PERMS.inventario} />}>
+                <Route path="inventory" element={<Inventory />} />
+                <Route
+                  path="inventory/variants/:id/movements"
+                  element={<InventoryMovements />}
+                />
+              </Route>
 
-            <Route element={<PermissionRoute permissions={PERMS.contenido} />}>
-              <Route path="content" element={<AdminContent />} />
-            </Route>
+              <Route element={<PermissionRoute permissions={PERMS.contenido} />}>
+                <Route path="content" element={<AdminContent />} />
+              </Route>
 
-            <Route element={<PermissionRoute permissions={PERMS.contacto} />}>
-              <Route path="contact" element={<AdminContactMessages />} />
+              <Route element={<PermissionRoute permissions={PERMS.contacto} />}>
+                <Route path="contact" element={<AdminContactMessages />} />
+              </Route>
             </Route>
           </Route>
-        </Route>
 
-        <Route
-          path="*"
-          element={
-            <h1 style={{ color: "black" }}>ERROR 404: La ruta no existe</h1>
-          }
-        />
-      </Routes>
+          <Route
+            path="*"
+            element={
+              <h1 style={{ color: "black" }}>ERROR 404: La ruta no existe</h1>
+            }
+          />
+        </Routes>
     </BrowserRouter>
   );
 };
 
 export default AppRouter;
-
-
-
