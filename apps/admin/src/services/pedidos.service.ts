@@ -170,6 +170,12 @@ export const pedidosService = {
     return pedidosApi.liquidar(id, payload);
   },
 
+  async cambiarEstadoWeb(id: string | number, estado: "ENVIADO" | "ENTREGADO") {
+    const response = await pedidosApi.cambiarEstadoWeb(id, estado);
+
+    return response.data;
+  },
+
   async cancelar(id: string | number, motivo_cancelacion: string) {
     const response = await pedidosApi.cancelar(id, { motivo_cancelacion });
     return response.data;
@@ -197,5 +203,18 @@ export const pedidosService = {
     setTimeout(() => {
       URL.revokeObjectURL(url);
     }, 60_000);
+  },
+
+  async confirmarPagoWeb(
+    id: string | number,
+    referencia_externa?: string | null,
+  ) {
+    const response = await pedidosApi.confirmarPagoWeb(id, referencia_externa);
+    return response.data;
+  },
+
+  async cancelarPedidoWeb(id: string | number, motivo?: string | null) {
+    const response = await pedidosApi.cancelarPedidoWeb(id, motivo);
+    return response.data;
   },
 };

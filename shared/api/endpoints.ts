@@ -179,9 +179,17 @@ export const API_ENDPOINTS = {
     abonos: (id: string | number) => `/pedidos/${id}/abonos`,
     cancelar: (id: string | number) => `/pedidos/${id}/cancelar`,
     liquidar: (id: string | number) => `/pedidos/${id}/liquidar`,
+    estadoWeb: (id: string | number) => `/pedidos/${id}/estado-web`,
     ticketPdf: (id: string | number) => `/pedidos/${id}/ticket`,
     pagoTicketPdf: (id: string | number, pagoId: string | number) =>
       `/pedidos/${id}/pagos/${pagoId}/ticket`,
+  },
+  checkout: {
+    pedidos: "/checkout/pedidos",
+    confirmarPedidoWeb: (id: string | number) =>
+      `/checkout/pedidos/${id}/confirmar`,
+    cancelarPedidoWeb: (id: string | number) =>
+      `/checkout/pedidos/${id}/cancelar`,
   },
   dashboard: {
     data: "/dashboard",
@@ -317,4 +325,3 @@ export const API_ENDPOINTS = {
       `/marketing/admin/plantillas/${id}/test-send`,
   },
 } as const;
-

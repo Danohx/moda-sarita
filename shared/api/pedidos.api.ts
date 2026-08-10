@@ -138,6 +138,20 @@ type PedidoDetalleResponse = {
   data: PedidoDetalleAdmin;
 };
 
+type EstadoWebLogistico = "ENVIADO" | "ENTREGADO";
+
+type EstadoWebResponse = {
+  ok: boolean;
+  message: string;
+  data: PedidoResumen;
+};
+
+type PedidoWebActionResponse = {
+  ok: boolean;
+  msg: string;
+  data: unknown;
+};
+
 export const pedidosApi = {
   getAll: (filters?: PedidosFilters) =>
     apiFetch<PedidosResponse>(API_ENDPOINTS.pedidos.list, {
@@ -162,6 +176,12 @@ export const pedidosApi = {
       body: payload,
     }),
 
+  cambiarEstadoWeb: (id: string | number, estado: EstadoWebLogistico) =>
+    apiFetch<EstadoWebResponse>(API_ENDPOINTS.pedidos.estadoWeb(id), {
+      method: "PATCH",
+      body: { estado },
+    }),
+
   cancelar: (id: string | number, payload: CancelarApartadoPayload) =>
     apiFetch<PedidoActionResponse>(API_ENDPOINTS.pedidos.cancelar(id), {
       method: "POST",
@@ -177,4 +197,26 @@ export const pedidosApi = {
     apiFetchBlob(API_ENDPOINTS.pedidos.pagoTicketPdf(id, pagoId), {
       method: "GET",
     }),
+
+  confirmarPagoWeb: (id: string | number, referencia_externa?: string | null) =>
+    apiFetch<PedidoWebActionResponse>(
+      API_ENDPOINTS.checkout.confirmarPedidoWeb(id),
+      {
+        method: "POST",
+        body: {
+          referencia_externa: referencia_externa ?? null,
+        },
+      },
+    ),
+
+  cancelarPedidoWeb: (id: string | number, motivo?: string | null) =>
+    apiFetch<PedidoWebActionResponse>(
+      API_ENDPOINTS.checkout.cancelarPedidoWeb(id),
+      {
+        method: "POST",
+        body: {
+          motivo: motivo ?? null,
+        },
+      },
+    ),
 };

@@ -6,7 +6,6 @@ import {
   Card,
   CardContent,
   Chip,
-  IconButton,
   LinearProgress,
   Paper,
   Skeleton,
@@ -23,7 +22,6 @@ import Grid from "@mui/material/Grid";
 import {
   AttachMoney,
   Cancel,
-  Edit,
   LocalShipping,
   Person,
   Schedule,
@@ -248,6 +246,138 @@ const OrdersManager: React.FC = () => {
       setTabValue(0);
     }
   }, [tipoParam]);
+
+  const handleMarcarEnviado = async (order: Order) => {
+    if (order.status !== "PAGADO") return;
+
+    const confirmed = window.confirm(
+      `¿Marcar el pedido ${order.orderId} como enviado?`,
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setActionLoading(true);
+
+      await pedidosService.cambiarEstadoWeb(order.id, "ENVIADO");
+
+      await load();
+    } catch (err) {
+      console.error("Error marcando pedido enviado:", err);
+
+      alert("No se pudo marcar el pedido como enviado.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleMarcarEntregado = async (order: Order) => {
+    if (order.status !== "ENVIADO") return;
+
+    const confirmed = window.confirm(
+      `¿Confirmar que el pedido ${order.orderId} fue entregado?`,
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setActionLoading(true);
+
+      await pedidosService.cambiarEstadoWeb(order.id, "ENTREGADO");
+
+      await load();
+    } catch (err) {
+      console.error("Error marcando pedido entregado:", err);
+
+      alert("No se pudo marcar el pedido como entregado.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleConfirmarPagoWeb = async (order: Order) => {
+    if (!canUpdateOrders || !canCreatePayments) {
+      alert("No tienes permiso para confirmar pagos de pedidos.");
+      return;
+    }
+
+    if (order.status !== "PENDIENTE") {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `¿Confirmar el pago del pedido ${order.orderId}?\n\n` +
+        "Esto consumirá la reserva y descontará el stock físico.",
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setActionLoading(true);
+
+      await pedidosService.confirmarPagoWeb(order.id);
+
+      await load();
+    } catch (err) {
+      console.error("Error confirmando pago web:", err);
+
+      alert(
+        err instanceof Error ? err.message : "No se pudo confirmar el pago.",
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCancelarPedidoWeb = async (order: Order) => {
+    if (!canCancelOrders) {
+      alert("No tienes permiso para cancelar pedidos.");
+      return;
+    }
+
+    if (order.status !== "PENDIENTE") {
+      return;
+    }
+
+    const motivo = window.prompt(
+      `Motivo de cancelación del pedido ${order.orderId}:`,
+    );
+
+    // Canceló el prompt.
+    if (motivo === null) {
+      return;
+    }
+
+    const motivoLimpio = motivo.trim();
+
+    if (motivoLimpio.length < 3) {
+      alert("Escribe un motivo de cancelación válido.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `¿Cancelar definitivamente el pedido ${order.orderId}?\n\n` +
+        "La mercancía reservada volverá a estar disponible.",
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setActionLoading(true);
+
+      await pedidosService.cancelarPedidoWeb(order.id, motivoLimpio);
+
+      await load();
+    } catch (err) {
+      console.error("Error cancelando pedido web:", err);
+
+      alert(
+        err instanceof Error ? err.message : "No se pudo cancelar el pedido.",
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   const handleOpenDetail = async (id: string) => {
     if (!canReadOrders) return;
@@ -640,28 +770,57 @@ const OrdersManager: React.FC = () => {
                           </Button>
                         </Box>
 
-                        {order.status !== "ENTREGADO" ? (
-                          <Box className={styles.orderActions}>
-                            <IconButton
+                        <Box className={styles.orderActions}>
+                          {order.status === "PENDIENTE" && (
+                            <>
+                              <Button
+                                size="small"
+                                variant="contained"
+                                disabled={actionLoading}
+                                onClick={() =>
+                                  void handleConfirmarPagoWeb(order)
+                                }
+                              >
+                                Confirmar pago
+                              </Button>
+
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                color="error"
+                                disabled={actionLoading}
+                                onClick={() =>
+                                  void handleCancelarPedidoWeb(order)
+                                }
+                              >
+                                Cancelar
+                              </Button>
+                            </>
+                          )}
+
+                          {order.status === "PAGADO" && (
+                            <Button
                               size="small"
-                              className={styles.actionPink}
-                              onClick={() => {
-                                alert("Deshabilitado");
-                              }}
+                              variant="contained"
+                              startIcon={<LocalShipping />}
+                              disabled={actionLoading}
+                              onClick={() => void handleMarcarEnviado(order)}
                             >
-                              <Edit />
-                            </IconButton>
-                            <IconButton
+                              Marcar enviado
+                            </Button>
+                          )}
+
+                          {order.status === "ENVIADO" && (
+                            <Button
                               size="small"
-                              className={styles.actionBlue}
-                              onClick={() => {
-                                alert("Deshabilitado");
-                              }}
+                              variant="contained"
+                              disabled={actionLoading}
+                              onClick={() => void handleMarcarEntregado(order)}
                             >
-                              <LocalShipping />
-                            </IconButton>
-                          </Box>
-                        ) : null}
+                              Marcar entregado
+                            </Button>
+                          )}
+                        </Box>
                       </Box>
                     </Box>
                   </CardContent>

@@ -45,6 +45,7 @@ import {
   CreditCard,
   Store,
   Inventory2,
+  LocalShipping,
   History,
 } from "@mui/icons-material";
 import styles from "../../../styles/AdminSettings.module.css";
@@ -66,7 +67,7 @@ import {
   type AuditLog,
 } from "@admin/services/auditLogs.service";
 
-type TabKey = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+type TabKey = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 type Employee = SecurityEmployee;
 
@@ -153,6 +154,8 @@ export default function AdminSettings() {
   const [allPermissions, setAllPermissions] = useState<PermissionItem[]>([]);
   const [securitySessions, setSecuritySessions] = useState<SessionItem[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [checkoutParams, setCheckoutParams] = useState<ConfigParametro[]>([]);
+  const [savingCheckout, setSavingCheckout] = useState(false);
 
   // UI state
   const [loading, setLoading] = useState(false);
@@ -193,6 +196,13 @@ export default function AdminSettings() {
   const [settingUp2FA, setSettingUp2FA] = useState(false);
   const [enabling2FA, setEnabling2FA] = useState(false);
 
+  const canViewCheckoutSettings = canAccess(user, {
+    permissions: SETTINGS_PERMISSIONS.settingsView,
+  });
+
+  const canManageCheckoutSettings = canAccess(user, {
+    permissions: SETTINGS_PERMISSIONS.settingsManage,
+  });
   // Forms
   const start2FASetup = async () => {
     setSettingUp2FA(true);
@@ -358,6 +368,7 @@ export default function AdminSettings() {
         sesionesData,
         securityStatusData,
         auditLogsData,
+        checkoutParamsData,
       ] = await Promise.all([
         runIf(
           shouldLoadBaseSettings,
@@ -389,6 +400,12 @@ export default function AdminSettings() {
         runIf(canViewSecurity, () => securityService.getSecurityStatus(), null),
 
         runIf(canViewAudit, () => auditLogsService.getAll(), []),
+
+        runIf(
+          canViewCheckoutSettings,
+          () => configuracionService.getCheckoutParams(),
+          [],
+        ),
       ]);
 
       setPaymentMethods(canViewPaymentMethods ? data.metodosPago : []);
@@ -400,6 +417,7 @@ export default function AdminSettings() {
       setSecuritySessions(canViewSecurity ? sesionesData : []);
       setSecurityStatus(canViewSecurity ? securityStatusData : null);
       setAuditLogs(canViewAudit ? auditLogsData : []);
+      setCheckoutParams(canViewCheckoutSettings ? checkoutParamsData : []);
     } catch (err) {
       setError(
         err instanceof Error
@@ -411,6 +429,7 @@ export default function AdminSettings() {
     }
   }, [
     canViewAudit,
+    canViewCheckoutSettings,
     canViewEmployees,
     canViewInventorySettings,
     canViewPaymentMethods,
@@ -467,6 +486,12 @@ export default function AdminSettings() {
         label: "Bitácora",
         icon: <History />,
         permissions: SETTINGS_PERMISSIONS.auditView,
+      },
+      {
+        index: 7,
+        label: "Checkout",
+        icon: <LocalShipping />,
+        permissions: SETTINGS_PERMISSIONS.settingsView,
       },
     ],
     [],
@@ -547,6 +572,52 @@ export default function AdminSettings() {
       );
     } finally {
       setSavingTicket(false);
+    }
+  };
+
+  // --- Checkout helpers
+  const updateCheckoutLocal = (
+    clave: Parameters<typeof configuracionService.updateLocalParam>[1],
+    valor: unknown,
+  ) => {
+    setCheckoutParams((prev) =>
+      configuracionService.updateLocalParam(prev, clave, valor),
+    );
+  };
+
+  const getCheckoutBool = (
+    clave: Parameters<typeof configuracionService.getParamBool>[1],
+    fallback = false,
+  ) => configuracionService.getParamBool(checkoutParams, clave, fallback);
+
+  const getCheckoutNumber = (
+    clave: Parameters<typeof configuracionService.getParamNumber>[1],
+    fallback = 0,
+  ) => configuracionService.getParamNumber(checkoutParams, clave, fallback);
+
+  const saveCheckoutParams = async () => {
+    if (!canManageCheckoutSettings) {
+      setError("No tienes permiso para modificar los ajustes del checkout.");
+      return;
+    }
+
+    setSavingCheckout(true);
+    setError(null);
+
+    try {
+      await configuracionService.saveCheckoutParams(checkoutParams);
+
+      const freshParams = await configuracionService.getCheckoutParams();
+
+      setCheckoutParams(freshParams);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "No se pudieron guardar los ajustes del checkout.",
+      );
+    } finally {
+      setSavingCheckout(false);
     }
   };
 
@@ -2221,6 +2292,192 @@ export default function AdminSettings() {
                 </Table>
               </TableContainer>
             )}
+          </Paper>
+        </TabPanel>
+      )}
+
+      {/* TAB: CHECKOUT */}
+      {canViewCheckoutSettings && (
+        <TabPanel value={tabValue} index={7}>
+          <Paper className={styles.paperPadded}>
+            <Box className={styles.sectionHeader}>
+              <Box>
+                <Typography variant="h6" className={styles.paperTitlePink}>
+                  Checkout
+                </Typography>
+
+                <Typography variant="body2" color="text.secondary">
+                  Configura la disponibilidad del checkout y las reglas de
+                  entrega de la tienda en línea.
+                </Typography>
+              </Box>
+
+              {canManageCheckoutSettings && (
+                <Button
+                  variant="contained"
+                  className={styles.primaryBtn}
+                  onClick={saveCheckoutParams}
+                  disabled={savingCheckout || loading}
+                >
+                  {savingCheckout ? "Guardando..." : "Guardar cambios"}
+                </Button>
+              )}
+            </Box>
+
+            <Grid container spacing={3}>
+              <Grid size={{ xs: 12 }}>
+                <Typography variant="subtitle1" fontWeight={800} sx={{ mb: 1 }}>
+                  Disponibilidad
+                </Typography>
+
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 1,
+                  }}
+                >
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={getCheckoutBool("checkout.habilitado", false)}
+                        disabled={!canManageCheckoutSettings}
+                        onChange={(e) =>
+                          updateCheckoutLocal(
+                            "checkout.habilitado",
+                            e.target.checked,
+                          )
+                        }
+                      />
+                    }
+                    label="Checkout web habilitado"
+                  />
+
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={getCheckoutBool(
+                          "checkout.permitir_recoleccion_tienda",
+                          true,
+                        )}
+                        disabled={!canManageCheckoutSettings}
+                        onChange={(e) =>
+                          updateCheckoutLocal(
+                            "checkout.permitir_recoleccion_tienda",
+                            e.target.checked,
+                          )
+                        }
+                      />
+                    }
+                    label="Permitir recoger en tienda"
+                  />
+
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={getCheckoutBool(
+                          "checkout.permitir_envio_domicilio",
+                          false,
+                        )}
+                        disabled={!canManageCheckoutSettings}
+                        onChange={(e) =>
+                          updateCheckoutLocal(
+                            "checkout.permitir_envio_domicilio",
+                            e.target.checked,
+                          )
+                        }
+                      />
+                    }
+                    label="Permitir envío a domicilio"
+                  />
+                </Box>
+              </Grid>
+
+              <Grid size={{ xs: 12 }}>
+                <Typography variant="subtitle1" fontWeight={800}>
+                  Costos de envío
+                </Typography>
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Costo de envío a domicilio"
+                  value={getCheckoutNumber("checkout.costo_envio_domicilio", 0)}
+                  disabled={
+                    !canManageCheckoutSettings ||
+                    !getCheckoutBool("checkout.permitir_envio_domicilio", false)
+                  }
+                  onChange={(e) =>
+                    updateCheckoutLocal(
+                      "checkout.costo_envio_domicilio",
+                      Number(e.target.value || 0),
+                    )
+                  }
+                  inputProps={{
+                    min: 0,
+                    step: 0.01,
+                  }}
+                  helperText="Tarifa aplicada a pedidos con entrega a domicilio."
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12 }}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={getCheckoutBool(
+                        "checkout.envio_gratis_habilitado",
+                        false,
+                      )}
+                      disabled={
+                        !canManageCheckoutSettings ||
+                        !getCheckoutBool(
+                          "checkout.permitir_envio_domicilio",
+                          false,
+                        )
+                      }
+                      onChange={(e) =>
+                        updateCheckoutLocal(
+                          "checkout.envio_gratis_habilitado",
+                          e.target.checked,
+                        )
+                      }
+                    />
+                  }
+                  label="Ofrecer envío gratis"
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Envío gratis desde"
+                  value={getCheckoutNumber("checkout.envio_gratis_desde", 0)}
+                  disabled={
+                    !canManageCheckoutSettings ||
+                    !getCheckoutBool(
+                      "checkout.permitir_envio_domicilio",
+                      false,
+                    ) ||
+                    !getCheckoutBool("checkout.envio_gratis_habilitado", false)
+                  }
+                  onChange={(e) =>
+                    updateCheckoutLocal(
+                      "checkout.envio_gratis_desde",
+                      Number(e.target.value || 0),
+                    )
+                  }
+                  inputProps={{
+                    min: 0,
+                    step: 0.01,
+                  }}
+                  helperText="Se calcula después de aplicar descuentos."
+                />
+              </Grid>
+            </Grid>
           </Paper>
         </TabPanel>
       )}

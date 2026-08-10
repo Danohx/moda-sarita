@@ -353,6 +353,28 @@ export default function Marketing() {
       return;
     }
 
+    if (cuponForm.uso_maximo !== "" && Number(cuponForm.uso_maximo) < 1) {
+      showError("El máximo de usos globales debe ser mayor a 0.");
+      return;
+    }
+
+    if (
+      cuponForm.uso_maximo_por_cliente !== "" &&
+      Number(cuponForm.uso_maximo_por_cliente) < 1
+    ) {
+      showError("El máximo de usos por cliente debe ser mayor a 0.");
+      return;
+    }
+
+    if (
+      cuponForm.uso_maximo !== "" &&
+      cuponForm.uso_maximo_por_cliente !== "" &&
+      Number(cuponForm.uso_maximo_por_cliente) > Number(cuponForm.uso_maximo)
+    ) {
+      showError("El límite por cliente no puede ser mayor al límite global.");
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -867,254 +889,431 @@ export default function Marketing() {
       )} */}
 
       {currentTab === "cupones" && (
-        <section className={styles.grid}>
+        <section
+          className={`${styles.grid} ${styles.couponGrid} ${!canManageCupones ? styles.singleColumn : ""}`}
+        >
           {canManageCupones && (
-            <form className={styles.card} onSubmit={handleSaveCupon}>
-              <h3>{editingCuponId ? "Editar cupón" : "Nuevo cupón"}</h3>
-
-              <div className={styles.twoCols}>
-                <label className={styles.field}>
-                  <span>Código</span>
-                  <input
-                    value={cuponForm.codigo}
-                    disabled={Boolean(editingCuponId)}
-                    onChange={(event) =>
-                      setCuponForm((prev) => ({
-                        ...prev,
-                        codigo: event.target.value.toUpperCase(),
-                      }))
-                    }
-                  />
-                </label>
-
-                <label className={styles.field}>
-                  <span>Nombre</span>
-                  <input
-                    value={cuponForm.nombre}
-                    onChange={(event) =>
-                      setCuponForm((prev) => ({
-                        ...prev,
-                        nombre: event.target.value,
-                      }))
-                    }
-                  />
-                </label>
+            <form
+              className={`${styles.card} ${styles.couponForm}`}
+              onSubmit={handleSaveCupon}
+            >
+              <div className={styles.formHeading}>
+                <div>
+                  <span className={styles.formEyebrow}>Configuración</span>
+                  <h3>{editingCuponId ? "Editar cupón" : "Nuevo cupón"}</h3>
+                  <p>
+                    Define el descuento, vigencia y límites de uso del cupón.
+                  </p>
+                </div>
               </div>
 
-              <label className={styles.field}>
-                <span>Descripción</span>
-                <textarea
-                  rows={3}
-                  value={cuponForm.descripcion}
-                  onChange={(event) =>
-                    setCuponForm((prev) => ({
-                      ...prev,
-                      descripcion: event.target.value,
-                    }))
-                  }
-                />
-              </label>
+              <section className={styles.formSection}>
+                <div className={styles.formSectionHeader}>
+                  <div>
+                    <h4>Información general</h4>
+                    <p>Identifica el cupón que verá el cliente.</p>
+                  </div>
+                </div>
 
-              <div className={styles.twoCols}>
+                <div className={styles.twoCols}>
+                  <label className={styles.field}>
+                    <span>Código</span>
+                    <input
+                      value={cuponForm.codigo}
+                      disabled={Boolean(editingCuponId)}
+                      placeholder="Ej. BIENVENIDA10"
+                      onChange={(event) =>
+                        setCuponForm((prev) => ({
+                          ...prev,
+                          codigo: event.target.value.toUpperCase(),
+                        }))
+                      }
+                    />
+                  </label>
+
+                  <label className={styles.field}>
+                    <span>Nombre</span>
+                    <input
+                      value={cuponForm.nombre}
+                      placeholder="Ej. Bienvenida 10%"
+                      onChange={(event) =>
+                        setCuponForm((prev) => ({
+                          ...prev,
+                          nombre: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                </div>
+
                 <label className={styles.field}>
-                  <span>Tipo descuento</span>
-                  <select
-                    value={cuponForm.tipo_descuento}
+                  <span>Descripción</span>
+                  <textarea
+                    rows={3}
+                    value={cuponForm.descripcion}
+                    placeholder="Describe brevemente cuándo o para quién aplica."
                     onChange={(event) =>
                       setCuponForm((prev) => ({
                         ...prev,
-                        tipo_descuento: event.target.value,
-                      }))
-                    }
-                  >
-                    <option value="PORCENTAJE">Porcentaje</option>
-                    <option value="MONTO">Monto fijo</option>
-                  </select>
-                </label>
-
-                <label className={styles.field}>
-                  <span>Valor</span>
-                  <input
-                    type="number"
-                    value={cuponForm.valor}
-                    onChange={(event) =>
-                      setCuponForm((prev) => ({
-                        ...prev,
-                        valor: Number(event.target.value),
-                      }))
-                    }
-                  />
-                </label>
-              </div>
-
-              <div className={styles.twoCols}>
-                <label className={styles.field}>
-                  <span>Compra mínima</span>
-                  <input
-                    type="number"
-                    value={cuponForm.monto_minimo_compra}
-                    onChange={(event) =>
-                      setCuponForm((prev) => ({
-                        ...prev,
-                        monto_minimo_compra: Number(event.target.value),
+                        descripcion: event.target.value,
                       }))
                     }
                   />
                 </label>
+              </section>
 
-                <label className={styles.field}>
-                  <span>Uso máximo</span>
-                  <input
-                    type="number"
-                    value={cuponForm.uso_maximo}
-                    onChange={(event) =>
-                      setCuponForm((prev) => ({
-                        ...prev,
-                        uso_maximo: event.target.value,
-                      }))
-                    }
-                  />
-                </label>
-              </div>
+              <section className={styles.formSection}>
+                <div className={styles.formSectionHeader}>
+                  <div>
+                    <h4>Descuento</h4>
+                    <p>Configura el beneficio y la compra mínima requerida.</p>
+                  </div>
+                </div>
 
-              <div className={styles.twoCols}>
-                <label className={styles.field}>
-                  <span>Fecha inicio</span>
-                  <input
-                    type="date"
-                    value={cuponForm.fecha_inicio}
-                    onChange={(event) =>
-                      setCuponForm((prev) => ({
-                        ...prev,
-                        fecha_inicio: event.target.value,
-                      }))
-                    }
-                  />
-                </label>
+                <div className={styles.discountGrid}>
+                  <label className={styles.field}>
+                    <span>Tipo</span>
+                    <select
+                      value={cuponForm.tipo_descuento}
+                      onChange={(event) =>
+                        setCuponForm((prev) => ({
+                          ...prev,
+                          tipo_descuento: event.target.value,
+                        }))
+                      }
+                    >
+                      <option value="PORCENTAJE">Porcentaje</option>
+                      <option value="MONTO">Monto fijo</option>
+                    </select>
+                  </label>
 
-                <label className={styles.field}>
-                  <span>Fecha fin</span>
-                  <input
-                    type="date"
-                    value={cuponForm.fecha_fin}
-                    onChange={(event) =>
-                      setCuponForm((prev) => ({
-                        ...prev,
-                        fecha_fin: event.target.value,
-                      }))
-                    }
-                  />
-                </label>
-              </div>
+                  <label className={styles.field}>
+                    <span>Valor</span>
+                    <div className={styles.inputWithSuffix}>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={cuponForm.valor}
+                        onChange={(event) =>
+                          setCuponForm((prev) => ({
+                            ...prev,
+                            valor: Number(event.target.value),
+                          }))
+                        }
+                      />
+                      <span>
+                        {cuponForm.tipo_descuento === "PORCENTAJE"
+                          ? "%"
+                          : "MXN"}
+                      </span>
+                    </div>
+                  </label>
 
-              <div className={styles.twoCols}>
-                <label className={styles.field}>
-                  <span>Canal</span>
-                  <select
-                    value={cuponForm.canal}
-                    onChange={(event) =>
-                      setCuponForm((prev) => ({
-                        ...prev,
-                        canal: event.target.value as CanalCupon,
-                      }))
-                    }
-                  >
-                    <option value="AMBOS">Ambos</option>
-                    <option value="POS">POS</option>
-                    <option value="WEB">Web</option>
-                  </select>
-                </label>
+                  <label className={styles.field}>
+                    <span>Compra mínima</span>
+                    <div className={styles.inputWithPrefix}>
+                      <span>$</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={cuponForm.monto_minimo_compra}
+                        onChange={(event) =>
+                          setCuponForm((prev) => ({
+                            ...prev,
+                            monto_minimo_compra: Number(event.target.value),
+                          }))
+                        }
+                      />
+                    </div>
+                    <small>$0 = sin compra mínima.</small>
+                  </label>
+                </div>
+              </section>
 
-                <label className={styles.field}>
-                  <span>Aplica a</span>
-                  <select
-                    value={cuponForm.aplica_a}
-                    onChange={(event) =>
-                      setCuponForm((prev) => ({
-                        ...prev,
-                        aplica_a: event.target.value as AplicaCupon,
-                      }))
-                    }
-                  >
-                    <option value="PEDIDO">Pedido</option>
-                    <option value="PRODUCTO">Producto</option>
-                    <option value="CATEGORIA">Categoría</option>
-                  </select>
-                </label>
-              </div>
+              <section
+                className={`${styles.formSection} ${styles.rulesSection}`}
+              >
+                <div className={styles.formSectionHeader}>
+                  <div>
+                    <h4>Reglas de uso</h4>
+                    <p>Controla cuántas veces puede utilizarse el cupón.</p>
+                  </div>
+                </div>
 
-              <label className={styles.check}>
-                <input
-                  type="checkbox"
-                  checked={cuponForm.acumulable}
-                  onChange={(event) =>
-                    setCuponForm((prev) => ({
-                      ...prev,
-                      acumulable: event.target.checked,
-                    }))
-                  }
-                />
-                Acumulable
-              </label>
+                <div className={styles.rulesGrid}>
+                  <label className={styles.field}>
+                    <span>Usos globales</span>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      placeholder="Ilimitado"
+                      value={cuponForm.uso_maximo}
+                      onChange={(event) =>
+                        setCuponForm((prev) => ({
+                          ...prev,
+                          uso_maximo: event.target.value,
+                        }))
+                      }
+                    />
+                    <small>Vacío = ilimitado.</small>
+                  </label>
 
-              <div className={styles.actions}>
-                <button type="submit" disabled={saving}>
-                  {editingCuponId ? "Guardar cambios" : "Crear cupón"}
-                </button>
+                  <label className={styles.field}>
+                    <span>Usos por cliente</span>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      placeholder="Ilimitado"
+                      value={cuponForm.uso_maximo_por_cliente}
+                      onChange={(event) =>
+                        setCuponForm((prev) => ({
+                          ...prev,
+                          uso_maximo_por_cliente: event.target.value,
+                        }))
+                      }
+                    />
+                    <small>Vacío = ilimitado.</small>
+                  </label>
+                </div>
 
-                {editingCuponId && (
-                  <button
-                    type="button"
-                    className={styles.secondaryButton}
-                    onClick={() => {
-                      setEditingCuponId(null);
-                      setCuponForm(emptyCupon);
-                    }}
-                  >
-                    Cancelar
+                <div className={styles.toggleList}>
+                  <label className={styles.toggleRow}>
+                    <div className={styles.toggleCopy}>
+                      <strong>Solo clientes registrados</strong>
+                      <span>
+                        Requiere una cuenta de cliente para utilizar el cupón.
+                      </span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={cuponForm.solo_clientes_registrados}
+                      onChange={(event) =>
+                        setCuponForm((prev) => ({
+                          ...prev,
+                          solo_clientes_registrados: event.target.checked,
+                        }))
+                      }
+                    />
+                  </label>
+
+                  <label className={styles.toggleRow}>
+                    <div className={styles.toggleCopy}>
+                      <strong>Acumulable</strong>
+                      <span>
+                        Permite marcar el cupón como combinable con promociones
+                        compatibles.
+                      </span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={cuponForm.acumulable}
+                      onChange={(event) =>
+                        setCuponForm((prev) => ({
+                          ...prev,
+                          acumulable: event.target.checked,
+                        }))
+                      }
+                    />
+                  </label>
+                </div>
+              </section>
+
+              <section className={styles.formSection}>
+                <div className={styles.formSectionHeader}>
+                  <div>
+                    <h4>Vigencia y disponibilidad</h4>
+                    <p>Define cuándo y en qué canal puede utilizarse.</p>
+                  </div>
+                </div>
+
+                <div className={styles.twoCols}>
+                  <label className={styles.field}>
+                    <span>Fecha inicio</span>
+                    <input
+                      type="date"
+                      value={cuponForm.fecha_inicio}
+                      onChange={(event) =>
+                        setCuponForm((prev) => ({
+                          ...prev,
+                          fecha_inicio: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+
+                  <label className={styles.field}>
+                    <span>Fecha fin</span>
+                    <input
+                      type="date"
+                      value={cuponForm.fecha_fin}
+                      onChange={(event) =>
+                        setCuponForm((prev) => ({
+                          ...prev,
+                          fecha_fin: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                </div>
+
+                <div className={styles.twoCols}>
+                  <label className={styles.field}>
+                    <span>Canal</span>
+                    <select
+                      value={cuponForm.canal}
+                      onChange={(event) =>
+                        setCuponForm((prev) => ({
+                          ...prev,
+                          canal: event.target.value as CanalCupon,
+                        }))
+                      }
+                    >
+                      <option value="AMBOS">Ambos</option>
+                      <option value="POS">Punto de venta</option>
+                      <option value="WEB">Tienda web</option>
+                    </select>
+                  </label>
+
+                  <label className={styles.field}>
+                    <span>Aplica a</span>
+                    <select
+                      value={cuponForm.aplica_a}
+                      onChange={(event) =>
+                        setCuponForm((prev) => ({
+                          ...prev,
+                          aplica_a: event.target.value as AplicaCupon,
+                        }))
+                      }
+                    >
+                      <option value="PEDIDO">Pedido completo</option>
+                    </select>
+                  </label>
+                </div>
+              </section>
+
+              <div className={styles.formFooter}>
+                <p>
+                  {editingCuponId
+                    ? "Revisa los cambios antes de guardar."
+                    : "El cupón podrá activarse o desactivarse después."}
+                </p>
+
+                <div className={styles.actions}>
+                  {editingCuponId && (
+                    <button
+                      type="button"
+                      className={styles.secondaryButton}
+                      onClick={() => {
+                        setEditingCuponId(null);
+                        setCuponForm(emptyCupon);
+                      }}
+                    >
+                      Cancelar
+                    </button>
+                  )}
+
+                  <button type="submit" disabled={saving}>
+                    {saving
+                      ? "Guardando..."
+                      : editingCuponId
+                        ? "Guardar cambios"
+                        : "Crear cupón"}
                   </button>
-                )}
+                </div>
               </div>
             </form>
           )}
 
-          <div className={styles.card}>
-            <h3>Lista de cupones</h3>
+          <div className={`${styles.card} ${styles.couponListCard}`}>
+            <div className={styles.listHeading}>
+              <div>
+                <span className={styles.formEyebrow}>Promociones</span>
+                <h3>Lista de cupones</h3>
+                <p>
+                  {cupones.length} cupón{cupones.length === 1 ? "" : "es"}{" "}
+                  registrado{cupones.length === 1 ? "" : "s"}.
+                </p>
+              </div>
+            </div>
 
             <div className={styles.list}>
+              {cupones.length === 0 && !loading && (
+                <div className={styles.emptyState}>
+                  <strong>Aún no hay cupones</strong>
+                  <p>Crea el primero para comenzar a usar promociones.</p>
+                </div>
+              )}
+
               {cupones.map((item) => (
-                <article key={item.id} className={styles.item}>
-                  <div>
-                    <strong>{item.codigo}</strong>
-                    <p>
-                      {item.nombre || "Sin nombre"} · {item.valor}
-                      {item.tipo_descuento === "PORCENTAJE" ? "%" : " MXN"}
-                    </p>
-                    <small>{item.estado_calculado}</small>
+                <article key={item.id} className={styles.couponItem}>
+                  <div className={styles.couponTop}>
+                    <div className={styles.couponIdentity}>
+                      <span className={styles.couponCode}>{item.codigo}</span>
+                      <strong>{item.nombre || "Sin nombre"}</strong>
+                      {item.descripcion && <p>{item.descripcion}</p>}
+                    </div>
+
+                    <span
+                      className={`${styles.badge} ${item.activo ? styles.ACTIVO : styles.INACTIVO}`}
+                    >
+                      {item.activo ? "ACTIVO" : "INACTIVO"}
+                    </span>
                   </div>
 
-                  <span
-                    className={`${styles.badge} ${item.activo ? styles.ACTIVO : styles.INACTIVO}`}
-                  >
-                    {item.activo ? "ACTIVO" : "INACTIVO"}
-                  </span>
+                  <div className={styles.discountSummary}>
+                    <strong>
+                      {item.tipo_descuento === "PORCENTAJE"
+                        ? `${Number(item.valor)}%`
+                        : `$${Number(item.valor).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                    </strong>
+                    <span>de descuento</span>
+                  </div>
 
-                  {canManageCupones && (
-                    <div className={styles.rowActions}>
-                      <button
-                        type="button"
-                        onClick={() => startEditCupon(item)}
-                      >
-                        Editar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleToggleCupon(item)}
-                      >
-                        {item.activo ? "Desactivar" : "Activar"}
-                      </button>
-                    </div>
-                  )}
+                  <div className={styles.couponMeta}>
+                    <span>
+                      {item.uso_maximo == null
+                        ? "Usos globales ilimitados"
+                        : `${item.uso_maximo} usos globales`}
+                    </span>
+                    <span>
+                      {item.uso_maximo_por_cliente == null
+                        ? "Sin límite por cliente"
+                        : `${item.uso_maximo_por_cliente} por cliente`}
+                    </span>
+                    <span>
+                      {item.canal === "AMBOS" ? "Web + POS" : item.canal}
+                    </span>
+                    {item.solo_clientes_registrados && (
+                      <span>Solo registrados</span>
+                    )}
+                  </div>
+
+                  <div className={styles.couponBottom}>
+                    <small className={styles.couponState}>
+                      Estado: {item.estado_calculado}
+                    </small>
+
+                    {canManageCupones && (
+                      <div className={styles.rowActions}>
+                        <button
+                          type="button"
+                          onClick={() => startEditCupon(item)}
+                        >
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleCupon(item)}
+                        >
+                          {item.activo ? "Desactivar" : "Activar"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </article>
               ))}
             </div>

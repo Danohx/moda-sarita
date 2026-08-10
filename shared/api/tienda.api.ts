@@ -13,6 +13,20 @@ const TIENDA_ENDPOINTS = {
   movimientosCredito: "/tienda/credito/movimientos",
 } as const;
 
+export type ValidarCuponResponse = {
+  ok: boolean;
+  data: {
+    codigo: string;
+    subtotal: number;
+    descuento: number;
+    total: number;
+    uso_maximo: number | null;
+    uso_maximo_por_cliente: number | null;
+    usos_globales_restantes: number | null;
+    usos_cliente_restantes: number | null;
+  };
+};
+
 export type TiendaPerfil = {
   id: string;
   usuario_id: string;

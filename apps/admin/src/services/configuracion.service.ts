@@ -5,6 +5,14 @@ import {
   type PatchMetodoPagoPayload,
 } from "@shared/api/configuracion.api";
 
+export type CheckoutParametroClave =
+  | "checkout.habilitado"
+  | "checkout.permitir_recoleccion_tienda"
+  | "checkout.permitir_envio_domicilio"
+  | "checkout.costo_envio_domicilio"
+  | "checkout.envio_gratis_habilitado"
+  | "checkout.envio_gratis_desde";
+
 export type TicketParametroClave =
   | "ticket.nombre_tienda"
   | "ticket.telefono"
@@ -25,7 +33,8 @@ export type InventarioParametroClave =
 
 export type ConfigParametroClave =
   | TicketParametroClave
-  | InventarioParametroClave;
+  | InventarioParametroClave
+  | CheckoutParametroClave;
 
 const TICKET_KEYS: TicketParametroClave[] = [
   "ticket.nombre_tienda",
@@ -45,6 +54,15 @@ const INVENTARIO_KEYS: InventarioParametroClave[] = [
   "inventario.mostrar_alertas_bajo_stock",
   "inventario.alertar_productos_sin_imagen",
   "inventario.alertar_productos_sin_categoria",
+];
+
+const CHECKOUT_KEYS: CheckoutParametroClave[] = [
+  "checkout.habilitado",
+  "checkout.permitir_recoleccion_tienda",
+  "checkout.permitir_envio_domicilio",
+  "checkout.costo_envio_domicilio",
+  "checkout.envio_gratis_habilitado",
+  "checkout.envio_gratis_desde",
 ];
 
 export const configuracionService = {
@@ -158,6 +176,23 @@ export const configuracionService = {
   async getMetodosPagoPOS() {
     const response = await configuracionApi.getMetodosPagoPOS();
     return response.data ?? [];
+  },
+
+  async getCheckoutParams() {
+    const response =
+      await configuracionApi.getParametrosModuloAdmin("CHECKOUT");
+
+    return response.data ?? [];
+  },
+
+  async saveCheckoutParams(params: ConfigParametro[]) {
+    const paramsMap = new Map(params.map((param) => [param.clave, param]));
+
+    const updates = CHECKOUT_KEYS.map((clave) => paramsMap.get(clave))
+      .filter((param): param is ConfigParametro => !!param && param.editable)
+      .map((param) => this.updateParametro(param.clave, param.valor));
+
+    return Promise.all(updates);
   },
 };
 
