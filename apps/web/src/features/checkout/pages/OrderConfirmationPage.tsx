@@ -2,17 +2,17 @@ import { useEffect, useState } from "react";
 import { CheckCircle2, Clock3, MapPin, PackageCheck } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { toApiError } from "@shared/api/errors";
-import { tiendaApi, type TiendaPedidoDetalle } from "@shared/api/tienda.api";
+import { cuentaApi, type CuentaPedidoDetalle } from "@shared/api/cuenta.api";
 import { formatMoney } from "@web/lib/formatters";
 import styles from "./OrderConfirmationPage.module.css";
 
 export function OrderConfirmationPage() {
   const { orderId = "" } = useParams();
-  const [data, setData] = useState<TiendaPedidoDetalle | null>(null);
+  const [data, setData] = useState<CuentaPedidoDetalle | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    tiendaApi.getPedidoById(orderId).then((response) => setData(response.data)).catch((cause) => setError(toApiError(cause, "No se pudo cargar el pedido.").message));
+    cuentaApi.getPedidoById(orderId).then((response) => setData(response.data)).catch((cause) => setError(toApiError(cause, "No se pudo cargar el pedido.").message));
   }, [orderId]);
 
   if (!data && !error) return <div className="route-loading"><span className="route-loading__spinner" /><p>Cargando confirmación...</p></div>;

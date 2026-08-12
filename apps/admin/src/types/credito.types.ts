@@ -13,7 +13,7 @@ export type EstadoCuotaCredito =
   | "CONDONADA";
 
 export type FrecuenciaPagoCredito = "SEMANAL" | "QUINCENAL" | "MENSUAL";
-export type OrigenCredito = "POS" | "ADMIN" | "MIGRACION_LEGACY";
+export type OrigenCredito = "POS" | "ADMIN" | "WEB" | "MIGRACION_LEGACY";
 
 export type CreditoResumen = {
   credito_id: string;

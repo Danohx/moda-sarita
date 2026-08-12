@@ -8,7 +8,7 @@
 .stat > span { width:45px;height:45px;border-radius:14px;display:grid;place-items:center;background:#fff0f7;color:#ec1380; }
 .stat small { display:block;color:#8b7281;font-size:.76rem; }
 .stat strong { display:block;color:#2d1b25;font-size:1.3rem;margin-top:.15rem; }
-.grid { display:grid; grid-template-columns:1.15fr .85fr; gap:1.2rem; }
+.grid { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr); gap:1.2rem; }
 .card h2 { margin:0 0 1rem; color:#2f1d28; font-size:1.15rem; }
 .quickLinks { display:grid; gap:.7rem; }
 .quickLinks a { display:flex; align-items:center; gap:.7rem; padding:.85rem; border-radius:14px; background:#fcf8fa; color:#664b5b; text-decoration:none; font-weight:700; }
@@ -43,7 +43,7 @@
 .addressTop strong { color:#2f1d28; }
 .address p { margin:.25rem 0;color:#755d6c;line-height:1.55;font-size:.88rem; }
 .addressActions { display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem; }
-.tableWrap { overflow:auto; border:1px solid #eadde5; border-radius:18px; background:#fff; }
+.tableWrap { width:100%; max-width:100%; min-width:0; overflow:auto; overscroll-behavior-inline:contain; border:1px solid #eadde5; border-radius:18px; background:#fff; }
 .table { width:100%; border-collapse:collapse; min-width:690px; }
 .table th,.table td { padding:1rem; text-align:left; border-bottom:1px solid #eee4e9; }
 .table th { color:#806978;font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;background:#fcf9fa; }
@@ -52,7 +52,7 @@
 .table a { color:#c70d6a;font-weight:800;text-decoration:none; }
 .empty { text-align:center;padding:3rem 1rem;color:#806978; }
 .empty h2 { color:#2f1d28; }
-.detailGrid { display:grid; grid-template-columns:1fr 330px; gap:1.2rem; align-items:start; }
+.detailGrid { display:grid; grid-template-columns:minmax(0,1fr) minmax(260px,330px); gap:1.2rem; align-items:start; width:100%; min-width:0; }
 .productList { display:grid; gap:.8rem; }
 .product { display:grid;grid-template-columns:70px 1fr auto;gap:.8rem;align-items:center;padding:.8rem 0;border-bottom:1px solid #eee4e9; }
 .product:last-child{border-bottom:0}.product img{width:70px;height:82px;object-fit:cover;border-radius:11px;background:#f7f0f4}.product strong{color:#2f1d28}.product p{margin:.2rem 0;color:#806978;font-size:.82rem}.product>span{font-weight:800;color:#2f1d28}
@@ -82,7 +82,7 @@
 .creditStatus_CON_SALDO { background:rgba(255,255,255,.14);color:#fff; }
 .creditStatus_LIMITE_ALCANZADO,.creditStatus_SOBREGIRADO { background:rgba(255,178,196,.18);color:#ffc4d2; }
 .creditAmounts { display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:2rem;position:relative;z-index:1; }
-.creditAmounts div { padding:1rem;border-radius:16px;background:rgba(255,255,255,.09);backdrop-filter:blur(4px); }
+.creditAmounts div { padding:1rem;border-radius:16px;background:rgba(255,255,255,.09); }
 .creditAmounts small { display:block;color:#edd8e4;font-size:.76rem; }
 .creditAmounts strong { display:block;margin-top:.35rem;font-size:clamp(1.25rem,2.5vw,1.75rem);color:#fff; }
 .creditProgressBlock { margin-top:1.3rem;position:relative;z-index:1; }
@@ -129,3 +129,346 @@
 @media(max-width:1100px){.stats{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:760px){.creditAmounts,.creditInfoGrid{grid-template-columns:1fr}.creditHeroTop{align-items:center}.creditHistoryHeader{align-items:flex-start;flex-direction:column}.creditMovement{grid-template-columns:auto 1fr}.movementAmount{grid-column:2;text-align:left;min-width:0;display:flex;gap:.7rem;align-items:center;flex-wrap:wrap}.movementAmount span{margin-top:0}}
 @media(max-width:560px){.stats{grid-template-columns:1fr}.creditHeroIcon{width:48px;height:48px}.creditHeroTop h2{font-size:.95rem}.creditMovement{grid-template-columns:1fr}.movementIcon{display:none}.movementAmount{grid-column:1}.creditInfoCard{padding:1rem}}
+
+/* =============================================================
+   Cierre Web 2026 — Mi Cuenta / Crédito / Pedidos / Apartados
+   Usa los tokens Boutique compatibles con shared/index.css.
+   ============================================================= */
+.inlineBack {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  margin: 0 0 1rem;
+  color: var(--color-primary-vibrant, #ec1380);
+  font-weight: 800;
+  text-decoration: none;
+}
+.sectionTitle {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.sectionTitle p { margin: 0 0 .25rem; color: var(--color-primary-vibrant, #ec1380); text-transform: uppercase; letter-spacing: .12em; font-size: .7rem; font-weight: 900; }
+.sectionTitle h2 { margin: 0; }
+.sectionTitle > span { min-width: 34px; height: 34px; padding: 0 .6rem; display: inline-grid; place-items: center; border-radius: 999px; background: var(--color-primary-bg, rgba(247,213,233,.22)); color: var(--color-primary-vibrant, #ec1380); font-weight: 900; }
+.creditSection { margin-top: 1rem; }
+.creditList { display: grid; gap: .75rem; }
+.creditListItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem;
+  border: 1px solid var(--color-border, rgba(92,75,87,.12));
+  border-radius: var(--border-radius-large, 16px);
+  background: var(--color-surface-soft, #fdfbfc);
+  color: var(--color-text, #5c4b57);
+  text-decoration: none;
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.creditListItem:hover { border-color: rgba(236,19,128,.35); box-shadow: var(--shadow-sm, 0 2px 8px rgba(92,75,87,.06)); }
+.creditListTitle { display: flex; align-items: center; gap: .65rem; flex-wrap: wrap; }
+.creditListTitle strong { color: #221019; }
+.creditListItem p { margin: .35rem 0 0; font-size: .82rem; color: #806978; }
+.creditListAmounts { text-align: right; }
+.creditListAmounts small, .creditListAmounts span { display: block; }
+.creditListAmounts small { color: #806978; font-size: .72rem; }
+.creditListAmounts strong { display: block; margin: .18rem 0; color: #221019; font-size: 1.05rem; }
+.creditListAmounts span { color: var(--color-primary-vibrant, #ec1380); font-size: .76rem; font-weight: 800; }
+.movementMeta a { color: var(--color-primary-vibrant, #ec1380); text-decoration: none; font-size: .72rem; font-weight: 800; }
+.creditDetailHero {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .8rem;
+  margin-bottom: 1rem;
+  background: var(--gradient-primary-soft, linear-gradient(135deg, rgba(236,19,128,.1), rgba(255,79,163,.06)));
+}
+.creditDetailHero > div { padding: .95rem; border: 1px solid rgba(236,19,128,.12); border-radius: var(--border-radius-large, 16px); background: rgba(255,255,255,.78); }
+.creditDetailHero span { width: 38px; height: 38px; display: grid; place-items: center; margin-bottom: .65rem; border-radius: 12px; color: var(--color-primary-vibrant, #ec1380); background: var(--color-primary-bg, rgba(247,213,233,.22)); }
+.creditDetailHero small { display: block; color: #806978; font-size: .72rem; }
+.creditDetailHero strong { display: block; margin-top: .25rem; color: #221019; font-size: 1rem; }
+.creditDetailMain { display: grid; gap: 1rem; }
+.paymentList { display: grid; gap: .25rem; }
+.paymentItem { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: .8rem; align-items: center; padding: .9rem 0; border-bottom: 1px solid var(--color-border, rgba(92,75,87,.12)); }
+.paymentItem:last-child { border-bottom: 0; }
+.paymentIcon { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 13px; background: var(--color-primary-bg, rgba(247,213,233,.22)); color: var(--color-primary-vibrant, #ec1380); }
+.paymentItem > div:nth-child(2) strong { color: #221019; }
+.paymentItem p { margin: .2rem 0; color: #806978; font-size: .8rem; }
+.paymentItem small { color: #806978; }
+.paymentItem > strong { color: #221019; }
+.paymentApplications { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .5rem; }
+.paymentApplications span { padding: .24rem .5rem; border-radius: 999px; background: var(--color-success-bg, rgba(22,163,74,.1)); color: var(--color-success, #16a34a); font-size: .68rem; font-weight: 800; }
+.creditMovementCompact { display: flex; justify-content: space-between; gap: 1rem; padding: .85rem 0; border-bottom: 1px solid var(--color-border, rgba(92,75,87,.12)); }
+.creditMovementCompact:last-child { border-bottom: 0; }
+.creditMovementCompact > div:first-child { min-width: 0; }
+.creditMovementCompact strong { color: #221019; }
+.creditMovementCompact span { display: block; margin-top: .15rem; color: #806978; font-size: .74rem; }
+.creditMovementCompact p { margin: .3rem 0 0; color: var(--color-text, #5c4b57); font-size: .84rem; }
+.creditMovementCompact > div:last-child { text-align: right; flex: 0 0 auto; }
+.relatedOrder { display: flex; align-items: center; gap: .8rem; margin-top: 1rem; color: inherit; text-decoration: none; border-color: rgba(236,19,128,.18); transition: transform .18s ease, box-shadow .18s ease; }
+.relatedOrder:hover { transform: translateY(-2px); box-shadow: var(--shadow-pink, 0 8px 22px rgba(236,19,128,.22)); }
+.relatedOrder > svg { color: var(--color-primary-vibrant, #ec1380); flex: 0 0 auto; }
+.relatedOrder small, .relatedOrder span { display: block; color: #806978; font-size: .74rem; }
+.relatedOrder strong { display: block; color: #221019; margin: .12rem 0; }
+.readOnlyNotice { display: flex; align-items: flex-start; gap: .75rem; margin-top: 1rem; background: var(--color-info-bg, rgba(37,99,235,.1)); border-color: rgba(37,99,235,.16); }
+.readOnlyNotice > svg { flex: 0 0 auto; color: var(--color-info, #2563eb); }
+.readOnlyNotice strong { color: #221019; }
+.readOnlyNotice p { margin: .3rem 0 0; font-size: .82rem; line-height: 1.55; }
+.orderCards { display: grid; gap: .8rem; }
+.orderCard { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: .9rem; align-items: center; padding: 1rem; border: 1px solid var(--color-border, rgba(92,75,87,.12)); border-radius: var(--border-radius-large, 16px); background: var(--color-surface, #fff); box-shadow: var(--shadow-sm, 0 2px 8px rgba(92,75,87,.06)); color: inherit; text-decoration: none; transition: transform .18s ease, border-color .18s ease; }
+.orderCard:hover { border-color: rgba(236,19,128,.32); }
+.orderCardIcon { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 14px; background: var(--color-primary-bg, rgba(247,213,233,.22)); color: var(--color-primary-vibrant, #ec1380); }
+.orderCardMain > div { display: flex; gap: .55rem; align-items: center; flex-wrap: wrap; }
+.orderCardMain strong { color: #221019; }
+.orderCardMain p { margin: .25rem 0; color: #806978; font-size: .82rem; }
+.orderCardMain small { color: #806978; }
+.orderCardAmount { text-align: right; }
+.orderCardAmount strong, .orderCardAmount span { display: block; }
+.orderCardAmount strong { color: #221019; }
+.orderCardAmount span { margin-top: .25rem; color: var(--color-primary-vibrant, #ec1380); font-size: .74rem; font-weight: 800; }
+.apartadoGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.apartadoCard { padding: 1.1rem; border: 1px solid var(--color-border, rgba(92,75,87,.12)); border-radius: var(--border-radius-xl, 18px); background: var(--color-surface, #fff); box-shadow: var(--shadow-sm, 0 2px 8px rgba(92,75,87,.06)); color: inherit; text-decoration: none; }
+.apartadoTop { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
+.apartadoTop small, .apartadoTop strong { display: block; }
+.apartadoTop small { color: #806978; font-size: .72rem; }
+.apartadoTop strong { color: #221019; font-size: 1.1rem; }
+.apartadoAmounts { display: grid; grid-template-columns: repeat(3, 1fr); gap: .55rem; margin: 1rem 0; }
+.apartadoAmounts div { padding: .75rem; border-radius: 13px; background: var(--color-surface-soft, #fdfbfc); }
+.apartadoAmounts small { display: block; color: #806978; font-size: .68rem; }
+.apartadoAmounts strong { display: block; margin-top: .18rem; color: #221019; font-size: .86rem; }
+.apartadoDeadline { display: flex; gap: .45rem; align-items: center; padding-top: .8rem; border-top: 1px solid var(--color-border, rgba(92,75,87,.12)); color: #806978; font-size: .8rem; }
+.apartadoDeadline svg { color: var(--color-primary-vibrant, #ec1380); }
+.detailLink { display: block; margin-top: .8rem; color: var(--color-primary-vibrant, #ec1380); font-weight: 800; font-size: .78rem; }
+
+/* Tokens del diseño Boutique para superficies que históricamente tenían valores directos. */
+.card { background: var(--color-surface, #fff); border-color: var(--color-border, rgba(92,75,87,.12)); border-radius: var(--border-radius-xl, 18px); box-shadow: var(--shadow-sm, 0 2px 8px rgba(92,75,87,.06)); }
+.primary { background: var(--gradient-primary, linear-gradient(135deg,#ec1380,#ff4fa3)); color: var(--color-text-on-vibrant, #fff); box-shadow: var(--shadow-pink, 0 8px 22px rgba(236,19,128,.22)); }
+.secondary { border-color: var(--color-border-strong, rgba(92,75,87,.2)); color: var(--color-primary-vibrant, #ec1380); }
+.badge { background: var(--color-primary-bg, rgba(247,213,233,.22)); color: var(--color-primary-vibrant, #ec1380); }
+.tableWrap { border-color: var(--color-border, rgba(92,75,87,.12)); border-radius: var(--border-radius-xl, 18px); }
+
+@media (max-width: 900px) {
+  .creditDetailHero { grid-template-columns: repeat(2, 1fr); }
+  .apartadoGrid { grid-template-columns: 1fr; }
+}
+@media (max-width: 620px) {
+  .creditListItem, .orderCard { grid-template-columns: 1fr; }
+  .creditListAmounts, .orderCardAmount { text-align: left; }
+  .orderCardIcon { display: none; }
+  .creditDetailHero { grid-template-columns: 1fr; }
+  .paymentItem { grid-template-columns: auto 1fr; align-items: flex-start; }
+  .paymentItem > strong { grid-column: 2; }
+  .creditMovementCompact { flex-direction: column; }
+  .creditMovementCompact > div:last-child { text-align: left; }
+  .apartadoAmounts { grid-template-columns: 1fr; }
+}
+
+
+/* =============================================================
+   Pulido Mi Cuenta 2026 — rendimiento, límites y responsive
+   ============================================================= */
+.sectionHeaderCompact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.sectionHeaderCompact h2 { margin: 0; }
+.sectionLink {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  flex: 0 0 auto;
+  color: var(--color-primary-vibrant, #ec1380);
+  font-size: .8rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+.sectionLink:hover { text-decoration: underline; text-underline-offset: 3px; }
+.quickLinks a { grid-template-columns: auto minmax(0, 1fr) auto; }
+.quickLinks a > span { min-width: 0; }
+.quickArrow { margin-left: auto; opacity: .7; }
+.emptyCompact {
+  min-height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .8rem;
+  padding: 1rem;
+  border: 1px dashed var(--color-border-strong, rgba(92,75,87,.2));
+  border-radius: var(--border-radius-large, 16px);
+  color: #806978;
+}
+.emptyCompact strong { display: block; color: #2f1d28; }
+.emptyCompact a { display: inline-block; margin-top: .2rem; color: var(--color-primary-vibrant, #ec1380); font-size: .8rem; font-weight: 800; text-decoration: none; }
+.loadMoreButton {
+  min-height: 43px;
+  margin: 1rem auto 0;
+  border: 1px solid var(--color-border-strong, rgba(92,75,87,.2));
+  border-radius: var(--border-radius-medium, 12px);
+  padding: .68rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .45rem;
+  background: var(--color-surface, #fff);
+  color: var(--color-primary-vibrant, #ec1380);
+  font-weight: 800;
+  cursor: pointer;
+}
+.loadMoreButton:hover:not(:disabled) { background: var(--color-primary-bg, rgba(247,213,233,.22)); border-color: rgba(236,19,128,.28); }
+.loadMoreButton:disabled { opacity: .6; cursor: wait; }
+
+/* Evita que el contenido intrínseco de tablas/tarjetas expanda el grid. */
+.grid > *,
+.detailGrid > *,
+.creditDetailMain,
+.creditDetailMain > *,
+.creditSection,
+.creditHistory,
+.orderCards,
+.apartadoGrid,
+.creditList,
+.orderList {
+  min-width: 0;
+  max-width: 100%;
+}
+.order,
+.orderCard,
+.creditListItem,
+.paymentItem,
+.creditMovement,
+.creditMovementCompact,
+.apartadoCard {
+  overflow-wrap: anywhere;
+}
+
+/* Las listas largas se renderizan de forma progresiva por el navegador. */
+.orderCards,
+.apartadoGrid,
+.creditList,
+.creditMovementList {
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 480px;
+}
+
+@media (max-width: 900px) {
+  .detailGrid { grid-template-columns: minmax(0,1fr); }
+}
+@media (max-width: 620px) {
+  .sectionHeaderCompact { align-items: flex-start; }
+  .sectionLink { padding-top: .1rem; }
+  .emptyCompact { justify-content: flex-start; }
+}
+/* =============================================================
+   MODA_SARITA_CREDIT_HERO_FIX_V1
+   La regla genérica .card se declara después de .creditHero y
+   sobrescribía su background por cascada. Esta regla compuesta
+   recupera la tarjeta financiera Boutique sin backdrop-filter.
+   ============================================================= */
+.card.creditHero {
+  background:
+    radial-gradient(circle at 92% 4%, rgba(255,255,255,.075) 0 118px, transparent 119px),
+    linear-gradient(135deg, #29141f 0%, #4c1834 58%, #84104c 100%);
+  color: #ffffff;
+  border: 0;
+  box-shadow: 0 18px 40px rgba(34, 16, 25, .16);
+  overflow: hidden;
+  position: relative;
+  isolation: isolate;
+}
+
+.card.creditHero .creditHeroTop h2 {
+  color: #ffffff;
+}
+
+.card.creditHero .creditHeroIcon {
+  background: rgba(255,255,255,.13);
+  color: #ffffff;
+}
+
+.card.creditHero .creditStatus {
+  background: rgba(255,255,255,.14);
+  color: #ffffff;
+  border: 1px solid rgba(255,255,255,.08);
+}
+
+.card.creditHero .creditStatus_ACTIVO,
+.card.creditHero .creditStatus_CON_SALDO,
+.card.creditHero .creditStatus_AL_CORRIENTE {
+  background: rgba(255,255,255,.14);
+  color: #ffffff;
+}
+
+.card.creditHero .creditStatus_SIN_ADEUDO,
+.card.creditHero .creditStatus_LIQUIDADO {
+  background: rgba(174,242,208,.18);
+  color: #bff8dc;
+}
+
+.card.creditHero .creditStatus_EN_MORA,
+.card.creditHero .creditStatus_INCUMPLIDO,
+.card.creditHero .creditStatus_AL_LIMITE {
+  background: rgba(255,178,196,.18);
+  color: #ffc4d2;
+}
+
+.card.creditHero .creditAmounts > div {
+  background: rgba(255,255,255,.09);
+  border: 1px solid rgba(255,255,255,.035);
+  /* Sin backdrop-filter: mantiene el aspecto y evita trabajo GPU innecesario. */
+}
+
+.card.creditHero .creditAmounts small {
+  color: #edd8e4;
+}
+
+.card.creditHero .creditAmounts strong {
+  color: #ffffff;
+}
+
+.card.creditHero .creditProgressBlock > div:first-child {
+  color: #f3dce8;
+}
+
+.card.creditHero .creditProgressBlock > div:first-child strong {
+  color: #ffffff;
+}
+
+.card.creditHero .creditProgress {
+  background: rgba(255,255,255,.16);
+}
+
+.card.creditHero .creditProgress > span {
+  background: linear-gradient(90deg, #ff8ac2 0%, #ffffff 100%);
+}
+
+@media (max-width: 620px) {
+  .card.creditHero {
+    padding: 1.15rem;
+  }
+
+  .card.creditHero .creditAmounts {
+    grid-template-columns: 1fr;
+    gap: .7rem;
+    margin-top: 1.25rem;
+  }
+}
+/* MODA_SARITA_ACCOUNT_LIMITS_MODAL_V1 */
+.accountTitleStack { align-items:flex-start; }
+.accountTitleStack > div { width:100%; }
+.accountSubtitle { display:block; margin-top:.5rem; color:#806878; font-size:.9rem; line-height:1.55; text-transform:none; letter-spacing:normal; font-weight:500; }
+.installmentPreview > p { margin:-.35rem 0 1rem; color:#806978; font-size:.86rem; line-height:1.55; }
+.modalBackdrop { position:fixed; inset:0; z-index:1200; display:grid; place-items:center; padding:1rem; background:rgba(34,16,25,.48); }
+.installmentModal { width:min(980px,96vw); max-height:min(82vh,760px); display:flex; flex-direction:column; overflow:hidden; background:var(--color-surface,#fff); border:1px solid var(--color-border,rgba(92,75,87,.12)); border-radius:var(--border-radius-xl,18px); box-shadow:var(--shadow-lg,0 18px 40px rgba(92,75,87,.14)); }
+.installmentModal > header { display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; padding:1.1rem 1.2rem; border-bottom:1px solid var(--color-border,rgba(92,75,87,.12)); }
+.installmentModal > header p { margin:0 0 .2rem; color:var(--color-primary-vibrant,#ec1380); text-transform:uppercase; letter-spacing:.12em; font-size:.7rem; font-weight:900; }
+.installmentModal > header h2 { margin:0; color:#221019; }
+.installmentModal > header span { display:block; margin-top:.25rem; color:#806978; font-size:.8rem; }
+.installmentModal > header button { width:40px; height:40px; border:0; border-radius:12px; display:grid; place-items:center; background:var(--color-primary-bg,rgba(247,213,233,.22)); color:var(--color-primary-vibrant,#ec1380); cursor:pointer; }
+.modalTableWrap { min-height:0; overflow:auto; padding:1rem; }
+.installmentModal > .loadMoreButton { margin:0 auto 1rem; }
+@media(max-width:620px){.modalBackdrop{padding:.5rem}.installmentModal{width:100%;max-height:90vh}.accountSubtitle{font-size:.84rem}}

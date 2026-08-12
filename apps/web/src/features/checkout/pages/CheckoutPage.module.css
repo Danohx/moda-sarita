@@ -481,3 +481,29 @@
     min-height: 44px;
   }
 }
+
+
+/* MODA_SARITA_WEB_CREDIT_PLAN_V1 */
+.creditPlan { margin-top:1rem; padding:1rem; border:1px solid rgba(236,19,128,.2); border-radius:16px; background:linear-gradient(135deg,rgba(247,213,233,.3),rgba(255,255,255,.9)); }
+.creditPlanHeader { display:flex; align-items:center; justify-content:space-between; gap:1rem; color:var(--color-primary-vibrant,#ec1380); }
+.creditPlanHeader strong { display:block; color:var(--color-text,#5c4b57); }
+.creditPlanHeader span { display:block; margin-top:.15rem; font-size:.8rem; }
+.creditPlan > p { margin:.75rem 0; color:var(--color-text,#5c4b57); font-size:.84rem; line-height:1.55; }
+.creditPlan > small { display:block; margin-top:.7rem; color:#806978; line-height:1.45; }
+.creditPlanGrid { display:grid; grid-template-columns:1fr 1fr; gap:.8rem; }
+.creditPlanGrid label { display:grid; gap:.35rem; color:var(--color-text,#5c4b57); font-size:.78rem; font-weight:800; }
+.creditPlanGrid select { width:100%; min-height:44px; border:1px solid var(--color-border-strong,rgba(92,75,87,.2)); border-radius:12px; padding:.65rem .75rem; background:#fff; color:var(--color-text,#5c4b57); }
+.creditSummaryRow strong { text-align:right; text-transform:capitalize; }
+@media(max-width:620px){.creditPlanGrid{grid-template-columns:1fr}.creditSummaryRow{align-items:flex-start}.creditSummaryRow strong{max-width:55%}}
+
+
+/* MODA_SARITA_CREDIT_PAYMENT_VISIBILITY_V1 */
+.paymentDisabled {
+  cursor: not-allowed;
+  background: var(--color-surface-soft, #fdfbfc);
+  border-color: var(--color-border, rgba(92,75,87,.12));
+  opacity: .78;
+}
+.paymentDisabled input { cursor: not-allowed; }
+.paymentDisabled strong { color: var(--color-text, #5c4b57); }
+.paymentDisabled p { color: #8a7281; }

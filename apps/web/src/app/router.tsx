@@ -5,6 +5,8 @@ import { AccountLayout } from "@web/features/account/components/AccountLayout";
 import { AccountHomePage } from "@web/features/account/pages/AccountHomePage";
 import { AddressesPage } from "@web/features/account/pages/AddressesPage";
 import { CreditPage } from "@web/features/account/pages/CreditPage";
+import { CreditDetailPage } from "@web/features/account/pages/CreditDetailPage";
+import { ApartadosPage } from "@web/features/account/pages/ApartadosPage";
 import { OrderDetailPage } from "@web/features/account/pages/OrderDetailPage";
 import { OrdersPage } from "@web/features/account/pages/OrdersPage";
 import { ProfilePage } from "@web/features/account/pages/ProfilePage";
@@ -59,6 +61,8 @@ export function AppRouter() {
             <Route path="perfil" element={<ProfilePage />} />
             <Route path="direcciones" element={<AddressesPage />} />
             <Route path="credito" element={<CreditPage />} />
+            <Route path="credito/:creditId" element={<CreditDetailPage />} />
+            <Route path="apartados" element={<ApartadosPage />} />
             <Route path="pedidos" element={<OrdersPage />} />
             <Route path="pedidos/:orderId" element={<OrderDetailPage />} />
           </Route>

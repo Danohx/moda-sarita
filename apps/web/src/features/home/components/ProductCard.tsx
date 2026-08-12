@@ -28,7 +28,7 @@ function getAvailableStock(product: Producto) {
 export function ProductCard({ product }: ProductCardProps) {
   const stock = getAvailableStock(product);
   const soldOut = stock <= 0;
-  const image = product.imagen_principal || "/images/product-placeholder.svg";
+  const image = product.imagen_principal || "/product-placeholder.svg";
 
   return (
     <article className={styles.card}>
@@ -39,7 +39,7 @@ export function ProductCard({ product }: ProductCardProps) {
           loading="lazy"
           onError={(event) => {
             event.currentTarget.onerror = null;
-            event.currentTarget.src = "/images/product-placeholder.svg";
+            event.currentTarget.src = "/product-placeholder.svg";
           }}
         />
         {product.destacado && <span className={styles.featured}>Destacado</span>}

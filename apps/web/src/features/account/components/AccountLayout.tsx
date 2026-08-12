@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronRight, CreditCard, Home, LogOut, MapPin, Menu, Package, UserRound, X } from "lucide-react";
+import { BookmarkCheck, ChevronRight, CreditCard, Home, LogOut, MapPin, Menu, Package, UserRound, X } from "lucide-react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@shared/context/AuthContext";
 import styles from "./AccountLayout.module.css";
@@ -9,6 +9,7 @@ const navItems = [
   { to: "/mi-cuenta/perfil", label: "Mi perfil", icon: UserRound },
   { to: "/mi-cuenta/direcciones", label: "Direcciones", icon: MapPin },
   { to: "/mi-cuenta/credito", label: "Mi crédito", icon: CreditCard },
+  { to: "/mi-cuenta/apartados", label: "Mis apartados", icon: BookmarkCheck },
   { to: "/mi-cuenta/pedidos", label: "Mis pedidos", icon: Package },
 ];
 

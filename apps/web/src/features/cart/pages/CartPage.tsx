@@ -164,11 +164,11 @@ export function CartPage() {
                 >
                   <Link className={styles.image} to={`/producto/${item.productId}`}>
                     <img
-                      src={item.imageUrl || "/images/product-placeholder.svg"}
+                      src={item.imageUrl || "/product-placeholder.svg"}
                       alt={item.productName}
                       onError={(event) => {
                         event.currentTarget.onerror = null;
-                        event.currentTarget.src = "/images/product-placeholder.svg";
+                        event.currentTarget.src = "/product-placeholder.svg";
                       }}
                     />
                   </Link>

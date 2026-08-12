@@ -26,7 +26,7 @@
   gap: 2rem;
   background:
     linear-gradient(145deg, rgba(34, 16, 25, .95), rgba(83, 20, 53, .9)),
-    url('hero-boutique.svg') center/cover;
+    url('/hero-boutique.svg') center/cover;
 }
 .visual small { text-transform: uppercase; letter-spacing: .18em; font-weight: 800; color: #f8bddb; }
 .visual h1 { margin: .8rem 0 1rem; font-size: clamp(2.2rem, 4vw, 3.8rem); line-height: 1; }

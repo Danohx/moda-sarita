@@ -150,7 +150,7 @@ export function ProductDetailPage() {
     return [
       {
         id: "placeholder",
-        url: "/images/product-placeholder.svg",
+        url: "/product-placeholder.svg",
         orden: 0,
         es_principal: true,
       },
@@ -302,11 +302,11 @@ export function ProductDetailPage() {
         <div className={styles.gallery}>
           <div className={styles.mainImage}>
             <img
-              src={images[selectedImage]?.url ?? "/images/product-placeholder.svg"}
+              src={images[selectedImage]?.url ?? "/product-placeholder.svg"}
               alt={detail.producto.nombre}
               onError={(event) => {
                 event.currentTarget.onerror = null;
-                event.currentTarget.src = "/images/product-placeholder.svg";
+                event.currentTarget.src = "/product-placeholder.svg";
               }}
             />
             {soldOut && <span className={styles.soldOut}>Agotado</span>}

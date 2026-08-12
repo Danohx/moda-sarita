@@ -15,7 +15,7 @@ import {
   type MetodoPagoConfig,
 } from "@shared/api/configuracion.api";
 import { toApiError } from "@shared/api/errors";
-import { checkoutApi } from "@shared/api/checkout.api";
+import { checkoutApi, type CheckoutCreditoOpciones } from "@shared/api/checkout.api";
 import {
   tiendaApi,
   type TiendaDireccion,
@@ -45,6 +45,37 @@ function isCard(code: string) {
     "MERCADO_PAGO",
     "PAYPAL",
   ].includes(code);
+}
+
+function getCreditoUnavailableMessage(
+  options: CheckoutCreditoOpciones | null,
+  total: number,
+) {
+  if (!options) return "Validando disponibilidad de tu crédito...";
+  if (options.elegible) return "Disponible para esta compra.";
+  if (options.mensaje) return options.mensaje;
+
+  const disponible = Number(options.credito_disponible || 0);
+  const faltante = Math.max(Number(total || 0) - disponible, 0);
+
+  switch (options.motivo) {
+    case "CREDITO_DISPONIBLE_INSUFICIENTE":
+      return `Crédito insuficiente. Disponible: ${formatMoney(disponible)}. Te faltan ${formatMoney(faltante)} para cubrir esta compra.`;
+    case "YA_TIENE_CREDITO_ACTIVO":
+      return "Tu línea está activa, pero la configuración no permite abrir otro financiamiento mientras exista uno activo.";
+    case "MAXIMO_CREDITOS_ACTIVOS_ALCANZADO":
+      return "Ya alcanzaste el máximo de financiamientos activos permitidos.";
+    case "CUOTAS_VENCIDAS":
+      return "Tu línea está activa, pero tienes cuotas vencidas. Regularízalas para volver a financiar compras.";
+    case "CREDITO_EN_MORA":
+      return "Tu línea está activa, pero existe un crédito en mora.";
+    case "CREDITO_INCUMPLIDO":
+      return "Tu línea está activa, pero existe un crédito marcado como incumplido.";
+    case "ENGANCHE_WEB_REQUERIDO":
+      return "Tu crédito está activo, pero esta compra requiere enganche y todavía no se procesa el enganche desde la tienda web.";
+    default:
+      return "Tu crédito está activo, pero no está disponible para esta compra.";
+  }
 }
 
 const CHECKOUT_ATTEMPT_KEY = "moda-sarita-checkout-attempt";
@@ -119,6 +150,9 @@ export function CheckoutPage() {
   const [perfil, setPerfil] = useState<TiendaPerfil | null>(null);
   const [direcciones, setDirecciones] = useState<TiendaDireccion[]>([]);
   const [metodos, setMetodos] = useState<MetodoPagoConfig[]>([]);
+  const [creditoOpciones, setCreditoOpciones] = useState<CheckoutCreditoOpciones | null>(null);
+  const [creditoPlazo, setCreditoPlazo] = useState<number | null>(null);
+  const [creditoFrecuencia, setCreditoFrecuencia] = useState<"SEMANAL" | "QUINCENAL" | "MENSUAL" | null>(null);
   const [tipoEntrega, setTipoEntrega] = useState<"RECOGER" | "DOMICILIO">(
     "RECOGER",
   );
@@ -186,7 +220,7 @@ export function CheckoutPage() {
 
           const preferredMethod =
             methods.find((item) => item.codigo === "TRANSFERENCIA") ||
-            methods[0];
+            methods.find((item) => item.codigo !== "CREDITO_TIENDA");
 
           setMetodo(preferredMethod?.codigo || "");
 
@@ -220,28 +254,37 @@ export function CheckoutPage() {
             return Number.isFinite(value) ? value : fallback;
           };
 
-          setCheckoutConfig({
+          const nextCheckoutConfig: CheckoutConfig = {
             habilitado: getBool("checkout.habilitado", false),
-
             permitirRecoleccionTienda: getBool(
               "checkout.permitir_recoleccion_tienda",
               true,
             ),
-
             permitirEnvioDomicilio: getBool(
               "checkout.permitir_envio_domicilio",
               false,
             ),
-
             costoEnvioDomicilio: getNumber("checkout.costo_envio_domicilio", 0),
-
             envioGratisHabilitado: getBool(
               "checkout.envio_gratis_habilitado",
               false,
             ),
-
             envioGratisDesde: getNumber("checkout.envio_gratis_desde", 0),
-          });
+          };
+
+          setCheckoutConfig(nextCheckoutConfig);
+
+          if (
+            !nextCheckoutConfig.permitirRecoleccionTienda &&
+            nextCheckoutConfig.permitirEnvioDomicilio
+          ) {
+            setTipoEntrega("DOMICILIO");
+          } else if (
+            nextCheckoutConfig.permitirRecoleccionTienda &&
+            !nextCheckoutConfig.permitirEnvioDomicilio
+          ) {
+            setTipoEntrega("RECOGER");
+          }
         },
       )
       .catch((cause) => {
@@ -261,6 +304,25 @@ export function CheckoutPage() {
       active = false;
     };
   }, []);
+
+  const couponBasis = useMemo(
+    () =>
+      JSON.stringify(
+        items
+          .map((item) => ({
+            variante_id: item.variantId,
+            cantidad: item.quantity,
+            precio: item.price,
+          }))
+          .sort((left, right) => left.variante_id.localeCompare(right.variante_id)),
+      ),
+    [items],
+  );
+
+  useEffect(() => {
+    setCuponAplicado(null);
+    setErrorCupon("");
+  }, [couponBasis]);
 
   const selectedMethod = useMemo(
     () => metodos.find((item) => item.codigo === metodo) || null,
@@ -282,6 +344,46 @@ export function CheckoutPage() {
         : (checkoutConfig?.costoEnvioDomicilio ?? 0);
 
   const totalEstimado = subtotalNeto + costoEnvio;
+
+  const visibleMetodos = useMemo(
+    () => metodos.filter((item) => item.codigo !== "CREDITO_TIENDA" || creditoOpciones?.mostrar === true),
+    [metodos, creditoOpciones?.mostrar],
+  );
+
+  useEffect(() => {
+    if (!perfil || totalEstimado <= 0) {
+      setCreditoOpciones(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      checkoutApi.getCreditoOpciones(totalEstimado, controller.signal)
+        .then((response) => {
+          const options = response.data;
+          setCreditoOpciones(options);
+          if (options.mostrar && options.elegible) {
+            setCreditoPlazo((current) => current && options.plazos?.includes(current) ? current : options.plazos?.[0] ?? null);
+            setCreditoFrecuencia((current) => current && options.frecuencias?.includes(current) ? current : options.frecuencias?.[0] ?? null);
+          } else {
+            setCreditoPlazo(null);
+            setCreditoFrecuencia(null);
+          }
+
+          if ((!options.mostrar || !options.elegible) && metodo === "CREDITO_TIENDA") {
+            const fallback = metodos.find((item) => item.codigo !== "CREDITO_TIENDA");
+            setMetodo(fallback?.codigo || "");
+          }
+        })
+        .catch((cause) => {
+          if (controller.signal.aborted) return;
+          setCreditoOpciones(null);
+          if (metodo === "CREDITO_TIENDA") setError(toApiError(cause, "No se pudo validar tu crédito.").message);
+        });
+    }, 250);
+
+    return () => { window.clearTimeout(timer); controller.abort(); };
+  }, [perfil, totalEstimado, metodo, metodos]);
 
   async function saveAddress(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -349,14 +451,34 @@ export function CheckoutPage() {
       direccion_id: tipoEntrega === "DOMICILIO" ? direccionId : null,
       metodo_pago: metodo,
       referencia_externa: referencia.trim() || null,
+      cupon_codigo: cuponAplicado?.codigo || null,
       observaciones: observaciones.trim() || null,
+      credito: metodo === "CREDITO_TIENDA" ? {
+        plazo_meses: creditoPlazo,
+        frecuencia_pago: creditoFrecuencia,
+      } : null,
     });
-  }, [items, tipoEntrega, direccionId, metodo, referencia, observaciones]);
+  }, [items, tipoEntrega, direccionId, metodo, referencia, cuponAplicado?.codigo, observaciones, creditoPlazo, creditoFrecuencia]);
 
   async function handleSubmit() {
     if (submitting) return;
 
     setError("");
+
+    if (!checkoutConfig?.habilitado) {
+      setError("El checkout se encuentra temporalmente deshabilitado.");
+      return;
+    }
+
+    if (tipoEntrega === "RECOGER" && !checkoutConfig.permitirRecoleccionTienda) {
+      setError("La recolección en tienda no está disponible en este momento.");
+      return;
+    }
+
+    if (tipoEntrega === "DOMICILIO" && !checkoutConfig.permitirEnvioDomicilio) {
+      setError("La entrega a domicilio no está disponible en este momento.");
+      return;
+    }
 
     if (!metodo) {
       setError("Selecciona un método de pago.");
@@ -370,6 +492,19 @@ export function CheckoutPage() {
 
     if (selectedMethod?.requiere_referencia && !referencia.trim()) {
       setError("El método de pago seleccionado requiere una referencia.");
+      return;
+    }
+
+    if (
+      metodo === "CREDITO_TIENDA" &&
+      (!creditoOpciones?.mostrar ||
+        creditoOpciones.elegible !== true ||
+        !creditoPlazo ||
+        !creditoFrecuencia)
+    ) {
+      setError(
+        getCreditoUnavailableMessage(creditoOpciones, totalEstimado),
+      );
       return;
     }
 
@@ -402,11 +537,6 @@ export function CheckoutPage() {
 
       const idempotencyKey = getCheckoutAttempt(checkoutFingerprint);
 
-      console.log("CHECKOUT DEBUG", {
-        tipoEntrega,
-        direccionId,
-      });
-
       const response = await checkoutApi.createPedido(
         {
           tipo_entrega: tipoEntrega,
@@ -415,6 +545,9 @@ export function CheckoutPage() {
           referencia_externa: referencia.trim() || null,
           cupon_codigo: cuponCodigo.trim() || null,
           observaciones: observaciones.trim() || null,
+          credito: metodo === "CREDITO_TIENDA" && creditoPlazo && creditoFrecuencia
+            ? { plazo_meses: creditoPlazo, frecuencia_pago: creditoFrecuencia }
+            : null,
           items: items.map((item) => ({
             variante_id: item.variantId,
             cantidad: item.quantity,
@@ -451,6 +584,17 @@ export function CheckoutPage() {
         <p>Preparando tu compra...</p>
       </div>
     );
+  if (checkoutConfig && !checkoutConfig.habilitado)
+    return (
+      <section className={`${styles.empty} container`}>
+        <h1>Compras en línea temporalmente pausadas</h1>
+        <p>El catálogo sigue disponible, pero Moda Sarita deshabilitó temporalmente la confirmación de pedidos web.</p>
+        <Link className="button button-primary" to="/catalogo">
+          Volver al catálogo
+        </Link>
+      </section>
+    );
+
   if (items.length === 0)
     return (
       <section className={`${styles.empty} container`}>
@@ -495,22 +639,24 @@ export function CheckoutPage() {
                 type="button"
                 className={`${styles.option} ${tipoEntrega === "RECOGER" ? styles.optionActive : ""}`}
                 onClick={() => setTipoEntrega("RECOGER")}
+                disabled={checkoutConfig?.permitirRecoleccionTienda === false}
               >
                 <Store size={22} />
                 <span>
                   <strong>Recoger en tienda</strong>
-                  <small>Sin costo en Av. Juárez #14 B, Huejutla.</small>
+                  <small>{checkoutConfig?.permitirRecoleccionTienda === false ? "No disponible temporalmente" : "Sin costo en Av. Juárez #14 B, Huejutla."}</small>
                 </span>
               </button>
               <button
                 type="button"
                 className={`${styles.option} ${tipoEntrega === "DOMICILIO" ? styles.optionActive : ""}`}
                 onClick={() => setTipoEntrega("DOMICILIO")}
+                disabled={checkoutConfig?.permitirEnvioDomicilio === false}
               >
                 <Truck size={22} />
                 <span>
                   <strong>Entrega a domicilio</strong>
-                  <small>El costo se confirma según la zona.</small>
+                  <small>{checkoutConfig?.permitirEnvioDomicilio === false ? "No disponible temporalmente" : `Envío ${checkoutConfig?.envioGratisHabilitado ? `gratis desde ${formatMoney(checkoutConfig.envioGratisDesde)}` : formatMoney(checkoutConfig?.costoEnvioDomicilio ?? 0)}`}</small>
                 </span>
               </button>
             </div>
@@ -626,31 +772,72 @@ export function CheckoutPage() {
               <h2>Método de pago</h2>
             </div>
             <div className={styles.paymentList}>
-              {metodos.map((payment) => (
-                <label className={styles.payment} key={payment.codigo}>
-                  <input
-                    type="radio"
-                    name="payment"
-                    value={payment.codigo}
-                    checked={metodo === payment.codigo}
-                    onChange={() => setMetodo(payment.codigo)}
-                  />
-                  {isCard(payment.codigo) ? (
-                    <CreditCard size={21} />
-                  ) : (
-                    <WalletCards size={21} />
-                  )}
-                  <span>
-                    <strong>{payment.nombre}</strong>
-                    <p>
-                      {payment.descripcion ||
-                        payment.instrucciones_web ||
-                        "Método disponible para la tienda en línea."}
-                    </p>
-                  </span>
-                </label>
-              ))}
+              {metodos.length === 0 && (
+                <div className={styles.warning}>
+                  <AlertTriangle size={19} />
+                  <span>No hay métodos de pago web activos. Contacta a Moda Sarita antes de confirmar tu compra.</span>
+                </div>
+              )}
+              {visibleMetodos.map((payment) => {
+                const esCreditoTienda = payment.codigo === "CREDITO_TIENDA";
+                const creditoDeshabilitado =
+                  esCreditoTienda && creditoOpciones?.elegible !== true;
+
+                return (
+                  <label
+                    className={`${styles.payment} ${
+                      creditoDeshabilitado ? styles.paymentDisabled : ""
+                    }`}
+                    key={payment.codigo}
+                  >
+                    <input
+                      type="radio"
+                      name="payment"
+                      value={payment.codigo}
+                      checked={metodo === payment.codigo}
+                      disabled={creditoDeshabilitado}
+                      onChange={() => setMetodo(payment.codigo)}
+                    />
+                    {isCard(payment.codigo) || esCreditoTienda ? (
+                      <CreditCard size={21} />
+                    ) : (
+                      <WalletCards size={21} />
+                    )}
+                    <span>
+                      <strong>{payment.nombre}</strong>
+                      <p>
+                        {esCreditoTienda
+                          ? creditoOpciones?.elegible
+                            ? `Disponible: ${formatMoney(
+                                creditoOpciones.credito_disponible ?? 0,
+                              )}. Puedes financiar esta compra.`
+                            : getCreditoUnavailableMessage(
+                                creditoOpciones,
+                                totalEstimado,
+                              )
+                          : payment.descripcion ||
+                            payment.instrucciones_web ||
+                            "Método disponible para la tienda en línea."}
+                      </p>
+                    </span>
+                  </label>
+                );
+              })}
             </div>
+            {metodo === "CREDITO_TIENDA" && creditoOpciones?.mostrar && creditoOpciones.elegible && (
+              <div className={styles.creditPlan}>
+                <div className={styles.creditPlanHeader}>
+                  <div><strong>Financia esta compra con tu línea</strong><span>Disponible: {formatMoney(creditoOpciones.credito_disponible ?? 0)}</span></div>
+                  <CreditCard size={22} />
+                </div>
+                <p>Esta opción se muestra únicamente porque tu crédito está activo, tiene disponibilidad suficiente y la configuración actual permite financiamiento web sin enganche.</p>
+                <div className={styles.creditPlanGrid}>
+                  <label><span>Plazo</span><select value={creditoPlazo ?? ""} onChange={(event) => setCreditoPlazo(Number(event.target.value))}>{(creditoOpciones.plazos ?? []).map((plazo) => <option key={plazo} value={plazo}>{plazo} mes(es)</option>)}</select></label>
+                  <label><span>Frecuencia</span><select value={creditoFrecuencia ?? ""} onChange={(event) => setCreditoFrecuencia(event.target.value as "SEMANAL" | "QUINCENAL" | "MENSUAL")}>{(creditoOpciones.frecuencias ?? []).map((frecuencia) => <option key={frecuencia} value={frecuencia}>{frecuencia.charAt(0) + frecuencia.slice(1).toLowerCase()}</option>)}</select></label>
+                </div>
+                <small>El servidor vuelve a validar límite, mora, cuotas vencidas, número de créditos activos y calendario antes de crear el financiamiento.</small>
+              </div>
+            )}
             {selectedMethod?.instrucciones_web && (
               <div className={styles.instructions}>
                 {selectedMethod.instrucciones_web}
@@ -666,7 +853,7 @@ export function CheckoutPage() {
                 />
               </div>
             )}
-            {selectedMethod && isCard(selectedMethod.codigo) && (
+            {selectedMethod && isCard(selectedMethod.codigo) && selectedMethod.codigo !== "CREDITO_TIENDA" && (
               <div className={styles.warning}>
                 <AlertTriangle size={19} />
                 <span>
@@ -771,7 +958,7 @@ export function CheckoutPage() {
             {items.map((item) => (
               <div className={styles.item} key={item.variantId}>
                 <img
-                  src={item.imageUrl || "/images/product-placeholder.svg"}
+                  src={item.imageUrl || "/product-placeholder.svg"}
                   alt=""
                 />
                 <span>
@@ -810,6 +997,13 @@ export function CheckoutPage() {
               </span>
             </div>
 
+            {metodo === "CREDITO_TIENDA" && creditoOpciones?.mostrar && creditoOpciones.elegible && (
+              <div className={styles.creditSummaryRow}>
+                <span>Financiamiento</span>
+                <strong>{creditoPlazo ?? "—"} mes(es) · {creditoFrecuencia ? creditoFrecuencia.toLowerCase() : "—"}</strong>
+              </div>
+            )}
+
             <div className={styles.total}>
               <strong>Total</strong>
 
@@ -830,15 +1024,15 @@ export function CheckoutPage() {
               submitting ||
               !perfil ||
               !metodo ||
+              !checkoutConfig?.habilitado ||
               (tipoEntrega === "DOMICILIO" && !direccionId)
             }
           >
             {submitting && <LoaderCircle size={18} className="spin" />}
-            {submitting ? "Confirmando..." : "Confirmar pedido"}
+            {submitting ? "Confirmando..." : metodo === "CREDITO_TIENDA" ? "Confirmar compra a crédito" : "Confirmar pedido"}
           </button>
           <p className={styles.legal}>
-            Al confirmar aceptas que la disponibilidad y el costo de entrega a
-            domicilio deben ser validados por Moda Sarita.
+            Al confirmar aceptas que el servidor revalide existencias, precios, cupón y costo de entrega antes de crear el pedido.
           </p>
         </aside>
       </div>
