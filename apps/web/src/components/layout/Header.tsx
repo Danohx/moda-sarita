@@ -15,7 +15,7 @@ import styles from "./Header.module.css";
 const navigationItems = [
   { label: "Inicio", to: "/" },
   { label: "Catálogo", to: "/catalogo" },
-  { label: "Novedades", to: "/#destacados" },
+  // { label: "Novedades", to: "/#destacados" },
   { label: "Contacto", to: "/contacto" },
 ];
 

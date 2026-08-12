@@ -507,3 +507,114 @@
 .paymentDisabled input { cursor: not-allowed; }
 .paymentDisabled strong { color: var(--color-text, #5c4b57); }
 .paymentDisabled p { color: #8a7281; }
+
+/* MODA_SARITA_CREDIT_DOWNPAYMENT_TRANSFER_V1 */
+.creditAmountsMini {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .65rem;
+  margin: .9rem 0;
+}
+.creditAmountsMini > div {
+  padding: .75rem;
+  border: 1px solid var(--color-border, rgba(92,75,87,.12));
+  border-radius: 12px;
+  background: var(--color-surface, #fff);
+  min-width: 0;
+}
+.creditAmountsMini span,
+.creditAmountsMini strong {
+  display: block;
+}
+.creditAmountsMini span {
+  color: #806978;
+  font-size: .72rem;
+}
+.creditAmountsMini strong {
+  margin-top: .15rem;
+  color: var(--color-text, #5c4b57);
+  font-size: .96rem;
+}
+.downPaymentBox {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--color-border-strong, rgba(92,75,87,.2));
+}
+.downPaymentTitle strong,
+.downPaymentTitle span {
+  display: block;
+}
+.downPaymentTitle strong {
+  color: var(--color-text, #5c4b57);
+  font-size: .9rem;
+}
+.downPaymentTitle span {
+  margin-top: .2rem;
+  color: #806978;
+  font-size: .76rem;
+  line-height: 1.45;
+}
+.downPaymentMethods {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .6rem;
+  margin-top: .75rem;
+}
+.downPaymentMethod {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: .45rem;
+  padding: .7rem;
+  border: 1px solid rgba(236,19,128,.25);
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+}
+.downPaymentMethod input {
+  accent-color: var(--color-primary-vibrant, #ec1380);
+}
+.downPaymentMethod > svg {
+  color: var(--color-primary-vibrant, #ec1380);
+}
+.downPaymentMethod span,
+.downPaymentMethod strong,
+.downPaymentMethod small {
+  min-width: 0;
+}
+.downPaymentMethod strong,
+.downPaymentMethod small {
+  display: block;
+}
+.downPaymentMethod strong {
+  color: var(--color-text, #5c4b57);
+  font-size: .78rem;
+}
+.downPaymentMethod small {
+  margin-top: .1rem;
+  color: var(--color-success, #16a34a);
+  font-size: .68rem;
+}
+.downPaymentMethodDisabled {
+  cursor: not-allowed;
+  opacity: .58;
+  border-color: var(--color-border, rgba(92,75,87,.12));
+  background: var(--color-surface-soft, #fdfbfc);
+}
+.downPaymentMethodDisabled small {
+  color: #8a7281;
+}
+.downPaymentNotice {
+  margin: .75rem 0 0 !important;
+  padding: .75rem;
+  border-radius: 12px;
+  background: var(--color-info-bg, rgba(37,99,235,.1));
+  color: var(--color-text, #5c4b57) !important;
+  font-size: .76rem !important;
+}
+@media (max-width: 720px) {
+  .creditAmountsMini,
+  .downPaymentMethods {
+    grid-template-columns: 1fr;
+  }
+}

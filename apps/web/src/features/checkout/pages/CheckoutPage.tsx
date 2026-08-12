@@ -56,7 +56,10 @@ function getCreditoUnavailableMessage(
   if (options.mensaje) return options.mensaje;
 
   const disponible = Number(options.credito_disponible || 0);
-  const faltante = Math.max(Number(total || 0) - disponible, 0);
+  const requerido = Number(
+    options.monto_financiado_estimado ?? total ?? 0,
+  );
+  const faltante = Math.max(requerido - disponible, 0);
 
   switch (options.motivo) {
     case "CREDITO_DISPONIBLE_INSUFICIENTE":
@@ -71,8 +74,8 @@ function getCreditoUnavailableMessage(
       return "Tu línea está activa, pero existe un crédito en mora.";
     case "CREDITO_INCUMPLIDO":
       return "Tu línea está activa, pero existe un crédito marcado como incumplido.";
-    case "ENGANCHE_WEB_REQUERIDO":
-      return "Tu crédito está activo, pero esta compra requiere enganche y todavía no se procesa el enganche desde la tienda web.";
+    case "TRANSFERENCIA_ENGANCHE_NO_DISPONIBLE":
+      return "Tu crédito requiere enganche, pero Transferencia no está activa para la tienda web.";
     default:
       return "Tu crédito está activo, pero no está disponible para esta compra.";
   }
@@ -153,6 +156,7 @@ export function CheckoutPage() {
   const [creditoOpciones, setCreditoOpciones] = useState<CheckoutCreditoOpciones | null>(null);
   const [creditoPlazo, setCreditoPlazo] = useState<number | null>(null);
   const [creditoFrecuencia, setCreditoFrecuencia] = useState<"SEMANAL" | "QUINCENAL" | "MENSUAL" | null>(null);
+  const [creditoMetodoEnganche, setCreditoMetodoEnganche] = useState<"TRANSFERENCIA" | null>(null);
   const [tipoEntrega, setTipoEntrega] = useState<"RECOGER" | "DOMICILIO">(
     "RECOGER",
   );
@@ -365,9 +369,13 @@ export function CheckoutPage() {
           if (options.mostrar && options.elegible) {
             setCreditoPlazo((current) => current && options.plazos?.includes(current) ? current : options.plazos?.[0] ?? null);
             setCreditoFrecuencia((current) => current && options.frecuencias?.includes(current) ? current : options.frecuencias?.[0] ?? null);
+            setCreditoMetodoEnganche(
+              options.requiere_enganche ? "TRANSFERENCIA" : null,
+            );
           } else {
             setCreditoPlazo(null);
             setCreditoFrecuencia(null);
+            setCreditoMetodoEnganche(null);
           }
 
           if ((!options.mostrar || !options.elegible) && metodo === "CREDITO_TIENDA") {
@@ -456,9 +464,10 @@ export function CheckoutPage() {
       credito: metodo === "CREDITO_TIENDA" ? {
         plazo_meses: creditoPlazo,
         frecuencia_pago: creditoFrecuencia,
+        enganche_metodo: creditoMetodoEnganche,
       } : null,
     });
-  }, [items, tipoEntrega, direccionId, metodo, referencia, cuponAplicado?.codigo, observaciones, creditoPlazo, creditoFrecuencia]);
+  }, [items, tipoEntrega, direccionId, metodo, referencia, cuponAplicado?.codigo, observaciones, creditoPlazo, creditoFrecuencia, creditoMetodoEnganche]);
 
   async function handleSubmit() {
     if (submitting) return;
@@ -500,7 +509,9 @@ export function CheckoutPage() {
       (!creditoOpciones?.mostrar ||
         creditoOpciones.elegible !== true ||
         !creditoPlazo ||
-        !creditoFrecuencia)
+        !creditoFrecuencia ||
+        (creditoOpciones.requiere_enganche === true &&
+          creditoMetodoEnganche !== "TRANSFERENCIA"))
     ) {
       setError(
         getCreditoUnavailableMessage(creditoOpciones, totalEstimado),
@@ -546,7 +557,13 @@ export function CheckoutPage() {
           cupon_codigo: cuponCodigo.trim() || null,
           observaciones: observaciones.trim() || null,
           credito: metodo === "CREDITO_TIENDA" && creditoPlazo && creditoFrecuencia
-            ? { plazo_meses: creditoPlazo, frecuencia_pago: creditoFrecuencia }
+            ? {
+                plazo_meses: creditoPlazo,
+                frecuencia_pago: creditoFrecuencia,
+                enganche_metodo: creditoOpciones?.requiere_enganche
+                  ? creditoMetodoEnganche
+                  : null,
+              }
             : null,
           items: items.map((item) => ({
             variante_id: item.variantId,
@@ -827,15 +844,59 @@ export function CheckoutPage() {
             {metodo === "CREDITO_TIENDA" && creditoOpciones?.mostrar && creditoOpciones.elegible && (
               <div className={styles.creditPlan}>
                 <div className={styles.creditPlanHeader}>
-                  <div><strong>Financia esta compra con tu línea</strong><span>Disponible: {formatMoney(creditoOpciones.credito_disponible ?? 0)}</span></div>
+                  <div>
+                    <strong>Financia esta compra con tu línea</strong>
+                    <span>Disponible: {formatMoney(creditoOpciones.credito_disponible ?? 0)}</span>
+                  </div>
                   <CreditCard size={22} />
                 </div>
-                <p>Esta opción se muestra únicamente porque tu crédito está activo, tiene disponibilidad suficiente y la configuración actual permite financiamiento web sin enganche.</p>
+
+                <div className={styles.creditAmountsMini}>
+                  <div><span>Total</span><strong>{formatMoney(totalEstimado)}</strong></div>
+                  <div><span>Enganche</span><strong>{formatMoney(creditoOpciones.enganche_minimo ?? 0)}</strong></div>
+                  <div><span>A financiar</span><strong>{formatMoney(creditoOpciones.monto_financiado_estimado ?? totalEstimado)}</strong></div>
+                </div>
+
                 <div className={styles.creditPlanGrid}>
                   <label><span>Plazo</span><select value={creditoPlazo ?? ""} onChange={(event) => setCreditoPlazo(Number(event.target.value))}>{(creditoOpciones.plazos ?? []).map((plazo) => <option key={plazo} value={plazo}>{plazo} mes(es)</option>)}</select></label>
                   <label><span>Frecuencia</span><select value={creditoFrecuencia ?? ""} onChange={(event) => setCreditoFrecuencia(event.target.value as "SEMANAL" | "QUINCENAL" | "MENSUAL")}>{(creditoOpciones.frecuencias ?? []).map((frecuencia) => <option key={frecuencia} value={frecuencia}>{frecuencia.charAt(0) + frecuencia.slice(1).toLowerCase()}</option>)}</select></label>
                 </div>
-                <small>El servidor vuelve a validar límite, mora, cuotas vencidas, número de créditos activos y calendario antes de crear el financiamiento.</small>
+
+                {creditoOpciones.requiere_enganche && (
+                  <div className={styles.downPaymentBox}>
+                    <div className={styles.downPaymentTitle}>
+                      <strong>Método para pagar el enganche</strong>
+                      <span>El crédito se activa cuando la boutique confirma el depósito.</span>
+                    </div>
+                    <div className={styles.downPaymentMethods}>
+                      <label className={styles.downPaymentMethod}>
+                        <input
+                          type="radio"
+                          name="credit-down-payment"
+                          checked={creditoMetodoEnganche === "TRANSFERENCIA"}
+                          onChange={() => setCreditoMetodoEnganche("TRANSFERENCIA")}
+                        />
+                        <WalletCards size={18} />
+                        <span><strong>Transferencia</strong><small>Disponible</small></span>
+                      </label>
+                      <label className={`${styles.downPaymentMethod} ${styles.downPaymentMethodDisabled}`}>
+                        <input type="radio" disabled />
+                        <CreditCard size={18} />
+                        <span><strong>Tarjeta de crédito</strong><small>Próximamente</small></span>
+                      </label>
+                      <label className={`${styles.downPaymentMethod} ${styles.downPaymentMethodDisabled}`}>
+                        <input type="radio" disabled />
+                        <CreditCard size={18} />
+                        <span><strong>Tarjeta de débito</strong><small>Próximamente</small></span>
+                      </label>
+                    </div>
+                    <p className={styles.downPaymentNotice}>
+                      Al confirmar se reservarán los productos y se generará una referencia de transferencia por {formatMoney(creditoOpciones.enganche_minimo ?? 0)}. El financiamiento y sus cuotas se crearán cuando el administrador confirme el enganche.
+                    </p>
+                  </div>
+                )}
+
+                <small>El servidor vuelve a validar límite, mora, cuotas vencidas, número de créditos activos y calendario antes de registrar el financiamiento.</small>
               </div>
             )}
             {selectedMethod?.instrucciones_web && (
@@ -998,10 +1059,22 @@ export function CheckoutPage() {
             </div>
 
             {metodo === "CREDITO_TIENDA" && creditoOpciones?.mostrar && creditoOpciones.elegible && (
-              <div className={styles.creditSummaryRow}>
-                <span>Financiamiento</span>
-                <strong>{creditoPlazo ?? "—"} mes(es) · {creditoFrecuencia ? creditoFrecuencia.toLowerCase() : "—"}</strong>
-              </div>
+              <>
+                {creditoOpciones.requiere_enganche && (
+                  <div className={styles.creditSummaryRow}>
+                    <span>Enganche por transferencia</span>
+                    <strong>{formatMoney(creditoOpciones.enganche_minimo ?? 0)}</strong>
+                  </div>
+                )}
+                <div className={styles.creditSummaryRow}>
+                  <span>Monto financiado</span>
+                  <strong>{formatMoney(creditoOpciones.monto_financiado_estimado ?? totalEstimado)}</strong>
+                </div>
+                <div className={styles.creditSummaryRow}>
+                  <span>Plan</span>
+                  <strong>{creditoPlazo ?? "—"} mes(es) · {creditoFrecuencia ? creditoFrecuencia.toLowerCase() : "—"}</strong>
+                </div>
+              </>
             )}
 
             <div className={styles.total}>
@@ -1029,7 +1102,13 @@ export function CheckoutPage() {
             }
           >
             {submitting && <LoaderCircle size={18} className="spin" />}
-            {submitting ? "Confirmando..." : metodo === "CREDITO_TIENDA" ? "Confirmar compra a crédito" : "Confirmar pedido"}
+            {submitting
+              ? "Confirmando..."
+              : metodo === "CREDITO_TIENDA" && creditoOpciones?.requiere_enganche
+                ? "Reservar y generar enganche"
+                : metodo === "CREDITO_TIENDA"
+                  ? "Confirmar compra a crédito"
+                  : "Confirmar pedido"}
           </button>
           <p className={styles.legal}>
             Al confirmar aceptas que el servidor revalide existencias, precios, cupón y costo de entrega antes de crear el pedido.

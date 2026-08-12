@@ -21,6 +21,7 @@ export type CrearPedidoCheckoutPayload = {
   credito?: {
     plazo_meses: number;
     frecuencia_pago: "SEMANAL" | "QUINCENAL" | "MENSUAL";
+    enganche_metodo?: "TRANSFERENCIA" | null;
   } | null;
   items: CheckoutItemPayload[];
 };
@@ -45,6 +46,10 @@ export type CheckoutPedidoResult = {
   items: CheckoutPedidoItem[];
   replayed?: boolean;
   credito_id?: string | null;
+  enganche_monto?: number;
+  enganche_metodo?: string | null;
+  enganche_referencia?: string | null;
+  monto_financiado?: number;
 };
 
 type CheckoutResponse = {
@@ -61,6 +66,11 @@ export type CheckoutCreditoOpciones = {
   limite_credito?: number;
   saldo_deudor?: number;
   credito_disponible?: number;
+  requiere_enganche?: boolean;
+  enganche_minimo?: number;
+  monto_financiado_estimado?: number;
+  metodo_enganche_obligatorio?: "TRANSFERENCIA" | null;
+  transferencia_enganche_disponible?: boolean;
   plazos?: number[];
   frecuencias?: Array<"SEMANAL" | "QUINCENAL" | "MENSUAL">;
   validaciones_incumplidas?: string[];
