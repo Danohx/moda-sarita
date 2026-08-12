@@ -4,46 +4,46 @@ import { useAuth } from "@shared/context/AuthContext";
 import { canAccess } from "../../utils/permissions";
 import {
   cambiarEstadoCuponMarketing,
-  // cambiarEstadoSuscripcionMarketing,
+  cambiarEstadoSuscripcionMarketing,
   editarCuponMarketing,
   editarPlantillaMarketing,
-  // editarSegmentoMarketing,
-  // editarSuscripcionMarketing,
+  editarSegmentoMarketing,
+  editarSuscripcionMarketing,
   enviarPruebaPlantillaMarketing,
   getCuponesMarketing,
   getPlantillasMarketing,
-  // getSegmentosMarketing,
-  // getSuscripcionesMarketing,
+  getSegmentosMarketing,
+  getSuscripcionesMarketing,
   guardarCuponMarketing,
   guardarPlantillaMarketing,
-  // guardarSegmentoMarketing,
-  // guardarSuscripcionMarketing,
+  guardarSegmentoMarketing,
+  guardarSuscripcionMarketing,
   type AplicaCupon,
   type CanalCupon,
   type CuponMarketing,
-  // type EstadoSuscripcion,
   type PlantillaEmailMarketing,
-  // type SegmentoMarketing,
-  // type SuscripcionMarketing,
+  type SegmentoMarketing,
+  type SuscripcionMarketing,
   type TipoPlantilla,
 } from "../../services/marketing.service";
 
-type Tab = "cupones" | "plantillas";
-
-type AlertState = {
-  type: "success" | "error";
-  message: string;
-} | null;
+type Tab = "suscriptores" | "cupones" | "segmentos" | "plantillas";
+type AlertState = { type: "success" | "error"; message: string } | null;
 
 type MarketingTabConfig = {
   key: Tab;
   label: string;
+  description: string;
   canView: boolean;
 };
 
-const MARKETING_PERMISSIONS = {
+const PERMS = {
+  suscripcionesView: "marketing.suscripciones.view",
+  suscripcionesManage: "marketing.suscripciones.manage",
   cuponesView: "marketing.cupones.view",
   cuponesManage: "marketing.cupones.manage",
+  segmentosView: "marketing.segmentos.view",
+  segmentosManage: "marketing.segmentos.manage",
   plantillasView: "marketing.plantillas.view",
   plantillasManage: "marketing.plantillas.manage",
   plantillasTestSend: "marketing.plantillas.test_send",
@@ -54,13 +54,13 @@ const nextMonth = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
   .toISOString()
   .slice(0, 10);
 
-// const emptySuscriptor = {
-//   email: "",
-//   nombre: "",
-//   telefono: "",
-//   acepta_marketing: true,
-//   notas_admin: "",
-// };
+const emptySuscriptor = {
+  email: "",
+  nombre: "",
+  telefono: "",
+  acepta_marketing: true,
+  notas_admin: "",
+};
 
 const emptyCupon = {
   codigo: "",
@@ -80,11 +80,11 @@ const emptyCupon = {
   solo_clientes_registrados: false,
 };
 
-// const emptySegmento = {
-//   nombre: "",
-//   descripcion: "",
-//   activo: true,
-// };
+const emptySegmento = {
+  nombre: "",
+  descripcion: "",
+  activo: true,
+};
 
 const emptyPlantilla = {
   clave: "",
@@ -112,271 +112,220 @@ function textToHtml(value: string) {
     .join("");
 }
 
+function formatDate(value?: string | null) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return new Intl.DateTimeFormat("es-MX", { dateStyle: "medium" }).format(date);
+}
+
 export default function Marketing() {
   const { user } = useAuth();
 
-  const canViewCupones = canAccess(user, {
-    permissions: MARKETING_PERMISSIONS.cuponesView,
-  });
-
-  const canManageCupones = canAccess(user, {
-    permissions: MARKETING_PERMISSIONS.cuponesManage,
-  });
-
-  const canViewPlantillas = canAccess(user, {
-    permissions: MARKETING_PERMISSIONS.plantillasView,
-  });
-
-  const canManagePlantillas = canAccess(user, {
-    permissions: MARKETING_PERMISSIONS.plantillasManage,
-  });
-
-  const canSendPlantillaTest = canAccess(user, {
-    permissions: MARKETING_PERMISSIONS.plantillasTestSend,
-  });
-
-  const [tab, setTab] = useState<Tab>("cupones");
-  const [alert, setAlert] = useState<AlertState>(null);
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-
-  // const [suscriptores, setSuscriptores] = useState<SuscripcionMarketing[]>([]);
-  const [cupones, setCupones] = useState<CuponMarketing[]>([]);
-  // const [segmentos, setSegmentos] = useState<SegmentoMarketing[]>([]);
-  const [plantillas, setPlantillas] = useState<PlantillaEmailMarketing[]>([]);
-
-  // const [suscriptorForm, setSuscriptorForm] = useState(emptySuscriptor);
-  const [cuponForm, setCuponForm] = useState(emptyCupon);
-  // const [segmentoForm, setSegmentoForm] = useState(emptySegmento);
-  const [plantillaForm, setPlantillaForm] = useState(emptyPlantilla);
-
-  // const [editingSuscriptorId, setEditingSuscriptorId] = useState<string | null>(null);
-  const [editingCuponId, setEditingCuponId] = useState<string | null>(null);
-  // const [editingSegmentoId, setEditingSegmentoId] = useState<string | null>(null);
-  const [editingPlantillaId, setEditingPlantillaId] = useState<string | null>(
-    null,
-  );
-
-  const [testEmail, setTestEmail] = useState("");
+  const canViewSuscripciones = canAccess(user, { permissions: PERMS.suscripcionesView });
+  const canManageSuscripciones = canAccess(user, { permissions: PERMS.suscripcionesManage });
+  const canViewCupones = canAccess(user, { permissions: PERMS.cuponesView });
+  const canManageCupones = canAccess(user, { permissions: PERMS.cuponesManage });
+  const canViewSegmentos = canAccess(user, { permissions: PERMS.segmentosView });
+  const canManageSegmentos = canAccess(user, { permissions: PERMS.segmentosManage });
+  const canViewPlantillas = canAccess(user, { permissions: PERMS.plantillasView });
+  const canManagePlantillas = canAccess(user, { permissions: PERMS.plantillasManage });
+  const canSendTest = canAccess(user, { permissions: PERMS.plantillasTestSend });
 
   const tabs = useMemo<MarketingTabConfig[]>(
     () => [
       {
+        key: "suscriptores",
+        label: "Suscriptores",
+        description: "Consentimiento y lista de contactos de marketing.",
+        canView: canViewSuscripciones,
+      },
+      {
         key: "cupones",
         label: "Cupones",
+        description: "Promociones, vigencias y límites de uso.",
         canView: canViewCupones,
+      },
+      {
+        key: "segmentos",
+        label: "Segmentos",
+        description: "Agrupaciones para futuras campañas y avisos.",
+        canView: canViewSegmentos,
       },
       {
         key: "plantillas",
         label: "Plantillas",
+        description: "Contenido de correo y envíos de prueba.",
         canView: canViewPlantillas,
       },
     ],
-    [canViewCupones, canViewPlantillas],
+    [canViewCupones, canViewPlantillas, canViewSegmentos, canViewSuscripciones],
   );
 
-  const visibleTabs = useMemo(
-    () => tabs.filter((item) => item.canView),
-    [tabs],
+  const visibleTabs = useMemo(() => tabs.filter((item) => item.canView), [tabs]);
+  const [tab, setTab] = useState<Tab>("suscriptores");
+  const currentTab = visibleTabs.some((item) => item.key === tab)
+    ? tab
+    : visibleTabs[0]?.key ?? null;
+
+  const [alert, setAlert] = useState<AlertState>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const [suscriptores, setSuscriptores] = useState<SuscripcionMarketing[]>([]);
+  const [cupones, setCupones] = useState<CuponMarketing[]>([]);
+  const [segmentos, setSegmentos] = useState<SegmentoMarketing[]>([]);
+  const [plantillas, setPlantillas] = useState<PlantillaEmailMarketing[]>([]);
+
+  const [suscriptorForm, setSuscriptorForm] = useState(emptySuscriptor);
+  const [cuponForm, setCuponForm] = useState(emptyCupon);
+  const [segmentoForm, setSegmentoForm] = useState(emptySegmento);
+  const [plantillaForm, setPlantillaForm] = useState(emptyPlantilla);
+
+  const [editingSuscriptorId, setEditingSuscriptorId] = useState<string | null>(null);
+  const [editingCuponId, setEditingCuponId] = useState<string | null>(null);
+  const [editingSegmentoId, setEditingSegmentoId] = useState<string | null>(null);
+  const [editingPlantillaId, setEditingPlantillaId] = useState<string | null>(null);
+  const [testEmail, setTestEmail] = useState("");
+
+  const currentTabInfo = visibleTabs.find((item) => item.key === currentTab);
+
+  const stats = useMemo(
+    () => ({
+      suscriptoresActivos: suscriptores.filter(
+        (item) => item.estado === "ACTIVO" && item.acepta_marketing,
+      ).length,
+      cuponesActivos: cupones.filter((item) => item.activo).length,
+      segmentosActivos: segmentos.filter((item) => item.activo).length,
+      plantillasActivas: plantillas.filter((item) => item.activo).length,
+    }),
+    [cupones, plantillas, segmentos, suscriptores],
   );
 
-  const currentTab = useMemo<Tab | null>(() => {
-    if (visibleTabs.length === 0) return null;
-
-    return visibleTabs.some((item) => item.key === tab)
-      ? tab
-      : visibleTabs[0].key;
-  }, [tab, visibleTabs]);
-
-  const title = useMemo(() => {
-    const map: Record<Tab, string> = {
-      // suscriptores: "Suscriptores",
-      cupones: "Cupones y promociones",
-      // segmentos: "Segmentos",
-      plantillas: "Plantillas de correo",
-    };
-
-    return currentTab ? map[currentTab] : "Marketing";
-  }, [currentTab]);
-
-  function showSuccess(message: string) {
+  function success(message: string) {
     setAlert({ type: "success", message });
   }
 
-  function showError(message: string) {
+  function fail(message: string) {
     setAlert({ type: "error", message });
   }
 
-  // async function loadSuscriptores() {
-  //   const data = await getSuscripcionesMarketing();
-  //   setSuscriptores(data);
-  // }
-
-  async function loadCupones() {
-    if (!canViewCupones) return;
-
-    const data = await getCuponesMarketing();
-    setCupones(data);
-  }
-
-  // async function loadSegmentos() {
-  //   const data = await getSegmentosMarketing();
-  //   setSegmentos(data);
-  // }
-
-  async function loadPlantillas() {
-    if (!canViewPlantillas) return;
-
-    const data = await getPlantillasMarketing();
-    setPlantillas(data);
-  }
-
-  async function loadCurrentTab() {
+  async function loadAll() {
     setLoading(true);
     setAlert(null);
 
     try {
-      if (!currentTab) return;
+      const [suscripcionesResult, cuponesResult, segmentosResult, plantillasResult] =
+        await Promise.all([
+          canViewSuscripciones ? getSuscripcionesMarketing() : Promise.resolve([]),
+          canViewCupones ? getCuponesMarketing() : Promise.resolve([]),
+          canViewSegmentos ? getSegmentosMarketing() : Promise.resolve([]),
+          canViewPlantillas ? getPlantillasMarketing() : Promise.resolve([]),
+        ]);
 
-      // if (currentTab === "suscriptores") await loadSuscriptores();
-      if (currentTab === "cupones") await loadCupones();
-      // if (currentTab === "segmentos") await loadSegmentos();
-      if (currentTab === "plantillas") await loadPlantillas();
+      setSuscriptores(suscripcionesResult);
+      setCupones(cuponesResult);
+      setSegmentos(segmentosResult);
+      setPlantillas(plantillasResult);
     } catch (error) {
       console.error(error);
-      showError("No se pudo cargar la información de marketing.");
+      fail("No se pudo cargar la información de marketing.");
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    loadCurrentTab();
+    void loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentTab]);
+  }, [
+    canViewCupones,
+    canViewPlantillas,
+    canViewSegmentos,
+    canViewSuscripciones,
+  ]);
 
-  // async function handleSaveSuscriptor(event: React.FormEvent) {
-  //   event.preventDefault();
+  async function handleSaveSuscriptor(event: React.FormEvent) {
+    event.preventDefault();
+    if (!canManageSuscripciones) return fail("No tienes permiso para administrar suscriptores.");
+    if (!suscriptorForm.email.trim()) return fail("El correo es requerido.");
 
-  //   if (!suscriptorForm.email.trim()) {
-  //     showError("El correo es requerido.");
-  //     return;
-  //   }
+    setSaving(true);
+    try {
+      if (editingSuscriptorId) {
+        const updated = await editarSuscripcionMarketing(editingSuscriptorId, {
+          nombre: suscriptorForm.nombre || null,
+          telefono: suscriptorForm.telefono || null,
+          acepta_marketing: suscriptorForm.acepta_marketing,
+          notas_admin: suscriptorForm.notas_admin || null,
+        });
+        setSuscriptores((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+        success("Suscriptor actualizado correctamente.");
+      } else {
+        const created = await guardarSuscripcionMarketing({
+          email: suscriptorForm.email.trim(),
+          nombre: suscriptorForm.nombre || null,
+          telefono: suscriptorForm.telefono || null,
+          origen: "ADMIN",
+          estado: "ACTIVO",
+          acepta_marketing: suscriptorForm.acepta_marketing,
+          notas_admin: suscriptorForm.notas_admin || null,
+        });
+        setSuscriptores((prev) => [created, ...prev]);
+        success("Suscriptor registrado correctamente.");
+      }
+      setSuscriptorForm(emptySuscriptor);
+      setEditingSuscriptorId(null);
+    } catch (error) {
+      console.error(error);
+      fail("No se pudo guardar el suscriptor. Verifica que el correo no esté duplicado.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
-  //   setSaving(true);
+  function editSuscriptor(item: SuscripcionMarketing) {
+    setEditingSuscriptorId(item.id);
+    setSuscriptorForm({
+      email: item.email,
+      nombre: item.nombre || "",
+      telefono: item.telefono || "",
+      acepta_marketing: item.acepta_marketing,
+      notas_admin: item.notas_admin || "",
+    });
+  }
 
-  //   try {
-  //     if (editingSuscriptorId) {
-  //       const updated = await editarSuscripcionMarketing(editingSuscriptorId, {
-  //         nombre: suscriptorForm.nombre || null,
-  //         telefono: suscriptorForm.telefono || null,
-  //         acepta_marketing: suscriptorForm.acepta_marketing,
-  //         notas_admin: suscriptorForm.notas_admin || null,
-  //       });
-
-  //       setSuscriptores((prev) =>
-  //         prev.map((item) => (item.id === updated.id ? updated : item)),
-  //       );
-  //       showSuccess("Suscriptor actualizado correctamente.");
-  //     } else {
-  //       const created = await guardarSuscripcionMarketing({
-  //         email: suscriptorForm.email,
-  //         nombre: suscriptorForm.nombre || null,
-  //         telefono: suscriptorForm.telefono || null,
-  //         origen: "ADMIN",
-  //         estado: "ACTIVO",
-  //         acepta_marketing: suscriptorForm.acepta_marketing,
-  //         notas_admin: suscriptorForm.notas_admin || null,
-  //       });
-
-  //       setSuscriptores((prev) => [created, ...prev]);
-  //       showSuccess("Suscriptor creado correctamente.");
-  //     }
-
-  //     setSuscriptorForm(emptySuscriptor);
-  //     setEditingSuscriptorId(null);
-  //   } catch (error) {
-  //     console.error(error);
-  //     showError("No se pudo guardar el suscriptor.");
-  //   } finally {
-  //     setSaving(false);
-  //   }
-  // }
-
-  // function startEditSuscriptor(item: SuscripcionMarketing) {
-  //   setEditingSuscriptorId(item.id);
-  //   setSuscriptorForm({
-  //     email: item.email,
-  //     nombre: item.nombre || "",
-  //     telefono: item.telefono || "",
-  //     acepta_marketing: item.acepta_marketing,
-  //     notas_admin: item.notas_admin || "",
-  //   });
-  // }
-
-  // async function handleStatusSuscriptor(
-  //   item: SuscripcionMarketing,
-  //   estado: EstadoSuscripcion,
-  // ) {
-  //   setSaving(true);
-
-  //   try {
-  //     const updated = await cambiarEstadoSuscripcionMarketing(
-  //       item.id,
-  //       estado,
-  //       estado === "BAJA" ? "Cambio desde panel administrativo" : null,
-  //     );
-
-  //     setSuscriptores((prev) =>
-  //       prev.map((row) => (row.id === updated.id ? updated : row)),
-  //     );
-
-  //     showSuccess("Estado del suscriptor actualizado.");
-  //   } catch (error) {
-  //     console.error(error);
-  //     showError("No se pudo actualizar el estado del suscriptor.");
-  //   } finally {
-  //     setSaving(false);
-  //   }
-  // }
+  async function toggleSuscriptor(item: SuscripcionMarketing) {
+    if (!canManageSuscripciones) return fail("No tienes permiso para cambiar suscripciones.");
+    setSaving(true);
+    try {
+      const next = item.estado === "ACTIVO" ? "BAJA" : "ACTIVO";
+      const updated = await cambiarEstadoSuscripcionMarketing(
+        item.id,
+        next,
+        next === "BAJA" ? "Cambio realizado desde panel administrativo" : null,
+      );
+      setSuscriptores((prev) => prev.map((row) => (row.id === updated.id ? updated : row)));
+      success(next === "ACTIVO" ? "Suscripción reactivada." : "Suscripción dada de baja.");
+    } catch (error) {
+      console.error(error);
+      fail("No se pudo cambiar el estado del suscriptor.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function handleSaveCupon(event: React.FormEvent) {
     event.preventDefault();
-
-    if (!canManageCupones) {
-      showError("No tienes permiso para administrar cupones.");
-      return;
+    if (!canManageCupones) return fail("No tienes permiso para administrar cupones.");
+    if (!editingCuponId && !cuponForm.codigo.trim()) return fail("El código del cupón es requerido.");
+    if (Number(cuponForm.valor) <= 0) return fail("El valor del descuento debe ser mayor a cero.");
+    if (cuponForm.tipo_descuento === "PORCENTAJE" && Number(cuponForm.valor) > 100) {
+      return fail("El porcentaje no puede ser mayor a 100%.");
     }
-
-    if (!cuponForm.codigo.trim() && !editingCuponId) {
-      showError("El código del cupón es requerido.");
-      return;
-    }
-
-    if (cuponForm.uso_maximo !== "" && Number(cuponForm.uso_maximo) < 1) {
-      showError("El máximo de usos globales debe ser mayor a 0.");
-      return;
-    }
-
-    if (
-      cuponForm.uso_maximo_por_cliente !== "" &&
-      Number(cuponForm.uso_maximo_por_cliente) < 1
-    ) {
-      showError("El máximo de usos por cliente debe ser mayor a 0.");
-      return;
-    }
-
-    if (
-      cuponForm.uso_maximo !== "" &&
-      cuponForm.uso_maximo_por_cliente !== "" &&
-      Number(cuponForm.uso_maximo_por_cliente) > Number(cuponForm.uso_maximo)
-    ) {
-      showError("El límite por cliente no puede ser mayor al límite global.");
-      return;
-    }
+    if (cuponForm.fecha_fin < cuponForm.fecha_inicio) return fail("La fecha final no puede ser anterior a la inicial.");
 
     setSaving(true);
-
     try {
       const payload = {
         nombre: cuponForm.nombre || null,
@@ -388,8 +337,7 @@ export default function Marketing() {
         fecha_fin: cuponForm.fecha_fin,
         canal: cuponForm.canal,
         aplica_a: cuponForm.aplica_a,
-        uso_maximo:
-          cuponForm.uso_maximo === "" ? null : Number(cuponForm.uso_maximo),
+        uso_maximo: cuponForm.uso_maximo === "" ? null : Number(cuponForm.uso_maximo),
         uso_maximo_por_cliente:
           cuponForm.uso_maximo_por_cliente === ""
             ? null
@@ -400,41 +348,29 @@ export default function Marketing() {
 
       if (editingCuponId) {
         const updated = await editarCuponMarketing(editingCuponId, payload);
-
-        setCupones((prev) =>
-          prev.map((item) => (item.id === updated.id ? updated : item)),
-        );
-
-        showSuccess("Cupón actualizado correctamente.");
+        setCupones((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+        success("Cupón actualizado correctamente.");
       } else {
         const created = await guardarCuponMarketing({
-          codigo: cuponForm.codigo,
+          codigo: cuponForm.codigo.trim().toUpperCase(),
           activo: cuponForm.activo,
           ...payload,
         });
-
         setCupones((prev) => [created, ...prev]);
-        showSuccess("Cupón creado correctamente.");
+        success("Cupón creado correctamente.");
       }
-
       setCuponForm(emptyCupon);
       setEditingCuponId(null);
     } catch (error) {
       console.error(error);
-      showError("No se pudo guardar el cupón.");
+      fail("No se pudo guardar el cupón.");
     } finally {
       setSaving(false);
     }
   }
 
-  function startEditCupon(item: CuponMarketing) {
-    if (!canManageCupones) {
-      showError("No tienes permiso para editar cupones.");
-      return;
-    }
-
+  function editCupon(item: CuponMarketing) {
     setEditingCuponId(item.id);
-
     setCuponForm({
       codigo: item.codigo,
       nombre: item.nombre || "",
@@ -449,188 +385,130 @@ export default function Marketing() {
       aplica_a: item.aplica_a,
       uso_maximo: item.uso_maximo == null ? "" : String(item.uso_maximo),
       uso_maximo_por_cliente:
-        item.uso_maximo_por_cliente == null
-          ? ""
-          : String(item.uso_maximo_por_cliente),
+        item.uso_maximo_por_cliente == null ? "" : String(item.uso_maximo_por_cliente),
       acumulable: item.acumulable,
       solo_clientes_registrados: item.solo_clientes_registrados,
     });
   }
 
-  async function handleToggleCupon(item: CuponMarketing) {
-    if (!canManageCupones) {
-      showError("No tienes permiso para activar o desactivar cupones.");
-      return;
-    }
-
+  async function toggleCupon(item: CuponMarketing) {
+    if (!canManageCupones) return fail("No tienes permiso para cambiar cupones.");
     setSaving(true);
-
     try {
       const updated = await cambiarEstadoCuponMarketing(item.id, !item.activo);
-
-      setCupones((prev) =>
-        prev.map((row) => (row.id === updated.id ? updated : row)),
-      );
-
-      showSuccess("Estado del cupón actualizado.");
+      setCupones((prev) => prev.map((row) => (row.id === updated.id ? updated : row)));
+      success("Estado del cupón actualizado.");
     } catch (error) {
       console.error(error);
-      showError("No se pudo actualizar el cupón.");
+      fail("No se pudo actualizar el cupón.");
     } finally {
       setSaving(false);
     }
   }
 
-  // async function handleSaveSegmento(event: React.FormEvent) {
-  //   event.preventDefault();
+  async function handleSaveSegmento(event: React.FormEvent) {
+    event.preventDefault();
+    if (!canManageSegmentos) return fail("No tienes permiso para administrar segmentos.");
+    if (segmentoForm.nombre.trim().length < 3) return fail("El segmento debe tener al menos 3 caracteres.");
 
-  //   if (segmentoForm.nombre.trim().length < 3) {
-  //     showError("El segmento debe tener al menos 3 caracteres.");
-  //     return;
-  //   }
+    setSaving(true);
+    try {
+      const payload = {
+        nombre: segmentoForm.nombre.trim(),
+        descripcion: segmentoForm.descripcion || null,
+        activo: segmentoForm.activo,
+        criterios: {
+          tipo: "manual",
+          descripcion: segmentoForm.descripcion || "",
+        },
+      };
 
-  //   setSaving(true);
+      if (editingSegmentoId) {
+        const updated = await editarSegmentoMarketing(editingSegmentoId, payload);
+        setSegmentos((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+        success("Segmento actualizado correctamente.");
+      } else {
+        const created = await guardarSegmentoMarketing(payload);
+        setSegmentos((prev) => [created, ...prev]);
+        success("Segmento creado correctamente.");
+      }
+      setSegmentoForm(emptySegmento);
+      setEditingSegmentoId(null);
+    } catch (error) {
+      console.error(error);
+      fail("No se pudo guardar el segmento.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
-  //   try {
-  //     const payload = {
-  //       nombre: segmentoForm.nombre,
-  //       descripcion: segmentoForm.descripcion || null,
-  //       activo: segmentoForm.activo,
-  //       criterios: {
-  //         tipo: "manual",
-  //         descripcion: segmentoForm.descripcion || "",
-  //       },
-  //     };
+  function editSegmento(item: SegmentoMarketing) {
+    setEditingSegmentoId(item.id);
+    setSegmentoForm({
+      nombre: item.nombre,
+      descripcion: item.descripcion || "",
+      activo: item.activo,
+    });
+  }
 
-  //     if (editingSegmentoId) {
-  //       const updated = await editarSegmentoMarketing(editingSegmentoId, payload);
-
-  //       setSegmentos((prev) =>
-  //         prev.map((item) => (item.id === updated.id ? updated : item)),
-  //       );
-
-  //       showSuccess("Segmento actualizado correctamente.");
-  //     } else {
-  //       const created = await guardarSegmentoMarketing(payload);
-
-  //       setSegmentos((prev) => [created, ...prev]);
-  //       showSuccess("Segmento creado correctamente.");
-  //     }
-
-  //     setSegmentoForm(emptySegmento);
-  //     setEditingSegmentoId(null);
-  //   } catch (error) {
-  //     console.error(error);
-  //     showError("No se pudo guardar el segmento.");
-  //   } finally {
-  //     setSaving(false);
-  //   }
-  // }
-
-  // function startEditSegmento(item: SegmentoMarketing) {
-  //   setEditingSegmentoId(item.id);
-  //   setSegmentoForm({
-  //     nombre: item.nombre,
-  //     descripcion: item.descripcion || "",
-  //     activo: item.activo,
-  //   });
-  // }
-
-  // async function handleToggleSegmento(item: SegmentoMarketing) {
-  //   setSaving(true);
-
-  //   try {
-  //     const updated = await editarSegmentoMarketing(item.id, {
-  //       activo: !item.activo,
-  //     });
-
-  //     setSegmentos((prev) =>
-  //       prev.map((row) => (row.id === updated.id ? updated : row)),
-  //     );
-
-  //     showSuccess("Estado del segmento actualizado.");
-  //   } catch (error) {
-  //     console.error(error);
-  //     showError("No se pudo actualizar el segmento.");
-  //   } finally {
-  //     setSaving(false);
-  //   }
-  // }
+  async function toggleSegmento(item: SegmentoMarketing) {
+    if (!canManageSegmentos) return fail("No tienes permiso para cambiar segmentos.");
+    setSaving(true);
+    try {
+      const updated = await editarSegmentoMarketing(item.id, { activo: !item.activo });
+      setSegmentos((prev) => prev.map((row) => (row.id === updated.id ? updated : row)));
+      success("Estado del segmento actualizado.");
+    } catch (error) {
+      console.error(error);
+      fail("No se pudo actualizar el segmento.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function handleSavePlantilla(event: React.FormEvent) {
     event.preventDefault();
-
-    if (!canManagePlantillas) {
-      showError("No tienes permiso para administrar plantillas.");
-      return;
-    }
-
-    if (!plantillaForm.nombre.trim() || !plantillaForm.asunto.trim()) {
-      showError("Nombre y asunto son requeridos.");
-      return;
-    }
+    if (!canManagePlantillas) return fail("No tienes permiso para administrar plantillas.");
+    if (!plantillaForm.nombre.trim() || !plantillaForm.asunto.trim()) return fail("Nombre y asunto son requeridos.");
+    if (!editingPlantillaId && !plantillaForm.clave.trim()) return fail("La clave es requerida.");
 
     setSaving(true);
-
     try {
-      const cuerpoHtml = textToHtml(plantillaForm.cuerpo_texto);
-
       const payload = {
-        nombre: plantillaForm.nombre,
+        nombre: plantillaForm.nombre.trim(),
         descripcion: plantillaForm.descripcion || null,
         tipo: plantillaForm.tipo,
-        asunto: plantillaForm.asunto,
+        asunto: plantillaForm.asunto.trim(),
         preheader: plantillaForm.preheader || null,
-        cuerpo_html: cuerpoHtml,
+        cuerpo_html: textToHtml(plantillaForm.cuerpo_texto),
         cuerpo_texto: plantillaForm.cuerpo_texto || null,
         activo: plantillaForm.activo,
       };
 
       if (editingPlantillaId) {
-        const updated = await editarPlantillaMarketing(
-          editingPlantillaId,
-          payload,
-        );
-
-        setPlantillas((prev) =>
-          prev.map((item) => (item.id === updated.id ? updated : item)),
-        );
-
-        showSuccess("Plantilla actualizada correctamente.");
+        const updated = await editarPlantillaMarketing(editingPlantillaId, payload);
+        setPlantillas((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+        success("Plantilla actualizada correctamente.");
       } else {
-        if (!plantillaForm.clave.trim()) {
-          showError("La clave es requerida para crear una plantilla.");
-          setSaving(false);
-          return;
-        }
-
         const created = await guardarPlantillaMarketing({
-          clave: plantillaForm.clave,
+          clave: plantillaForm.clave.trim().toUpperCase(),
           ...payload,
         });
-
         setPlantillas((prev) => [created, ...prev]);
-        showSuccess("Plantilla creada correctamente.");
+        success("Plantilla creada correctamente.");
       }
-
       setPlantillaForm(emptyPlantilla);
       setEditingPlantillaId(null);
     } catch (error) {
       console.error(error);
-      showError("No se pudo guardar la plantilla.");
+      fail("No se pudo guardar la plantilla.");
     } finally {
       setSaving(false);
     }
   }
 
-  function startEditPlantilla(item: PlantillaEmailMarketing) {
-    if (!canManagePlantillas) {
-      showError("No tienes permiso para editar plantillas.");
-      return;
-    }
-
+  function editPlantilla(item: PlantillaEmailMarketing) {
     setEditingPlantillaId(item.id);
-
     setPlantillaForm({
       clave: item.clave,
       nombre: item.nombre,
@@ -643,70 +521,46 @@ export default function Marketing() {
     });
   }
 
-  async function handleTogglePlantilla(item: PlantillaEmailMarketing) {
-    if (!canManagePlantillas) {
-      showError("No tienes permiso para activar o desactivar plantillas.");
-      return;
-    }
-
+  async function togglePlantilla(item: PlantillaEmailMarketing) {
+    if (!canManagePlantillas) return fail("No tienes permiso para cambiar plantillas.");
     setSaving(true);
-
     try {
-      const updated = await editarPlantillaMarketing(item.id, {
-        activo: !item.activo,
-      });
-
-      setPlantillas((prev) =>
-        prev.map((row) => (row.id === updated.id ? updated : row)),
-      );
-
-      showSuccess("Estado de plantilla actualizado.");
+      const updated = await editarPlantillaMarketing(item.id, { activo: !item.activo });
+      setPlantillas((prev) => prev.map((row) => (row.id === updated.id ? updated : row)));
+      success("Estado de la plantilla actualizado.");
     } catch (error) {
       console.error(error);
-      showError("No se pudo actualizar la plantilla.");
+      fail("No se pudo actualizar la plantilla.");
     } finally {
       setSaving(false);
     }
   }
 
-  async function handleSendTest(plantilla: PlantillaEmailMarketing) {
-    if (!canSendPlantillaTest) {
-      showError("No tienes permiso para enviar pruebas de plantillas.");
-      return;
-    }
-
-    if (!testEmail.trim()) {
-      showError("Coloca un correo destino para la prueba.");
-      return;
-    }
-
+  async function sendTest(item: PlantillaEmailMarketing) {
+    if (!canSendTest) return fail("No tienes permiso para enviar correos de prueba.");
+    if (!testEmail.trim()) return fail("Escribe el correo destino para la prueba.");
     setSaving(true);
-
     try {
-      await enviarPruebaPlantillaMarketing(plantilla.id, testEmail);
-      showSuccess("Correo de prueba enviado correctamente.");
+      await enviarPruebaPlantillaMarketing(item.id, testEmail.trim());
+      success(`Correo de prueba enviado a ${testEmail.trim()}.`);
     } catch (error) {
       console.error(error);
-      showError("No se pudo enviar el correo de prueba.");
+      fail("No se pudo enviar el correo de prueba. Revisa la configuración de Resend.");
     } finally {
       setSaving(false);
     }
   }
 
-  if (visibleTabs.length === 0 || !currentTab) {
+  if (visibleTabs.length === 0) {
     return (
       <main className={styles.page}>
         <header className={styles.header}>
           <div>
-            <p className={styles.eyebrow}>Panel administrativo</p>
+            <span className={styles.eyebrow}>Comunicación</span>
             <h1>Marketing</h1>
             <p>No tienes permisos para consultar este módulo.</p>
           </div>
         </header>
-
-        <div className={`${styles.alert} ${styles.error}`}>
-          No tienes permiso para ver marketing.
-        </div>
       </main>
     );
   }
@@ -715,876 +569,242 @@ export default function Marketing() {
     <main className={styles.page}>
       <header className={styles.header}>
         <div>
-          <p className={styles.eyebrow}>Panel administrativo</p>
-          <h1>Marketing base</h1>
+          <span className={styles.eyebrow}>Comunicación y promociones</span>
+          <h1>Marketing</h1>
           <p>
-            Administra suscriptores, cupones, segmentos y plantillas de correo.
+            Administra consentimiento, promociones y contenido de correo desde una sola vista.
           </p>
         </div>
-
-        <button type="button" onClick={loadCurrentTab} disabled={loading}>
+        <button className={styles.refreshButton} type="button" onClick={() => void loadAll()} disabled={loading}>
           {loading ? "Actualizando..." : "Actualizar"}
         </button>
       </header>
 
+      <section className={styles.statsGrid} aria-label="Resumen de marketing">
+        <article className={styles.statCard}>
+          <span>Suscriptores activos</span>
+          <strong>{stats.suscriptoresActivos}</strong>
+          <small>Con consentimiento vigente</small>
+        </article>
+        <article className={styles.statCard}>
+          <span>Cupones activos</span>
+          <strong>{stats.cuponesActivos}</strong>
+          <small>Promociones disponibles</small>
+        </article>
+        <article className={styles.statCard}>
+          <span>Segmentos activos</span>
+          <strong>{stats.segmentosActivos}</strong>
+          <small>Audiencias organizadas</small>
+        </article>
+        <article className={styles.statCard}>
+          <span>Plantillas activas</span>
+          <strong>{stats.plantillasActivas}</strong>
+          <small>Listas para comunicación</small>
+        </article>
+      </section>
+
       {alert && (
-        <div className={`${styles.alert} ${styles[alert.type]}`}>
+        <div className={`${styles.alert} ${alert.type === "success" ? styles.alertSuccess : styles.alertError}`}>
           {alert.message}
+          <button type="button" onClick={() => setAlert(null)} aria-label="Cerrar aviso">×</button>
         </div>
       )}
 
-      <nav className={styles.tabs}>
+      <nav className={styles.tabs} aria-label="Secciones de marketing">
         {visibleTabs.map((item) => (
           <button
             key={item.key}
             type="button"
-            className={currentTab === item.key ? styles.activeTab : ""}
+            className={currentTab === item.key ? styles.tabActive : ""}
             onClick={() => setTab(item.key)}
           >
-            {item.label}
+            <strong>{item.label}</strong>
+            <span>{item.description}</span>
           </button>
         ))}
       </nav>
 
-      <section className={styles.sectionHeader}>
-        <h2>{title}</h2>
-      </section>
-
-      {/* {tab === "suscriptores" && (
-        <section className={styles.grid}>
-          <form className={styles.card} onSubmit={handleSaveSuscriptor}>
-            <h3>{editingSuscriptorId ? "Editar suscriptor" : "Nuevo suscriptor"}</h3>
-
-            <label className={styles.field}>
-              <span>Correo</span>
-              <input
-                value={suscriptorForm.email}
-                disabled={Boolean(editingSuscriptorId)}
-                onChange={(event) =>
-                  setSuscriptorForm((prev) => ({
-                    ...prev,
-                    email: event.target.value,
-                  }))
-                }
-              />
-            </label>
-
-            <label className={styles.field}>
-              <span>Nombre</span>
-              <input
-                value={suscriptorForm.nombre}
-                onChange={(event) =>
-                  setSuscriptorForm((prev) => ({
-                    ...prev,
-                    nombre: event.target.value,
-                  }))
-                }
-              />
-            </label>
-
-            <label className={styles.field}>
-              <span>Teléfono</span>
-              <input
-                value={suscriptorForm.telefono}
-                onChange={(event) =>
-                  setSuscriptorForm((prev) => ({
-                    ...prev,
-                    telefono: event.target.value,
-                  }))
-                }
-              />
-            </label>
-
-            <label className={styles.check}>
-              <input
-                type="checkbox"
-                checked={suscriptorForm.acepta_marketing}
-                onChange={(event) =>
-                  setSuscriptorForm((prev) => ({
-                    ...prev,
-                    acepta_marketing: event.target.checked,
-                  }))
-                }
-              />
-              Acepta marketing
-            </label>
-
-            <label className={styles.field}>
-              <span>Notas internas</span>
-              <textarea
-                rows={4}
-                value={suscriptorForm.notas_admin}
-                onChange={(event) =>
-                  setSuscriptorForm((prev) => ({
-                    ...prev,
-                    notas_admin: event.target.value,
-                  }))
-                }
-              />
-            </label>
-
-            <div className={styles.actions}>
-              <button type="submit" disabled={saving}>
-                {editingSuscriptorId ? "Guardar cambios" : "Crear suscriptor"}
-              </button>
-
-              {editingSuscriptorId && (
-                <button
-                  type="button"
-                  className={styles.secondaryButton}
-                  onClick={() => {
-                    setEditingSuscriptorId(null);
-                    setSuscriptorForm(emptySuscriptor);
-                  }}
-                >
-                  Cancelar
-                </button>
-              )}
-            </div>
-          </form>
-
-          <div className={styles.card}>
-            <h3>Lista de suscriptores</h3>
-
-            <div className={styles.list}>
-              {suscriptores.map((item) => (
-                <article key={item.id} className={styles.item}>
-                  <div>
-                    <strong>{item.email}</strong>
-                    <p>{item.nombre || "Sin nombre"} · {item.telefono || "Sin teléfono"}</p>
-                  </div>
-
-                  <span className={`${styles.badge} ${styles[item.estado]}`}>
-                    {item.estado}
-                  </span>
-
-                  <div className={styles.rowActions}>
-                    <button type="button" onClick={() => startEditSuscriptor(item)}>
-                      Editar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleStatusSuscriptor(item, "ACTIVO")}
-                    >
-                      Activar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleStatusSuscriptor(item, "BAJA")}
-                    >
-                      Baja
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleStatusSuscriptor(item, "BLOQUEADO")}
-                    >
-                      Bloquear
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-      )} */}
-
-      {currentTab === "cupones" && (
-        <section
-          className={`${styles.grid} ${styles.couponGrid} ${!canManageCupones ? styles.singleColumn : ""}`}
-        >
-          {canManageCupones && (
-            <form
-              className={`${styles.card} ${styles.couponForm}`}
-              onSubmit={handleSaveCupon}
-            >
-              <div className={styles.formHeading}>
+      {currentTab === "suscriptores" && (
+        <section className={styles.workspace}>
+          {canManageSuscripciones && (
+            <form className={styles.panel} onSubmit={handleSaveSuscriptor}>
+              <div className={styles.panelHeader}>
                 <div>
-                  <span className={styles.formEyebrow}>Configuración</span>
-                  <h3>{editingCuponId ? "Editar cupón" : "Nuevo cupón"}</h3>
-                  <p>
-                    Define el descuento, vigencia y límites de uso del cupón.
-                  </p>
+                  <span className={styles.panelEyebrow}>Consentimiento</span>
+                  <h2>{editingSuscriptorId ? "Editar suscriptor" : "Nuevo suscriptor"}</h2>
                 </div>
               </div>
-
-              <section className={styles.formSection}>
-                <div className={styles.formSectionHeader}>
-                  <div>
-                    <h4>Información general</h4>
-                    <p>Identifica el cupón que verá el cliente.</p>
-                  </div>
-                </div>
-
-                <div className={styles.twoCols}>
-                  <label className={styles.field}>
-                    <span>Código</span>
-                    <input
-                      value={cuponForm.codigo}
-                      disabled={Boolean(editingCuponId)}
-                      placeholder="Ej. BIENVENIDA10"
-                      onChange={(event) =>
-                        setCuponForm((prev) => ({
-                          ...prev,
-                          codigo: event.target.value.toUpperCase(),
-                        }))
-                      }
-                    />
-                  </label>
-
-                  <label className={styles.field}>
-                    <span>Nombre</span>
-                    <input
-                      value={cuponForm.nombre}
-                      placeholder="Ej. Bienvenida 10%"
-                      onChange={(event) =>
-                        setCuponForm((prev) => ({
-                          ...prev,
-                          nombre: event.target.value,
-                        }))
-                      }
-                    />
-                  </label>
-                </div>
-
-                <label className={styles.field}>
-                  <span>Descripción</span>
-                  <textarea
-                    rows={3}
-                    value={cuponForm.descripcion}
-                    placeholder="Describe brevemente cuándo o para quién aplica."
-                    onChange={(event) =>
-                      setCuponForm((prev) => ({
-                        ...prev,
-                        descripcion: event.target.value,
-                      }))
-                    }
-                  />
-                </label>
-              </section>
-
-              <section className={styles.formSection}>
-                <div className={styles.formSectionHeader}>
-                  <div>
-                    <h4>Descuento</h4>
-                    <p>Configura el beneficio y la compra mínima requerida.</p>
-                  </div>
-                </div>
-
-                <div className={styles.discountGrid}>
-                  <label className={styles.field}>
-                    <span>Tipo</span>
-                    <select
-                      value={cuponForm.tipo_descuento}
-                      onChange={(event) =>
-                        setCuponForm((prev) => ({
-                          ...prev,
-                          tipo_descuento: event.target.value,
-                        }))
-                      }
-                    >
-                      <option value="PORCENTAJE">Porcentaje</option>
-                      <option value="MONTO">Monto fijo</option>
-                    </select>
-                  </label>
-
-                  <label className={styles.field}>
-                    <span>Valor</span>
-                    <div className={styles.inputWithSuffix}>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={cuponForm.valor}
-                        onChange={(event) =>
-                          setCuponForm((prev) => ({
-                            ...prev,
-                            valor: Number(event.target.value),
-                          }))
-                        }
-                      />
-                      <span>
-                        {cuponForm.tipo_descuento === "PORCENTAJE"
-                          ? "%"
-                          : "MXN"}
-                      </span>
-                    </div>
-                  </label>
-
-                  <label className={styles.field}>
-                    <span>Compra mínima</span>
-                    <div className={styles.inputWithPrefix}>
-                      <span>$</span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={cuponForm.monto_minimo_compra}
-                        onChange={(event) =>
-                          setCuponForm((prev) => ({
-                            ...prev,
-                            monto_minimo_compra: Number(event.target.value),
-                          }))
-                        }
-                      />
-                    </div>
-                    <small>$0 = sin compra mínima.</small>
-                  </label>
-                </div>
-              </section>
-
-              <section
-                className={`${styles.formSection} ${styles.rulesSection}`}
-              >
-                <div className={styles.formSectionHeader}>
-                  <div>
-                    <h4>Reglas de uso</h4>
-                    <p>Controla cuántas veces puede utilizarse el cupón.</p>
-                  </div>
-                </div>
-
-                <div className={styles.rulesGrid}>
-                  <label className={styles.field}>
-                    <span>Usos globales</span>
-                    <input
-                      type="number"
-                      min="1"
-                      step="1"
-                      placeholder="Ilimitado"
-                      value={cuponForm.uso_maximo}
-                      onChange={(event) =>
-                        setCuponForm((prev) => ({
-                          ...prev,
-                          uso_maximo: event.target.value,
-                        }))
-                      }
-                    />
-                    <small>Vacío = ilimitado.</small>
-                  </label>
-
-                  <label className={styles.field}>
-                    <span>Usos por cliente</span>
-                    <input
-                      type="number"
-                      min="1"
-                      step="1"
-                      placeholder="Ilimitado"
-                      value={cuponForm.uso_maximo_por_cliente}
-                      onChange={(event) =>
-                        setCuponForm((prev) => ({
-                          ...prev,
-                          uso_maximo_por_cliente: event.target.value,
-                        }))
-                      }
-                    />
-                    <small>Vacío = ilimitado.</small>
-                  </label>
-                </div>
-
-                <div className={styles.toggleList}>
-                  <label className={styles.toggleRow}>
-                    <div className={styles.toggleCopy}>
-                      <strong>Solo clientes registrados</strong>
-                      <span>
-                        Requiere una cuenta de cliente para utilizar el cupón.
-                      </span>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={cuponForm.solo_clientes_registrados}
-                      onChange={(event) =>
-                        setCuponForm((prev) => ({
-                          ...prev,
-                          solo_clientes_registrados: event.target.checked,
-                        }))
-                      }
-                    />
-                  </label>
-
-                  <label className={styles.toggleRow}>
-                    <div className={styles.toggleCopy}>
-                      <strong>Acumulable</strong>
-                      <span>
-                        Permite marcar el cupón como combinable con promociones
-                        compatibles.
-                      </span>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={cuponForm.acumulable}
-                      onChange={(event) =>
-                        setCuponForm((prev) => ({
-                          ...prev,
-                          acumulable: event.target.checked,
-                        }))
-                      }
-                    />
-                  </label>
-                </div>
-              </section>
-
-              <section className={styles.formSection}>
-                <div className={styles.formSectionHeader}>
-                  <div>
-                    <h4>Vigencia y disponibilidad</h4>
-                    <p>Define cuándo y en qué canal puede utilizarse.</p>
-                  </div>
-                </div>
-
-                <div className={styles.twoCols}>
-                  <label className={styles.field}>
-                    <span>Fecha inicio</span>
-                    <input
-                      type="date"
-                      value={cuponForm.fecha_inicio}
-                      onChange={(event) =>
-                        setCuponForm((prev) => ({
-                          ...prev,
-                          fecha_inicio: event.target.value,
-                        }))
-                      }
-                    />
-                  </label>
-
-                  <label className={styles.field}>
-                    <span>Fecha fin</span>
-                    <input
-                      type="date"
-                      value={cuponForm.fecha_fin}
-                      onChange={(event) =>
-                        setCuponForm((prev) => ({
-                          ...prev,
-                          fecha_fin: event.target.value,
-                        }))
-                      }
-                    />
-                  </label>
-                </div>
-
-                <div className={styles.twoCols}>
-                  <label className={styles.field}>
-                    <span>Canal</span>
-                    <select
-                      value={cuponForm.canal}
-                      onChange={(event) =>
-                        setCuponForm((prev) => ({
-                          ...prev,
-                          canal: event.target.value as CanalCupon,
-                        }))
-                      }
-                    >
-                      <option value="AMBOS">Ambos</option>
-                      <option value="POS">Punto de venta</option>
-                      <option value="WEB">Tienda web</option>
-                    </select>
-                  </label>
-
-                  <label className={styles.field}>
-                    <span>Aplica a</span>
-                    <select
-                      value={cuponForm.aplica_a}
-                      onChange={(event) =>
-                        setCuponForm((prev) => ({
-                          ...prev,
-                          aplica_a: event.target.value as AplicaCupon,
-                        }))
-                      }
-                    >
-                      <option value="PEDIDO">Pedido completo</option>
-                    </select>
-                  </label>
-                </div>
-              </section>
-
-              <div className={styles.formFooter}>
-                <p>
-                  {editingCuponId
-                    ? "Revisa los cambios antes de guardar."
-                    : "El cupón podrá activarse o desactivarse después."}
-                </p>
-
-                <div className={styles.actions}>
-                  {editingCuponId && (
-                    <button
-                      type="button"
-                      className={styles.secondaryButton}
-                      onClick={() => {
-                        setEditingCuponId(null);
-                        setCuponForm(emptyCupon);
-                      }}
-                    >
-                      Cancelar
-                    </button>
-                  )}
-
-                  <button type="submit" disabled={saving}>
-                    {saving
-                      ? "Guardando..."
-                      : editingCuponId
-                        ? "Guardar cambios"
-                        : "Crear cupón"}
-                  </button>
-                </div>
-              </div>
-            </form>
-          )}
-
-          <div className={`${styles.card} ${styles.couponListCard}`}>
-            <div className={styles.listHeading}>
-              <div>
-                <span className={styles.formEyebrow}>Promociones</span>
-                <h3>Lista de cupones</h3>
-                <p>
-                  {cupones.length} cupón{cupones.length === 1 ? "" : "es"}{" "}
-                  registrado{cupones.length === 1 ? "" : "s"}.
-                </p>
-              </div>
-            </div>
-
-            <div className={styles.list}>
-              {cupones.length === 0 && !loading && (
-                <div className={styles.emptyState}>
-                  <strong>Aún no hay cupones</strong>
-                  <p>Crea el primero para comenzar a usar promociones.</p>
-                </div>
-              )}
-
-              {cupones.map((item) => (
-                <article key={item.id} className={styles.couponItem}>
-                  <div className={styles.couponTop}>
-                    <div className={styles.couponIdentity}>
-                      <span className={styles.couponCode}>{item.codigo}</span>
-                      <strong>{item.nombre || "Sin nombre"}</strong>
-                      {item.descripcion && <p>{item.descripcion}</p>}
-                    </div>
-
-                    <span
-                      className={`${styles.badge} ${item.activo ? styles.ACTIVO : styles.INACTIVO}`}
-                    >
-                      {item.activo ? "ACTIVO" : "INACTIVO"}
-                    </span>
-                  </div>
-
-                  <div className={styles.discountSummary}>
-                    <strong>
-                      {item.tipo_descuento === "PORCENTAJE"
-                        ? `${Number(item.valor)}%`
-                        : `$${Number(item.valor).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                    </strong>
-                    <span>de descuento</span>
-                  </div>
-
-                  <div className={styles.couponMeta}>
-                    <span>
-                      {item.uso_maximo == null
-                        ? "Usos globales ilimitados"
-                        : `${item.uso_maximo} usos globales`}
-                    </span>
-                    <span>
-                      {item.uso_maximo_por_cliente == null
-                        ? "Sin límite por cliente"
-                        : `${item.uso_maximo_por_cliente} por cliente`}
-                    </span>
-                    <span>
-                      {item.canal === "AMBOS" ? "Web + POS" : item.canal}
-                    </span>
-                    {item.solo_clientes_registrados && (
-                      <span>Solo registrados</span>
-                    )}
-                  </div>
-
-                  <div className={styles.couponBottom}>
-                    <small className={styles.couponState}>
-                      Estado: {item.estado_calculado}
-                    </small>
-
-                    {canManageCupones && (
-                      <div className={styles.rowActions}>
-                        <button
-                          type="button"
-                          onClick={() => startEditCupon(item)}
-                        >
-                          Editar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleToggleCupon(item)}
-                        >
-                          {item.activo ? "Desactivar" : "Activar"}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* {tab === "segmentos" && (
-        <section className={styles.grid}>
-          <form className={styles.card} onSubmit={handleSaveSegmento}>
-            <h3>{editingSegmentoId ? "Editar segmento" : "Nuevo segmento"}</h3>
-
-            <label className={styles.field}>
-              <span>Nombre</span>
-              <input
-                value={segmentoForm.nombre}
-                onChange={(event) =>
-                  setSegmentoForm((prev) => ({
-                    ...prev,
-                    nombre: event.target.value,
-                  }))
-                }
-              />
-            </label>
-
-            <label className={styles.field}>
-              <span>Descripción</span>
-              <textarea
-                rows={4}
-                value={segmentoForm.descripcion}
-                onChange={(event) =>
-                  setSegmentoForm((prev) => ({
-                    ...prev,
-                    descripcion: event.target.value,
-                  }))
-                }
-              />
-            </label>
-
-            <label className={styles.check}>
-              <input
-                type="checkbox"
-                checked={segmentoForm.activo}
-                onChange={(event) =>
-                  setSegmentoForm((prev) => ({
-                    ...prev,
-                    activo: event.target.checked,
-                  }))
-                }
-              />
-              Activo
-            </label>
-
-            <div className={styles.actions}>
-              <button type="submit" disabled={saving}>
-                {editingSegmentoId ? "Guardar cambios" : "Crear segmento"}
-              </button>
-            </div>
-          </form>
-
-          <div className={styles.card}>
-            <h3>Lista de segmentos</h3>
-
-            <div className={styles.list}>
-              {segmentos.map((item) => (
-                <article key={item.id} className={styles.item}>
-                  <div>
-                    <strong>{item.nombre}</strong>
-                    <p>{item.descripcion || "Sin descripción"}</p>
-                  </div>
-
-                  <span className={`${styles.badge} ${item.activo ? styles.ACTIVO : styles.INACTIVO}`}>
-                    {item.activo ? "ACTIVO" : "INACTIVO"}
-                  </span>
-
-                  <div className={styles.rowActions}>
-                    <button type="button" onClick={() => startEditSegmento(item)}>
-                      Editar
-                    </button>
-                    <button type="button" onClick={() => handleToggleSegmento(item)}>
-                      {item.activo ? "Desactivar" : "Activar"}
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-      )} */}
-
-      {currentTab === "plantillas" && (
-        <section className={styles.grid}>
-          {canManagePlantillas && (
-            <form className={styles.card} onSubmit={handleSavePlantilla}>
-              <h3>
-                {editingPlantillaId ? "Editar plantilla" : "Nueva plantilla"}
-              </h3>
-
+              <label className={styles.field}>
+                <span>Correo electrónico</span>
+                <input
+                  type="email"
+                  value={suscriptorForm.email}
+                  disabled={Boolean(editingSuscriptorId)}
+                  onChange={(event) => setSuscriptorForm((prev) => ({ ...prev, email: event.target.value }))}
+                  required
+                />
+              </label>
               <div className={styles.twoCols}>
                 <label className={styles.field}>
-                  <span>Clave</span>
-                  <input
-                    value={plantillaForm.clave}
-                    disabled={Boolean(editingPlantillaId)}
-                    onChange={(event) =>
-                      setPlantillaForm((prev) => ({
-                        ...prev,
-                        clave: event.target.value.toUpperCase(),
-                      }))
-                    }
-                  />
+                  <span>Nombre</span>
+                  <input value={suscriptorForm.nombre} onChange={(event) => setSuscriptorForm((prev) => ({ ...prev, nombre: event.target.value }))} />
                 </label>
-
                 <label className={styles.field}>
-                  <span>Tipo</span>
-                  <select
-                    value={plantillaForm.tipo}
-                    onChange={(event) =>
-                      setPlantillaForm((prev) => ({
-                        ...prev,
-                        tipo: event.target.value as TipoPlantilla,
-                      }))
-                    }
-                  >
-                    <option value="MARKETING">Marketing</option>
-                    <option value="TRANSACCIONAL">Transaccional</option>
-                  </select>
+                  <span>Teléfono</span>
+                  <input value={suscriptorForm.telefono} onChange={(event) => setSuscriptorForm((prev) => ({ ...prev, telefono: event.target.value }))} />
                 </label>
               </div>
-
               <label className={styles.field}>
-                <span>Nombre</span>
-                <input
-                  value={plantillaForm.nombre}
-                  onChange={(event) =>
-                    setPlantillaForm((prev) => ({
-                      ...prev,
-                      nombre: event.target.value,
-                    }))
-                  }
-                />
+                <span>Notas internas</span>
+                <textarea rows={3} value={suscriptorForm.notas_admin} onChange={(event) => setSuscriptorForm((prev) => ({ ...prev, notas_admin: event.target.value }))} />
               </label>
-
-              <label className={styles.field}>
-                <span>Asunto</span>
-                <input
-                  value={plantillaForm.asunto}
-                  onChange={(event) =>
-                    setPlantillaForm((prev) => ({
-                      ...prev,
-                      asunto: event.target.value,
-                    }))
-                  }
-                />
+              <label className={styles.checkRow}>
+                <input type="checkbox" checked={suscriptorForm.acepta_marketing} onChange={(event) => setSuscriptorForm((prev) => ({ ...prev, acepta_marketing: event.target.checked }))} />
+                <span><strong>Acepta comunicaciones de marketing</strong><small>Debe reflejar el consentimiento del titular.</small></span>
               </label>
-
-              <label className={styles.field}>
-                <span>Preheader</span>
-                <input
-                  value={plantillaForm.preheader}
-                  onChange={(event) =>
-                    setPlantillaForm((prev) => ({
-                      ...prev,
-                      preheader: event.target.value,
-                    }))
-                  }
-                />
-              </label>
-
-              <label className={styles.field}>
-                <span>Contenido del correo</span>
-                <textarea
-                  rows={8}
-                  value={plantillaForm.cuerpo_texto}
-                  onChange={(event) =>
-                    setPlantillaForm((prev) => ({
-                      ...prev,
-                      cuerpo_texto: event.target.value,
-                    }))
-                  }
-                />
-              </label>
-
-              <label className={styles.check}>
-                <input
-                  type="checkbox"
-                  checked={plantillaForm.activo}
-                  onChange={(event) =>
-                    setPlantillaForm((prev) => ({
-                      ...prev,
-                      activo: event.target.checked,
-                    }))
-                  }
-                />
-                Activa
-              </label>
-
-              <div className={styles.actions}>
-                <button type="submit" disabled={saving}>
-                  {editingPlantillaId ? "Guardar cambios" : "Crear plantilla"}
-                </button>
+              <div className={styles.formActions}>
+                {editingSuscriptorId && <button type="button" className={styles.secondaryButton} onClick={() => { setEditingSuscriptorId(null); setSuscriptorForm(emptySuscriptor); }}>Cancelar</button>}
+                <button type="submit" disabled={saving}>{saving ? "Guardando..." : editingSuscriptorId ? "Guardar cambios" : "Registrar"}</button>
               </div>
             </form>
           )}
 
-          <div className={styles.card}>
-            <h3>Lista de plantillas</h3>
-
-            {canSendPlantillaTest && (
-              <label className={styles.field}>
-                <span>Correo para prueba</span>
-                <input
-                  value={testEmail}
-                  onChange={(event) => setTestEmail(event.target.value)}
-                  placeholder="correo@ejemplo.com"
-                />
-              </label>
-            )}
-
+          <div className={styles.panel}>
+            <div className={styles.panelHeader}>
+              <div><span className={styles.panelEyebrow}>Audiencia</span><h2>Suscriptores</h2></div>
+              <span className={styles.counter}>{suscriptores.length}</span>
+            </div>
             <div className={styles.list}>
-              {plantillas.map((item) => (
-                <article key={item.id} className={styles.item}>
-                  <div>
-                    <strong>{item.nombre}</strong>
-                    <p>{item.asunto}</p>
-                    <small>
-                      {item.clave} · {item.tipo}
-                    </small>
+              {!loading && suscriptores.length === 0 && <div className={styles.emptyState}><strong>Sin suscriptores</strong><p>La lista aparecerá aquí cuando existan registros.</p></div>}
+              {suscriptores.map((item) => (
+                <article className={styles.listItem} key={item.id}>
+                  <div className={styles.itemMain}>
+                    <div className={styles.itemTitleRow}><strong>{item.nombre || item.email}</strong><span className={`${styles.badge} ${item.estado === "ACTIVO" ? styles.badgeActive : styles.badgeInactive}`}>{item.estado}</span></div>
+                    <p>{item.email}{item.telefono ? ` · ${item.telefono}` : ""}</p>
+                    <small>Origen: {item.origen} · Alta: {formatDate(item.fecha_registro || item.created_at)}</small>
                   </div>
-
-                  <span
-                    className={`${styles.badge} ${item.activo ? styles.ACTIVO : styles.INACTIVO}`}
-                  >
-                    {item.activo ? "ACTIVA" : "INACTIVA"}
-                  </span>
-
-                  {(canManagePlantillas || canSendPlantillaTest) && (
-                    <div className={styles.rowActions}>
-                      {canManagePlantillas && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => startEditPlantilla(item)}
-                          >
-                            Editar
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleTogglePlantilla(item)}
-                          >
-                            {item.activo ? "Desactivar" : "Activar"}
-                          </button>
-                        </>
-                      )}
-
-                      {canSendPlantillaTest && (
-                        <button
-                          type="button"
-                          onClick={() => handleSendTest(item)}
-                        >
-                          Enviar prueba
-                        </button>
-                      )}
-                    </div>
-                  )}
+                  {canManageSuscripciones && <div className={styles.rowActions}><button type="button" onClick={() => editSuscriptor(item)}>Editar</button><button type="button" onClick={() => void toggleSuscriptor(item)}>{item.estado === "ACTIVO" ? "Dar de baja" : "Reactivar"}</button></div>}
                 </article>
               ))}
             </div>
           </div>
         </section>
       )}
+
+      {currentTab === "cupones" && (
+        <section className={styles.workspace}>
+          {canManageCupones && (
+            <form className={styles.panel} onSubmit={handleSaveCupon}>
+              <div className={styles.panelHeader}><div><span className={styles.panelEyebrow}>Promoción</span><h2>{editingCuponId ? "Editar cupón" : "Nuevo cupón"}</h2></div></div>
+              <div className={styles.twoCols}>
+                <label className={styles.field}><span>Código</span><input disabled={Boolean(editingCuponId)} value={cuponForm.codigo} onChange={(e) => setCuponForm((p) => ({ ...p, codigo: e.target.value.toUpperCase() }))} /></label>
+                <label className={styles.field}><span>Nombre</span><input value={cuponForm.nombre} onChange={(e) => setCuponForm((p) => ({ ...p, nombre: e.target.value }))} /></label>
+              </div>
+              <label className={styles.field}><span>Descripción</span><textarea rows={3} value={cuponForm.descripcion} onChange={(e) => setCuponForm((p) => ({ ...p, descripcion: e.target.value }))} /></label>
+              <div className={styles.threeCols}>
+                <label className={styles.field}><span>Tipo</span><select value={cuponForm.tipo_descuento} onChange={(e) => setCuponForm((p) => ({ ...p, tipo_descuento: e.target.value }))}><option value="PORCENTAJE">Porcentaje</option><option value="MONTO_FIJO">Monto fijo</option></select></label>
+                <label className={styles.field}><span>Valor</span><input type="number" min="0.01" step="0.01" value={cuponForm.valor} onChange={(e) => setCuponForm((p) => ({ ...p, valor: Number(e.target.value) }))} /></label>
+                <label className={styles.field}><span>Compra mínima</span><input type="number" min="0" step="0.01" value={cuponForm.monto_minimo_compra} onChange={(e) => setCuponForm((p) => ({ ...p, monto_minimo_compra: Number(e.target.value) }))} /></label>
+              </div>
+              <div className={styles.twoCols}>
+                <label className={styles.field}><span>Inicio</span><input type="date" value={cuponForm.fecha_inicio} onChange={(e) => setCuponForm((p) => ({ ...p, fecha_inicio: e.target.value }))} /></label>
+                <label className={styles.field}><span>Fin</span><input type="date" value={cuponForm.fecha_fin} onChange={(e) => setCuponForm((p) => ({ ...p, fecha_fin: e.target.value }))} /></label>
+              </div>
+              <div className={styles.threeCols}>
+                <label className={styles.field}><span>Canal</span><select value={cuponForm.canal} onChange={(e) => setCuponForm((p) => ({ ...p, canal: e.target.value as CanalCupon }))}><option value="AMBOS">POS + Web</option><option value="POS">POS</option><option value="WEB">Web</option></select></label>
+                <label className={styles.field}><span>Usos globales</span><input type="number" min="1" value={cuponForm.uso_maximo} placeholder="Ilimitado" onChange={(e) => setCuponForm((p) => ({ ...p, uso_maximo: e.target.value }))} /></label>
+                <label className={styles.field}><span>Usos por cliente</span><input type="number" min="1" value={cuponForm.uso_maximo_por_cliente} placeholder="Ilimitado" onChange={(e) => setCuponForm((p) => ({ ...p, uso_maximo_por_cliente: e.target.value }))} /></label>
+              </div>
+              <div className={styles.checkGrid}>
+                <label className={styles.checkRow}><input type="checkbox" checked={cuponForm.acumulable} onChange={(e) => setCuponForm((p) => ({ ...p, acumulable: e.target.checked }))} /><span><strong>Acumulable</strong><small>Puede combinarse con otras promociones.</small></span></label>
+                <label className={styles.checkRow}><input type="checkbox" checked={cuponForm.solo_clientes_registrados} onChange={(e) => setCuponForm((p) => ({ ...p, solo_clientes_registrados: e.target.checked }))} /><span><strong>Solo clientes registrados</strong><small>Requiere cliente asociado.</small></span></label>
+              </div>
+              <div className={styles.formActions}>{editingCuponId && <button type="button" className={styles.secondaryButton} onClick={() => { setEditingCuponId(null); setCuponForm(emptyCupon); }}>Cancelar</button>}<button type="submit" disabled={saving}>{saving ? "Guardando..." : editingCuponId ? "Guardar cambios" : "Crear cupón"}</button></div>
+            </form>
+          )}
+
+          <div className={styles.panel}>
+            <div className={styles.panelHeader}><div><span className={styles.panelEyebrow}>Promociones</span><h2>Cupones registrados</h2></div><span className={styles.counter}>{cupones.length}</span></div>
+            <div className={styles.list}>
+              {!loading && cupones.length === 0 && <div className={styles.emptyState}><strong>Sin cupones</strong><p>Crea la primera promoción para comenzar.</p></div>}
+              {cupones.map((item) => (
+                <article className={styles.listItem} key={item.id}>
+                  <div className={styles.itemMain}>
+                    <div className={styles.itemTitleRow}><strong className={styles.code}>{item.codigo}</strong><span className={`${styles.badge} ${item.activo ? styles.badgeActive : styles.badgeInactive}`}>{item.estado_calculado}</span></div>
+                    <p>{item.nombre || "Sin nombre"} · {item.tipo_descuento === "PORCENTAJE" ? `${Number(item.valor)}%` : `$${Number(item.valor).toFixed(2)}`}</p>
+                    <small>{formatDate(item.fecha_inicio)} → {formatDate(item.fecha_fin)} · Canal {item.canal} · Usos {item.usos_actuales}{item.uso_maximo == null ? "" : `/${item.uso_maximo}`}</small>
+                  </div>
+                  {canManageCupones && <div className={styles.rowActions}><button type="button" onClick={() => editCupon(item)}>Editar</button><button type="button" onClick={() => void toggleCupon(item)}>{item.activo ? "Desactivar" : "Activar"}</button></div>}
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {currentTab === "segmentos" && (
+        <section className={styles.workspace}>
+          {canManageSegmentos && (
+            <form className={styles.panel} onSubmit={handleSaveSegmento}>
+              <div className={styles.panelHeader}><div><span className={styles.panelEyebrow}>Audiencia</span><h2>{editingSegmentoId ? "Editar segmento" : "Nuevo segmento"}</h2></div></div>
+              <label className={styles.field}><span>Nombre</span><input value={segmentoForm.nombre} onChange={(e) => setSegmentoForm((p) => ({ ...p, nombre: e.target.value }))} /></label>
+              <label className={styles.field}><span>Descripción</span><textarea rows={5} value={segmentoForm.descripcion} onChange={(e) => setSegmentoForm((p) => ({ ...p, descripcion: e.target.value }))} /></label>
+              <label className={styles.checkRow}><input type="checkbox" checked={segmentoForm.activo} onChange={(e) => setSegmentoForm((p) => ({ ...p, activo: e.target.checked }))} /><span><strong>Segmento activo</strong><small>Disponible para organización y futuras campañas.</small></span></label>
+              <div className={styles.formActions}>{editingSegmentoId && <button type="button" className={styles.secondaryButton} onClick={() => { setEditingSegmentoId(null); setSegmentoForm(emptySegmento); }}>Cancelar</button>}<button type="submit" disabled={saving}>{saving ? "Guardando..." : editingSegmentoId ? "Guardar cambios" : "Crear segmento"}</button></div>
+            </form>
+          )}
+
+          <div className={styles.panel}>
+            <div className={styles.panelHeader}><div><span className={styles.panelEyebrow}>Organización</span><h2>Segmentos</h2></div><span className={styles.counter}>{segmentos.length}</span></div>
+            <div className={styles.list}>
+              {!loading && segmentos.length === 0 && <div className={styles.emptyState}><strong>Sin segmentos</strong><p>Crea agrupaciones para organizar las audiencias.</p></div>}
+              {segmentos.map((item) => (
+                <article className={styles.listItem} key={item.id}>
+                  <div className={styles.itemMain}><div className={styles.itemTitleRow}><strong>{item.nombre}</strong><span className={`${styles.badge} ${item.activo ? styles.badgeActive : styles.badgeInactive}`}>{item.activo ? "ACTIVO" : "INACTIVO"}</span></div><p>{item.descripcion || "Sin descripción"}</p><small>Actualizado {formatDate(item.updated_at)}</small></div>
+                  {canManageSegmentos && <div className={styles.rowActions}><button type="button" onClick={() => editSegmento(item)}>Editar</button><button type="button" onClick={() => void toggleSegmento(item)}>{item.activo ? "Desactivar" : "Activar"}</button></div>}
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {currentTab === "plantillas" && (
+        <section className={styles.workspace}>
+          {canManagePlantillas && (
+            <form className={styles.panel} onSubmit={handleSavePlantilla}>
+              <div className={styles.panelHeader}><div><span className={styles.panelEyebrow}>Correo</span><h2>{editingPlantillaId ? "Editar plantilla" : "Nueva plantilla"}</h2></div></div>
+              <div className={styles.twoCols}>
+                <label className={styles.field}><span>Clave</span><input disabled={Boolean(editingPlantillaId)} value={plantillaForm.clave} onChange={(e) => setPlantillaForm((p) => ({ ...p, clave: e.target.value.toUpperCase() }))} /></label>
+                <label className={styles.field}><span>Tipo</span><select value={plantillaForm.tipo} onChange={(e) => setPlantillaForm((p) => ({ ...p, tipo: e.target.value as TipoPlantilla }))}><option value="MARKETING">Marketing</option><option value="TRANSACCIONAL">Transaccional</option></select></label>
+              </div>
+              <label className={styles.field}><span>Nombre</span><input value={plantillaForm.nombre} onChange={(e) => setPlantillaForm((p) => ({ ...p, nombre: e.target.value }))} /></label>
+              <label className={styles.field}><span>Asunto</span><input value={plantillaForm.asunto} onChange={(e) => setPlantillaForm((p) => ({ ...p, asunto: e.target.value }))} /></label>
+              <label className={styles.field}><span>Preheader</span><input value={plantillaForm.preheader} onChange={(e) => setPlantillaForm((p) => ({ ...p, preheader: e.target.value }))} /></label>
+              <label className={styles.field}><span>Cuerpo del correo</span><textarea rows={9} value={plantillaForm.cuerpo_texto} onChange={(e) => setPlantillaForm((p) => ({ ...p, cuerpo_texto: e.target.value }))} /></label>
+              <label className={styles.checkRow}><input type="checkbox" checked={plantillaForm.activo} onChange={(e) => setPlantillaForm((p) => ({ ...p, activo: e.target.checked }))} /><span><strong>Plantilla activa</strong><small>Disponible para envíos permitidos.</small></span></label>
+              <div className={styles.formActions}>{editingPlantillaId && <button type="button" className={styles.secondaryButton} onClick={() => { setEditingPlantillaId(null); setPlantillaForm(emptyPlantilla); }}>Cancelar</button>}<button type="submit" disabled={saving}>{saving ? "Guardando..." : editingPlantillaId ? "Guardar cambios" : "Crear plantilla"}</button></div>
+            </form>
+          )}
+
+          <div className={styles.panel}>
+            <div className={styles.panelHeader}><div><span className={styles.panelEyebrow}>Comunicación</span><h2>Plantillas</h2></div><span className={styles.counter}>{plantillas.length}</span></div>
+            {canSendTest && <div className={styles.testBar}><label className={styles.field}><span>Correo para prueba</span><input type="email" placeholder="correo@ejemplo.com" value={testEmail} onChange={(e) => setTestEmail(e.target.value)} /></label><small>El envío de prueba usa la configuración actual de Resend.</small></div>}
+            <div className={styles.list}>
+              {!loading && plantillas.length === 0 && <div className={styles.emptyState}><strong>Sin plantillas</strong><p>Crea contenido reutilizable para comunicaciones.</p></div>}
+              {plantillas.map((item) => (
+                <article className={styles.listItem} key={item.id}>
+                  <div className={styles.itemMain}><div className={styles.itemTitleRow}><strong>{item.nombre}</strong><span className={`${styles.badge} ${item.activo ? styles.badgeActive : styles.badgeInactive}`}>{item.activo ? "ACTIVA" : "INACTIVA"}</span></div><p>{item.asunto}</p><small>{item.clave} · {item.tipo}</small></div>
+                  <div className={styles.rowActions}>{canManagePlantillas && <><button type="button" onClick={() => editPlantilla(item)}>Editar</button><button type="button" onClick={() => void togglePlantilla(item)}>{item.activo ? "Desactivar" : "Activar"}</button></>}{canSendTest && <button type="button" className={styles.primaryMini} onClick={() => void sendTest(item)}>Enviar prueba</button>}</div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {loading && <div className={styles.loadingBar}>Actualizando información...</div>}
+      {currentTabInfo && <footer className={styles.moduleFooter}><strong>{currentTabInfo.label}</strong><span>{currentTabInfo.description}</span></footer>}
     </main>
   );
 }

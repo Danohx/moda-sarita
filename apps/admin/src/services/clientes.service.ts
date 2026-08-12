@@ -82,4 +82,23 @@ export const clientesService = {
     const response = await clientesApi.changePuedeApartar(id, puede_apartar);
     return response.data;
   },
+
+  async getHistorialComercial(id: string | number, limit = 50) {
+    const response = await clientesApi.getHistorialComercial(id, limit);
+    return response.data;
+  },
+
+  async changeEstado(id: string | number, activo: boolean) {
+    const response = await clientesApi.changeEstado(id, activo);
+    return response.data;
+  },
+
+  async updateDireccion(
+    id: string | number,
+    direccionId: string | number,
+    payload: Parameters<typeof clientesApi.updateDireccion>[2],
+  ) {
+    const response = await clientesApi.updateDireccion(id, direccionId, payload);
+    return response.data;
+  },
 };

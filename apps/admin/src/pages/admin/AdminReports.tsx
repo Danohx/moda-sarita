@@ -46,7 +46,7 @@ type ActiveTab =
   | "financiero"
   | "cortes";
 
-type PeriodPreset = "7d" | "30d" | "month" | "custom";
+type PeriodPreset = "today" | "7d" | "15d" | "30d" | "month" | "year" | "custom";
 
 const REPORT_PERMISSIONS = {
   resumen: ["reportes.resumen.view"],
@@ -99,9 +99,12 @@ const TABS: ReportTabConfig[] = [
 ];
 
 const PERIODS: { id: PeriodPreset; label: string }[] = [
+  { id: "today", label: "Hoy" },
   { id: "7d", label: "7 días" },
+  { id: "15d", label: "15 días" },
   { id: "30d", label: "30 días" },
   { id: "month", label: "Mes actual" },
+  { id: "year", label: "Año actual" },
   { id: "custom", label: "Personalizado" },
 ];
 
@@ -122,20 +125,39 @@ function applyPeriodPreset(
   setFrom: (value: string) => void,
   setTo: (value: string) => void,
 ) {
+  if (preset === "today") {
+    setFrom(todayYmd());
+    setTo(todayYmd());
+    return;
+  }
+
   if (preset === "7d") {
-    setFrom(addDaysYmd(-7));
+    setFrom(addDaysYmd(-6));
+    setTo(todayYmd());
+    return;
+  }
+
+  if (preset === "15d") {
+    setFrom(addDaysYmd(-14));
     setTo(todayYmd());
     return;
   }
 
   if (preset === "30d") {
-    setFrom(addDaysYmd(-30));
+    setFrom(addDaysYmd(-29));
     setTo(todayYmd());
     return;
   }
 
   if (preset === "month") {
     setFrom(firstDayOfMonthYmd());
+    setTo(todayYmd());
+    return;
+  }
+
+  if (preset === "year") {
+    const currentYear = new Date().getFullYear();
+    setFrom(`${currentYear}-01-01`);
     setTo(todayYmd());
   }
 }
@@ -276,6 +298,13 @@ export default function AdminReportes() {
   );
 
   const loadAll = useCallback(async () => {
+    if (from > to) {
+      setError("La fecha inicial no puede ser posterior a la fecha final.");
+      setResumen(null);
+      setTabData(null);
+      return;
+    }
+
     if (!canViewResumen && !effectiveActiveTab) {
       setResumen(null);
       setTabData(null);
@@ -304,7 +333,7 @@ export default function AdminReportes() {
     } finally {
       setLoading(false);
     }
-  }, [canViewResumen, effectiveActiveTab, filters]);
+  }, [canViewResumen, effectiveActiveTab, filters, from, to]);
 
   function handlePeriodChange(preset: PeriodPreset) {
     setPeriodPreset(preset);
@@ -315,6 +344,11 @@ export default function AdminReportes() {
   }
 
   async function handleExportPdf() {
+    if (from > to) {
+      setError("Corrige el rango de fechas antes de exportar.");
+      return;
+    }
+
     if (!canExportReports || !effectiveActiveTab) {
       setError("No tienes permiso para exportar reportes.");
       return;
@@ -334,6 +368,11 @@ export default function AdminReportes() {
   }
 
   async function handleExportExcel() {
+    if (from > to) {
+      setError("Corrige el rango de fechas antes de exportar.");
+      return;
+    }
+
     if (!canExportReports || !effectiveActiveTab) {
       setError("No tienes permiso para exportar reportes.");
       return;

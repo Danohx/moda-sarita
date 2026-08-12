@@ -189,8 +189,16 @@ function mapPago(row: VentaPagoApi): VentaPago {
 }
 
 export const ventasService = {
-  async crearVentaPOS(payload: CreateVentaPOS, idempotencyKey?: string) {
+  async crearVentaPOS(payload: CreateVentaPOS, idempotencyKey: string) {
     const response = await ventasApi.crearVentaPOS(payload, idempotencyKey);
+    return response.data;
+  },
+
+  async cancelarVentaPOS(
+    id: string | number,
+    payload: Parameters<typeof ventasApi.cancelarVentaPOS>[1],
+  ) {
+    const response = await ventasApi.cancelarVentaPOS(id, payload);
     return response.data;
   },
 

@@ -189,6 +189,9 @@ const OrdersManager: React.FC = () => {
   const [metodoPago, setMetodoPago] = useState<MetodoPago>("EFECTIVO");
   const [referenciaExterna, setReferenciaExterna] = useState("");
   const [motivoCancelacion, setMotivoCancelacion] = useState("");
+  const [reembolsoModo, setReembolsoModo] =
+    useState<"NINGUNO" | "TOTAL" | "PARCIAL">("NINGUNO");
+  const [montoReembolso, setMontoReembolso] = useState("");
 
   const [ticketLoading, setTicketLoading] = useState(false);
 
@@ -438,6 +441,10 @@ const OrdersManager: React.FC = () => {
 
     setSelectedApartado(apartado);
     setMotivoCancelacion("");
+    setReembolsoModo("NINGUNO");
+    setMontoReembolso("");
+    setMetodoPago("EFECTIVO");
+    setReferenciaExterna("");
     setCancelarOpen(true);
   };
 
@@ -451,6 +458,8 @@ const OrdersManager: React.FC = () => {
     setAbonoMonto("");
     setReferenciaExterna("");
     setMotivoCancelacion("");
+    setReembolsoModo("NINGUNO");
+    setMontoReembolso("");
   };
 
   const handleRegistrarAbono = async () => {
@@ -550,7 +559,39 @@ const OrdersManager: React.FC = () => {
     try {
       setActionLoading(true);
 
-      await pedidosService.cancelar(selectedApartado.id, motivo);
+      const paid = Number(selectedApartado.paid || 0);
+      const montoParcial = Number(montoReembolso);
+
+      if (reembolsoModo === "PARCIAL") {
+        if (!Number.isFinite(montoParcial) || montoParcial <= 0) {
+          alert("Ingresa un monto de reembolso parcial válido.");
+          return;
+        }
+        if (montoParcial > paid) {
+          alert("El reembolso no puede exceder lo pagado.");
+          return;
+        }
+      }
+
+      const response = await pedidosService.cancelar(selectedApartado.id, {
+        motivo_cancelacion: motivo,
+        reembolso: {
+          modo: reembolsoModo,
+          monto: reembolsoModo === "PARCIAL" ? montoParcial : null,
+          metodo: reembolsoModo === "NINGUNO" ? null : metodoPago,
+          referencia_externa:
+            reembolsoModo === "NINGUNO"
+              ? null
+              : referenciaExterna.trim() || null,
+        },
+      });
+
+      if (response.reembolso_generado?.id) {
+        await pedidosService.abrirTicketPagoPdf(
+          selectedApartado.id,
+          response.reembolso_generado.id,
+        );
+      }
 
       setCancelarOpen(false);
       setSelectedApartado(null);
@@ -1141,6 +1182,11 @@ const OrdersManager: React.FC = () => {
         cancelarOpen={cancelarOpen}
         motivoCancelacion={motivoCancelacion}
         onMotivoCancelacionChange={setMotivoCancelacion}
+        apartadoPaid={selectedApartado?.paid ?? 0}
+        reembolsoModo={reembolsoModo}
+        onReembolsoModoChange={setReembolsoModo}
+        montoReembolso={montoReembolso}
+        onMontoReembolsoChange={setMontoReembolso}
         metodoPago={metodoPago}
         onMetodoPagoChange={setMetodoPago}
         referenciaExterna={referenciaExterna}

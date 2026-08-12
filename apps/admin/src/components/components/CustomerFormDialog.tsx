@@ -92,6 +92,10 @@ const CustomerFormDialog: React.FC<Props> = ({
     permissions: "clientes.direcciones.create",
   });
 
+  const canUpdateAddress = canAccess(user, {
+    permissions: "clientes.direcciones.update",
+  });
+
   const canManageCustomer = customer ? canUpdateCustomer : canCreateCustomer;
   const effectiveEditMode = isEditMode && canManageCustomer;
   const readOnly = !effectiveEditMode;
@@ -124,6 +128,7 @@ const CustomerFormDialog: React.FC<Props> = ({
   });
 
   const [puedeApartar, setPuedeApartar] = useState(false);
+  const [principalAddressId, setPrincipalAddressId] = useState<string | number | null>(null);
   const [originalPuedeApartar, setOriginalPuedeApartar] = useState(false);
 
   useEffect(() => {
@@ -166,6 +171,7 @@ const CustomerFormDialog: React.FC<Props> = ({
             const dirs = dataBD.direcciones || [];
             const dirPrincipal =
               dirs.find((d) => d.es_principal) || dirs[0] || {};
+            setPrincipalAddressId(dirPrincipal.id ?? null);
 
             setFormData((prev) => ({
               ...prev,
@@ -201,6 +207,7 @@ const CustomerFormDialog: React.FC<Props> = ({
           } else {
             setPuedeApartar(false);
             setOriginalPuedeApartar(false);
+            setPrincipalAddressId(null);
           }
         } catch (error) {
           console.error(error);
@@ -227,6 +234,7 @@ const CustomerFormDialog: React.FC<Props> = ({
         limiteCredito: 0,
         saldo: 0,
       });
+      setPrincipalAddressId(null);
     }
   }, [customer, open]);
 
@@ -239,12 +247,20 @@ const CustomerFormDialog: React.FC<Props> = ({
       return;
     }
 
-    if (formData.calle.trim() !== "" && !canCreateAddress) {
-      onError(
-        "No tienes permiso para registrar direcciones de clientes.",
-        "Permiso insuficiente",
-      );
-      return;
+    if (formData.calle.trim() !== "") {
+      const canPersistAddress = principalAddressId
+        ? canUpdateAddress
+        : canCreateAddress;
+
+      if (!canPersistAddress) {
+        onError(
+          principalAddressId
+            ? "No tienes permiso para actualizar direcciones de clientes."
+            : "No tienes permiso para registrar direcciones de clientes.",
+          "Permiso insuficiente",
+        );
+        return;
+      }
     }
 
     try {
@@ -287,16 +303,23 @@ const CustomerFormDialog: React.FC<Props> = ({
           ciudad: formData.ciudad || "Sin especificar",
           estado: formData.estado || "Sin especificar",
           codigo_postal: formData.codigo_postal || "00000",
+          es_principal: true,
         };
 
-        const nuevaDir = await clientesService.addDireccion(
-          clienteId,
-          dirPayload,
-        );
-        const nuevaDirId = (nuevaDir as { id?: string | number })?.id;
+        if (principalAddressId) {
+          await clientesService.updateDireccion(
+            clienteId,
+            principalAddressId,
+            dirPayload,
+          );
+        } else {
+          const nuevaDir = await clientesService.addDireccion(clienteId, dirPayload);
+          const nuevaDirId = (nuevaDir as { id?: string | number })?.id;
 
-        if (nuevaDirId) {
-          await clientesService.setDireccionPrincipal(clienteId, nuevaDirId);
+          if (nuevaDirId) {
+            setPrincipalAddressId(nuevaDirId);
+            await clientesService.setDireccionPrincipal(clienteId, nuevaDirId);
+          }
         }
       }
       const esNuevo = !customer?.id;

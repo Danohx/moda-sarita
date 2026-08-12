@@ -274,6 +274,74 @@
   gap: 12px;
   margin-bottom: 10px;
 }
+.permissionsHeaderActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.permissionPresetsBox {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-medium);
+  background: var(--color-surface-soft);
+}
+
+.permissionPresetsTitle {
+  font-family: var(--font-primary) !important;
+  font-weight: 800 !important;
+  color: var(--color-text) !important;
+}
+
+.permissionPresetsHint {
+  display: block;
+  margin-top: 2px !important;
+  font-family: var(--font-primary) !important;
+  color: var(--color-text) !important;
+  opacity: 0.66;
+}
+
+.permissionPresetButtons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.permissionCategoryHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding: 2px 4px;
+}
+
+.permissionCategoryToggle {
+  margin: 0 !important;
+  color: var(--color-primary-vibrant) !important;
+}
+
+.permissionCategoryToggle :global(.MuiFormControlLabel-label) {
+  font-family: var(--font-primary) !important;
+  font-size: 0.88rem !important;
+  font-weight: 800 !important;
+}
+
+.permissionCategoryCount {
+  font-family: var(--font-primary) !important;
+  color: var(--color-text) !important;
+  opacity: 0.62;
+}
+
 .permissionsTitle {
   font-family: var(--font-primary) !important;
   font-weight: 800 !important;
@@ -432,4 +500,87 @@
     align-items: flex-start;
     flex-direction: column;
   }
+
+  .permissionsHeaderActions,
+  .permissionPresetButtons {
+    justify-content: flex-start;
+  }
+
+  .permissionPresetsBox {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+/* MODA_SARITA_ROLE_VISUAL_POLISH_V1 */
+.roleDialogPaper {
+  font-family: var(--font-primary) !important;
+  color: var(--color-text) !important;
+  background: var(--color-background) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--border-radius-xl) !important;
+  box-shadow: var(--shadow-lg) !important;
+  overflow: hidden !important;
+}
+
+.roleDialogPaper :global(.MuiDialogContent-root),
+.roleDialogPaper :global(.MuiDialogActions-root) {
+  background: var(--color-surface) !important;
+}
+
+.roleDialogPaper :global(.MuiInputLabel-root),
+.roleDialogPaper :global(.MuiFormControlLabel-label),
+.roleDialogPaper :global(.MuiTypography-root),
+.roleDialogPaper :global(.MuiButton-root),
+.roleDialogPaper :global(.MuiInputBase-root) {
+  font-family: var(--font-primary) !important;
+}
+
+.roleDialogPaper :global(.MuiOutlinedInput-root) {
+  border-radius: var(--border-radius-medium) !important;
+  background: var(--color-surface-soft) !important;
+}
+
+.roleDialogPaper :global(.MuiOutlinedInput-notchedOutline) {
+  border-color: var(--color-border-strong) !important;
+}
+
+.roleDialogPaper :global(.MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline),
+.roleDialogPaper :global(.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline) {
+  border-color: var(--color-primary-vibrant) !important;
+}
+
+.roleDialogPaper :global(.MuiInputLabel-root.Mui-focused),
+.roleDialogPaper :global(.MuiCheckbox-root.Mui-checked),
+.roleDialogPaper :global(.MuiCheckbox-root.MuiCheckbox-indeterminate) {
+  color: var(--color-primary-vibrant) !important;
+}
+
+.roleDialogPaper :global(.MuiButton-root) {
+  border-radius: var(--border-radius-medium) !important;
+  text-transform: none !important;
+  font-weight: 800 !important;
+  letter-spacing: 0 !important;
+}
+
+.roleDialogPaper :global(.MuiButton-outlined) {
+  color: var(--color-primary-vibrant) !important;
+  border-color: var(--color-primary) !important;
+  background: var(--color-surface) !important;
+}
+
+.roleDialogPaper :global(.MuiButton-outlined:hover) {
+  border-color: var(--color-primary-vibrant) !important;
+  background: var(--color-primary-bg) !important;
+}
+
+.roleDialogPaper :global(.MuiButton-contained) {
+  color: var(--color-text-on-vibrant) !important;
+  background: var(--gradient-primary) !important;
+  box-shadow: var(--shadow-pink) !important;
+}
+
+.permissionPresetsBox,
+.permsBox {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
 }

@@ -98,6 +98,153 @@ const SETTINGS_PERMISSIONS = {
   ],
 } as const;
 
+type RolePermissionPreset = {
+  id: "caja_ventas" | "inventario" | "atencion_clientes" | "supervisor";
+  label: string;
+  description: string;
+  permissions: readonly string[];
+};
+
+const ROLE_PERMISSION_PRESETS: readonly RolePermissionPreset[] = [
+  {
+    id: "caja_ventas",
+    label: "Caja / Ventas",
+    description: "POS, cortes, apartados y atención básica de clientes.",
+    permissions: [
+      "dashboard.view",
+      "ventas.pedidos.create",
+      "ventas.pedidos.read",
+      "ventas.pedidos.update",
+      "ventas.pedidos.cancel",
+      "ventas.pagos.create",
+      "ventas.pagos.read",
+      "ventas.corte_caja.read",
+      "ventas.corte_caja.create",
+      "ventas.corte_caja.close",
+      "ventas.corte_caja.history",
+      "ventas.pos.create",
+      "ventas.pos.read",
+      "ventas.pos.ticket.read",
+      "ventas.pos.refund.own",
+      "ventas.apartados.create",
+      "ventas.apartados.read",
+      "ventas.apartados.abono",
+      "ventas.apartados.liquidar",
+      "ventas.apartados.cancel",
+      "inventario.productos.read",
+      "inventario.categorias.read",
+      "clientes.clientes.read",
+      "clientes.clientes.create",
+      "clientes.clientes.update",
+      "clientes.direcciones.read",
+      "clientes.direcciones.create",
+      "clientes.direcciones.update",
+    ],
+  },
+  {
+    id: "inventario",
+    label: "Inventario",
+    description: "Productos, catálogos, existencias y movimientos de inventario.",
+    permissions: [
+      "dashboard.view",
+      "inventario.productos.read",
+      "inventario.productos.create",
+      "inventario.productos.update",
+      "inventario.productos.deactivate",
+      "inventario.movimientos.read",
+      "inventario.movimientos.create",
+      "inventario.categorias.read",
+      "inventario.categorias.create",
+      "inventario.categorias.update",
+      "inventario.categorias.delete",
+    ],
+  },
+  {
+    id: "atencion_clientes",
+    label: "Atención a clientes",
+    description: "Clientes, direcciones y consulta de pedidos/apartados.",
+    permissions: [
+      "dashboard.view",
+      "clientes.clientes.read",
+      "clientes.clientes.create",
+      "clientes.clientes.update",
+      "clientes.direcciones.read",
+      "clientes.direcciones.create",
+      "clientes.direcciones.update",
+      "clientes.direcciones.delete",
+      "ventas.pedidos.read",
+      "ventas.apartados.read",
+      "credito.view",
+      "clientes.clientes.status.manage",
+    ],
+  },
+  {
+    id: "supervisor",
+    label: "Supervisor",
+    description: "Operación de ventas, inventario, clientes y reportes sin seguridad del sistema.",
+    permissions: [
+      "dashboard.view",
+      "ventas.pedidos.create",
+      "ventas.pedidos.read",
+      "ventas.pedidos.update",
+      "ventas.pedidos.cancel",
+      "ventas.pagos.create",
+      "ventas.pagos.read",
+      "ventas.corte_caja.read",
+      "ventas.corte_caja.create",
+      "ventas.corte_caja.close",
+      "ventas.corte_caja.history",
+      "ventas.pos.create",
+      "ventas.pos.read",
+      "ventas.pos.ticket.read",
+      "ventas.pos.refund.own",
+      "ventas.pos.refund.any",
+      "ventas.apartados.create",
+      "ventas.apartados.read",
+      "ventas.apartados.abono",
+      "ventas.apartados.liquidar",
+      "ventas.apartados.cancel",
+      "inventario.productos.read",
+      "inventario.productos.create",
+      "inventario.productos.update",
+      "inventario.productos.deactivate",
+      "inventario.movimientos.read",
+      "inventario.movimientos.create",
+      "inventario.categorias.read",
+      "inventario.categorias.create",
+      "inventario.categorias.update",
+      "inventario.categorias.delete",
+      "clientes.clientes.read",
+      "clientes.clientes.create",
+      "clientes.clientes.update",
+      "clientes.clientes.credito.manage",
+      "clientes.direcciones.read",
+      "clientes.direcciones.create",
+      "clientes.direcciones.update",
+      "clientes.direcciones.delete",
+      "credito.view",
+      "credito.simulate",
+      "credito.create",
+      "credito.payments.create",
+      "reportes.view",
+      "reportes.resumen.view",
+      "reportes.ventas.view",
+      "reportes.productos.view",
+      "reportes.inventario.view",
+      "reportes.clientes.view",
+      "reportes.apartados.view",
+      "reportes.cortes.view",
+      "clientes.clientes.status.manage",
+      "reportes.credito.view",
+      "reportes.financiero.view",
+      "reportes.empleados.view",
+      "reportes.exportaciones.view",
+      "reportes.export",
+    ],
+  },
+] as const;
+
+
 type SettingsTabConfig = {
   index: TabKey;
   label: string;
@@ -1111,6 +1258,57 @@ export default function AdminSettings() {
         : [...prev.permissions, permId];
       return { ...prev, permissions: next };
     });
+  };
+
+  const rolePermissionsDisabled =
+    (selectedRole?.isSystem ?? false) || !canManageRoles;
+
+  const selectAllPermissions = () => {
+    if (rolePermissionsDisabled) return;
+    setRoleForm((prev) => ({
+      ...prev,
+      permissions: allPermissions.map((permission) => permission.id),
+    }));
+  };
+
+  const clearAllPermissions = () => {
+    if (rolePermissionsDisabled) return;
+    setRoleForm((prev) => ({ ...prev, permissions: [] }));
+  };
+
+  const togglePermissionCategory = (permissions: PermissionItem[]) => {
+    if (rolePermissionsDisabled) return;
+
+    const categoryIds = permissions.map((permission) => permission.id);
+    const selected = new Set(roleForm.permissions);
+    const allSelected = categoryIds.every((id) => selected.has(id));
+
+    if (allSelected) {
+      categoryIds.forEach((id) => selected.delete(id));
+    } else {
+      categoryIds.forEach((id) => selected.add(id));
+    }
+
+    setRoleForm((prev) => ({
+      ...prev,
+      permissions: Array.from(selected),
+    }));
+  };
+
+  const applyPermissionPreset = (preset: RolePermissionPreset) => {
+    if (rolePermissionsDisabled) return;
+
+    const available = new Set(
+      allPermissions.map((permission) => permission.id),
+    );
+    const nextPermissions = preset.permissions.filter((permission) =>
+      available.has(permission),
+    );
+
+    setRoleForm((prev) => ({
+      ...prev,
+      permissions: Array.from(new Set(nextPermissions)),
+    }));
   };
 
   const permissionsByCategory = useMemo(() => {
@@ -2855,10 +3053,55 @@ export default function AdminSettings() {
               Permisos
             </Typography>
 
-            <Typography variant="caption" className={styles.permissionsCounter}>
-              {roleForm.permissions.length} de {allPermissions.length}{" "}
-              seleccionados
-            </Typography>
+            <Box className={styles.permissionsHeaderActions}>
+              <Typography variant="caption" className={styles.permissionsCounter}>
+                {roleForm.permissions.length} de {allPermissions.length}{" "}
+                seleccionados
+              </Typography>
+              <Button
+                type="button"
+                size="small"
+                variant="outlined"
+                onClick={selectAllPermissions}
+                disabled={rolePermissionsDisabled || allPermissions.length === 0}
+              >
+                Seleccionar todos
+              </Button>
+              <Button
+                type="button"
+                size="small"
+                onClick={clearAllPermissions}
+                disabled={rolePermissionsDisabled || roleForm.permissions.length === 0}
+              >
+                Limpiar selección
+              </Button>
+            </Box>
+          </Box>
+
+          <Box className={styles.permissionPresetsBox}>
+            <Box>
+              <Typography variant="subtitle2" className={styles.permissionPresetsTitle}>
+                Asignación rápida
+              </Typography>
+              <Typography variant="caption" className={styles.permissionPresetsHint}>
+                Elige una base y después ajusta permisos individuales. Caja / Ventas puede devolver ventas propias; Supervisor también puede devolver ventas de otros cajeros.
+              </Typography>
+            </Box>
+            <Box className={styles.permissionPresetButtons}>
+              {ROLE_PERMISSION_PRESETS.map((preset) => (
+                <Button
+                  key={preset.id}
+                  type="button"
+                  size="small"
+                  variant="outlined"
+                  onClick={() => applyPermissionPreset(preset)}
+                  disabled={rolePermissionsDisabled}
+                  title={preset.description}
+                >
+                  {preset.label}
+                </Button>
+              ))}
+            </Box>
           </Box>
 
           <Box className={styles.permsBox}>
@@ -2867,55 +3110,76 @@ export default function AdminSettings() {
                 Sin catálogo de permisos.
               </Alert>
             ) : (
-              Object.entries(permissionsByCategory).map(
-                ([category, permissions]) => (
-                  <Box key={category} sx={{ mb: 2 }}>
-                    <Typography
-                      variant="subtitle2"
-                      sx={{ fontWeight: 800, mb: 1, color: "#ec1380" }}
-                    >
-                      {category}
-                    </Typography>
+              (Object.entries(permissionsByCategory) as Array<[string, PermissionItem[]]>).map(
+                ([category, permissions]) => {
+                  const selectedInCategory = permissions.filter((permission) =>
+                    roleForm.permissions.includes(permission.id),
+                  ).length;
+                  const categoryChecked =
+                    permissions.length > 0 &&
+                    selectedInCategory === permissions.length;
+                  const categoryIndeterminate =
+                    selectedInCategory > 0 &&
+                    selectedInCategory < permissions.length;
 
-                    <div className={styles.permissionsGrid}>
-                      {permissions.map((permission) => {
-                        const disabled =
-                          (selectedRole?.isSystem ?? false) || !canManageRoles;
-
-                        const checked = roleForm.permissions.includes(
-                          permission.id,
-                        );
-
-                        return (
-                          <label
-                            key={permission.id}
-                            className={`${styles.permissionItem} ${
-                              checked ? styles.permissionItemChecked : ""
-                            } ${disabled ? styles.permissionItemDisabled : ""}`}
-                          >
+                  return (
+                    <Box key={category} sx={{ mb: 2 }}>
+                      <Box className={styles.permissionCategoryHeader}>
+                        <FormControlLabel
+                          className={styles.permissionCategoryToggle}
+                          control={
                             <Checkbox
-                              checked={checked}
-                              onChange={() => togglePermission(permission.id)}
-                              disabled={disabled}
+                              checked={categoryChecked}
+                              indeterminate={categoryIndeterminate}
+                              onChange={() => togglePermissionCategory(permissions)}
+                              disabled={rolePermissionsDisabled}
                               size="small"
-                              className={styles.permissionCheckbox}
                             />
+                          }
+                          label={category}
+                        />
+                        <Typography variant="caption" className={styles.permissionCategoryCount}>
+                          {selectedInCategory}/{permissions.length}
+                        </Typography>
+                      </Box>
 
-                            <span className={styles.permissionText}>
-                              <span className={styles.permissionName}>
-                                {permission.name}
-                              </span>
+                      <div className={styles.permissionsGrid}>
+                        {permissions.map((permission) => {
+                          const checked = roleForm.permissions.includes(
+                            permission.id,
+                          );
 
-                              <span className={styles.permissionSlug}>
-                                {permission.id}
+                          return (
+                            <label
+                              key={permission.id}
+                              className={`${styles.permissionItem} ${
+                                checked ? styles.permissionItemChecked : ""
+                              } ${rolePermissionsDisabled ? styles.permissionItemDisabled : ""}`}
+                            >
+                              <Checkbox
+                                checked={checked}
+                                onChange={() => togglePermission(permission.id)}
+                                disabled={rolePermissionsDisabled}
+                                size="small"
+                                className={styles.permissionCheckbox}
+                              />
+
+                              <span className={styles.permissionText}>
+                                <span className={styles.permissionName}>
+                                  {permission.name}
+                                </span>
+
+                                <span className={styles.permissionSlug}>
+                                  {permission.id}
+                                </span>
                               </span>
-                            </span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </Box>
-                ),
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </Box>
+                  );
+                },
               )
             )}
           </Box>

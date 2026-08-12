@@ -81,6 +81,54 @@ export type DireccionCreatePayload = {
   es_principal?: boolean;
 };
 
+
+export type ClienteHistorialPedido = {
+  id: string;
+  folio: number | string;
+  tipo: "WEB" | "PUNTO_VENTA" | "APARTADO" | string;
+  estado: string;
+  subtotal: number | string;
+  descuento: number | string;
+  costo_envio: number | string;
+  total: number | string;
+  fecha_creacion: string;
+  fecha_limite_apartado?: string | null;
+  fecha_cancelacion?: string | null;
+  motivo_cancelacion?: string | null;
+  unidades: number | string;
+  pagado_neto: number | string;
+};
+
+export type ClienteHistorialComercial = {
+  cliente: Cliente;
+  resumen: {
+    operaciones: number | string;
+    ventas_pos: number | string;
+    pedidos_web: number | string;
+    apartados: number | string;
+    apartados_activos: number | string;
+    total_comprado: number | string;
+    ultima_operacion?: string | null;
+  };
+  pedidos: ClienteHistorialPedido[];
+  movimientos_credito: Array<{
+    id: string;
+    fecha: string;
+    tipo: string;
+    descripcion: string;
+    monto: number | string;
+    saldo_anterior: number | string;
+    saldo_resultante: number | string;
+    metodo_pago?: string | null;
+    referencia_externa?: string | null;
+  }>;
+};
+
+export type ClienteHistorialResponse = {
+  ok: boolean;
+  data: ClienteHistorialComercial | null;
+};
+
 export type ClienteFilters = {
   q?: string;
   includeInactive?: boolean;
@@ -103,6 +151,11 @@ export type ClienteDetailResponse = {
 export type ClienteResponse = {
   ok: boolean;
   data: Cliente | null;
+};
+
+export type DireccionResponse = {
+  ok: boolean;
+  data: Direccion | null;
 };
 
 export type MovimientosCreditoResponse = {
@@ -180,5 +233,28 @@ export const clientesApi = {
     apiFetch<ClienteResponse>(API_ENDPOINTS.clientes.puedeApartar(id), {
       method: "PATCH",
       body: { puede_apartar },
+    }),
+
+
+  getHistorialComercial: (id: string | number, limit = 50) =>
+    apiFetch<ClienteHistorialResponse>(`/clientes/${id}/historial-comercial`, {
+      method: "GET",
+      query: { limit },
+    }),
+
+  changeEstado: (id: string | number, activo: boolean) =>
+    apiFetch<ClienteResponse>(`/clientes/${id}/estado`, {
+      method: "PATCH",
+      body: { activo },
+    }),
+
+  updateDireccion: (
+    id: string | number,
+    direccionId: string | number,
+    payload: Partial<DireccionCreatePayload>,
+  ) =>
+    apiFetch<DireccionResponse>(`/clientes/${id}/direcciones/${direccionId}`, {
+      method: "PATCH",
+      body: payload,
     }),
 };

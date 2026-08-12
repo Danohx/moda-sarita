@@ -14,7 +14,15 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
-import { CreditCard, Edit, Visibility, Warning } from "@mui/icons-material";
+import {
+  CreditCard,
+  Edit,
+  History as HistoryIcon,
+  PersonAddAlt1,
+  PersonOff,
+  Visibility,
+  Warning,
+} from "@mui/icons-material";
 import styles from "../../../styles/AdminCustomers.module.css";
 import type { Cliente } from "@admin/pages/admin/AdminCustomers";
 
@@ -24,8 +32,11 @@ type Props = {
   formatMoneda: (valor: number) => string;
   canEdit: boolean;
   canManageCredit: boolean;
+  canManageStatus: boolean;
   onView: (customer: Cliente) => void;
   onEdit: (customer: Cliente) => void;
+  onHistory: (customer: Cliente) => void;
+  onToggleStatus: (customer: Cliente) => void;
 };
 
 const CustomersTableSection: React.FC<Props> = ({
@@ -34,8 +45,11 @@ const CustomersTableSection: React.FC<Props> = ({
   formatMoneda,
   canEdit,
   canManageCredit,
+  canManageStatus,
   onView,
   onEdit,
+  onHistory,
+  onToggleStatus,
 }) => {
   const skeletonRows = useMemo(() => Array.from({ length: 4 }), []);
   const totalColumns = canManageCredit ? 6 : 4;
@@ -147,6 +161,14 @@ const CustomersTableSection: React.FC<Props> = ({
                     <Visibility />
                   </IconButton>
 
+                  <IconButton
+                    className={styles.iconPink}
+                    onClick={() => onHistory(customer)}
+                    title="Historial comercial"
+                  >
+                    <HistoryIcon />
+                  </IconButton>
+
                   {canEdit && (
                     <IconButton
                       className={styles.iconPink}
@@ -165,6 +187,16 @@ const CustomersTableSection: React.FC<Props> = ({
                       title="Gestionar crédito"
                     >
                       <CreditCard />
+                    </IconButton>
+                  )}
+
+                  {canManageStatus && (
+                    <IconButton
+                      className={customer.status === "active" ? styles.iconRed : styles.iconGreen}
+                      onClick={() => onToggleStatus(customer)}
+                      title={customer.status === "active" ? "Desactivar cliente" : "Reactivar cliente"}
+                    >
+                      {customer.status === "active" ? <PersonOff /> : <PersonAddAlt1 />}
                     </IconButton>
                   )}
                 </TableCell>

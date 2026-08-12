@@ -6,6 +6,7 @@ import CustomerStatsSection from "@admin/components/components/CustomerStatsSect
 import CustomerFiltersBar from "@admin/components/components/CustomerFiltersBar";
 import CustomersTableSection from "@admin/components/components/CustomersTableSection";
 import CustomerFormDialog from "@admin/components/components/CustomerFormDialog";
+import CustomerHistoryDialog from "@admin/components/components/CustomerHistoryDialog";
 import { clientesService } from "@admin/services/clientes.service";
 import { useErrorAlert } from "@admin/components/layout/useErrorAlert";
 import ErrorAlert from "@admin/components/layout/ErrorAlert";
@@ -35,6 +36,7 @@ const CUSTOMER_PERMISSIONS = {
   customersCreate: "clientes.clientes.create",
   customersUpdate: "clientes.clientes.update",
   creditManage: "clientes.clientes.credito.manage",
+  statusManage: "clientes.clientes.status.manage",
 } as const;
 
 function formatMoneda(valor: number) {
@@ -63,7 +65,12 @@ const AdminCustomers: React.FC = () => {
     permissions: CUSTOMER_PERMISSIONS.creditManage,
   });
 
+  const canManageStatus = canAccess(user, {
+    permissions: CUSTOMER_PERMISSIONS.statusManage,
+  });
+
   const [openCustomerModal, setOpenCustomerModal] = useState(false);
+  const [historyCustomer, setHistoryCustomer] = useState<Cliente | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Cliente | null>(
     null,
   );
@@ -98,7 +105,7 @@ const AdminCustomers: React.FC = () => {
 
     try {
       setLoading(true);
-      const data = await clientesService.getList();
+      const data = await clientesService.getList({ includeInactive: true });
 
       const normalized: Cliente[] = data.map((c: unknown) => {
         const item = c as Record<string, unknown>;
@@ -239,6 +246,37 @@ const AdminCustomers: React.FC = () => {
     setOpenCustomerModal(true);
   };
 
+
+  const handleHistoryCustomer = (customer: Cliente) => {
+    setHistoryCustomer(customer);
+  };
+
+  const handleToggleCustomerStatus = async (customer: Cliente) => {
+    if (!canManageStatus) {
+      showError("No tienes permiso para cambiar el estado de clientes.");
+      return;
+    }
+
+    const nextActive = customer.status !== "active";
+    const action = nextActive ? "reactivar" : "desactivar";
+    const confirmed = window.confirm(
+      `¿Deseas ${action} a ${customer.name}?${nextActive ? "" : " No se permitirá si tiene deuda, pedidos pendientes o apartados activos."}`,
+    );
+    if (!confirmed) return;
+
+    try {
+      await clientesService.changeEstado(customer.id, nextActive);
+      await load();
+      showSuccess(nextActive ? "Cliente reactivado correctamente." : "Cliente desactivado correctamente.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      showError(
+        message || "No se pudo cambiar el estado del cliente.",
+        "Cambio de estado rechazado",
+      );
+    }
+  };
+
   const handleCloseCustomerModal = () => {
     setOpenCustomerModal(false);
     setSelectedCustomer(null);
@@ -306,8 +344,11 @@ const AdminCustomers: React.FC = () => {
         formatMoneda={formatMoneda}
         canEdit={canUpdateCustomers}
         canManageCredit={canManageCredit}
+        canManageStatus={canManageStatus}
         onView={handleViewCustomer}
         onEdit={handleEditCustomer}
+        onHistory={handleHistoryCustomer}
+        onToggleStatus={handleToggleCustomerStatus}
       />
 
       <CustomerFormDialog
@@ -323,6 +364,12 @@ const AdminCustomers: React.FC = () => {
         onError={(mensaje, titulo) => {
           showError(mensaje, titulo);
         }}
+      />
+
+      <CustomerHistoryDialog
+        open={Boolean(historyCustomer)}
+        customer={historyCustomer}
+        onClose={() => setHistoryCustomer(null)}
       />
 
       <ErrorAlert

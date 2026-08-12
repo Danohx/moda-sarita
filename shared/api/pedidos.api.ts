@@ -34,8 +34,16 @@ export type LiquidarApartadoPayload = {
   referencia_externa?: string | null;
 };
 
+export type ReembolsoApartadoModo = "NINGUNO" | "TOTAL" | "PARCIAL";
+
 export type CancelarApartadoPayload = {
   motivo_cancelacion: string;
+  reembolso?: {
+    modo: ReembolsoApartadoModo;
+    monto?: number | null;
+    metodo?: MetodoPago | null;
+    referencia_externa?: string | null;
+  };
 };
 
 export type PagoGenerado = {
@@ -59,6 +67,13 @@ type PedidoActionResponse = {
   message: string;
   data: PedidoDetalleAdmin;
   pago_generado?: PagoGenerado;
+  reembolso_generado?: PagoGenerado | null;
+  politica_reembolso?: {
+    modo: ReembolsoApartadoModo;
+    total_pagado_neto: number;
+    monto_reembolsado: number;
+    monto_retenido: number;
+  };
 };
 
 export type PedidoResumen = {

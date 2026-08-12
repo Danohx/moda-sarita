@@ -26,7 +26,10 @@ import {
   Warning,
 } from "@mui/icons-material";
 import styles from "../../../styles/ApartadoActionModals.module.css";
-import type { MetodoPago } from "../../../../../shared/api/pedidos.api";
+import type {
+  MetodoPago,
+  ReembolsoApartadoModo,
+} from "../../../../../shared/api/pedidos.api";
 
 // ─── shared method options ────────────────────────────────────────────────────
 
@@ -157,6 +160,11 @@ export type ApartadoActionModalsProps = {
   cancelarOpen: boolean;
   motivoCancelacion: string;
   onMotivoCancelacionChange: (v: string) => void;
+  apartadoPaid: number;
+  reembolsoModo: ReembolsoApartadoModo;
+  onReembolsoModoChange: (v: ReembolsoApartadoModo) => void;
+  montoReembolso: string;
+  onMontoReembolsoChange: (v: string) => void;
 
   // Shared
   metodoPago: MetodoPago;
@@ -185,6 +193,11 @@ const ApartadoActionModals: React.FC<ApartadoActionModalsProps> = ({
   cancelarOpen,
   motivoCancelacion,
   onMotivoCancelacionChange,
+  apartadoPaid,
+  reembolsoModo,
+  onReembolsoModoChange,
+  montoReembolso,
+  onMontoReembolsoChange,
   metodoPago,
   onMetodoPagoChange,
   referenciaExterna,
@@ -411,6 +424,52 @@ const ApartadoActionModals: React.FC<ApartadoActionModalsProps> = ({
               className={`${styles.textField} ${styles.textFieldDanger}`}
             />
           </Box>
+
+          <Box>
+            <Typography className={styles.fieldLabel}>
+              Decisión sobre el dinero abonado ({formatMoneda(apartadoPaid)})
+            </Typography>
+            <Select
+              fullWidth
+              value={reembolsoModo}
+              onChange={(e) =>
+                onReembolsoModoChange(
+                  e.target.value as ReembolsoApartadoModo,
+                )
+              }
+              className={styles.select}
+            >
+              <MenuItem value="NINGUNO">Sin reembolso / retener abonos</MenuItem>
+              <MenuItem value="TOTAL">Reembolso total</MenuItem>
+              <MenuItem value="PARCIAL">Reembolso parcial</MenuItem>
+            </Select>
+          </Box>
+
+          {reembolsoModo === "PARCIAL" && (
+            <Box>
+              <Typography className={styles.fieldLabel}>
+                Monto a reembolsar
+              </Typography>
+              <TextField
+                fullWidth
+                type="number"
+                inputProps={{ min: 0.01, step: 0.01, max: apartadoPaid }}
+                value={montoReembolso}
+                onChange={(e) => onMontoReembolsoChange(e.target.value)}
+                className={styles.textField}
+              />
+            </Box>
+          )}
+
+          {reembolsoModo !== "NINGUNO" && (
+            <>
+              <MetodoPagoSelect value={metodoPago} onChange={onMetodoPagoChange} />
+              <ReferenciaField
+                value={referenciaExterna}
+                onChange={onReferenciaExternaChange}
+              />
+            </>
+          )}
         </DialogContent>
 
         <DialogActions className={styles.actions}>

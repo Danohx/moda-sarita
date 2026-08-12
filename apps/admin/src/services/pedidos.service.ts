@@ -176,9 +176,11 @@ export const pedidosService = {
     return response.data;
   },
 
-  async cancelar(id: string | number, motivo_cancelacion: string) {
-    const response = await pedidosApi.cancelar(id, { motivo_cancelacion });
-    return response.data;
+  async cancelar(
+    id: string | number,
+    payload: Parameters<typeof pedidosApi.cancelar>[1],
+  ) {
+    return pedidosApi.cancelar(id, payload);
   },
 
   async abrirTicketPdf(id: string | number) {

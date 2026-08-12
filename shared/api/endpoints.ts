@@ -172,6 +172,7 @@ export const API_ENDPOINTS = {
     historialCortes: "/ventas/corte/historial",
     corteById: (id: string | number) => `/ventas/corte/${id}`,
     ventaTicketPdf: (id: string | number) => `/ventas/pos/${id}/ticket`,
+    cancelarPos: (id: string | number) => `/ventas/pos/${id}/cancelar`,
   },
   pedidos: {
     list: "/pedidos",

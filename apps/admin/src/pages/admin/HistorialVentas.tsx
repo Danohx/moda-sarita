@@ -8,6 +8,7 @@ import {
   Eye,
   ReceiptText,
   RefreshCw,
+  RotateCcw,
   Search,
   ShoppingBag,
   User,
@@ -16,7 +17,7 @@ import {
 } from "lucide-react";
 import styles from "../../../styles/HistorialVentas.module.css";
 import { useAuth } from "@shared/context/AuthContext";
-import { canAccess } from "../../utils/permissions";
+import { canAccess, getCurrentUserId } from "../../utils/permissions";
 import {
   ventasService,
   type VentaHistorial,
@@ -373,6 +374,25 @@ export default function HistorialVentasPOS({
     permissions: "ventas.pagos.read",
   });
 
+  const currentUserId = getCurrentUserId(user);
+  const canRefundAnySales = canAccess(user, {
+    permissions: "ventas.pos.refund.any",
+  });
+  const canRefundOwnSales =
+    canRefundAnySales ||
+    canAccess(user, {
+      permissions: ["ventas.pos.refund.own", "ventas.pos.refund"],
+    });
+
+  const canRefundSale = useCallback(
+    (venta: VentaHistorial) => {
+      if (canRefundAnySales) return true;
+      if (!canRefundOwnSales || !currentUserId) return false;
+      return String(venta.vendedorId || "") === currentUserId;
+    },
+    [canRefundAnySales, canRefundOwnSales, currentUserId],
+  );
+
   const [ventas, setVentas] = useState<VentaHistorial[]>([]);
   const [detalle, setDetalle] = useState<VentaHistorialDetalle | null>(null);
 
@@ -481,6 +501,59 @@ export default function HistorialVentasPOS({
   }, []);
 
   const hasFiltros = Boolean(q || estado || metodo || fechaInicio || fechaFin);
+
+  async function handleRefundSale(venta: VentaHistorial) {
+    if (!canRefundSale(venta)) {
+      const vendedor = venta.vendedorNombre || "otro cajero";
+      setError(
+        String(venta.vendedorId || "") === currentUserId
+          ? "No tienes permiso para devolver tus ventas POS."
+          : `Esta venta fue realizada por ${vendedor}. Necesitas autorización de un supervisor para devolver ventas de otros cajeros.`,
+      );
+      return;
+    }
+
+    if (String(venta.estado).toUpperCase() !== "PAGADO") {
+      setError("Solo se pueden devolver ventas que estén pagadas.");
+      return;
+    }
+
+    const motivo = window.prompt(
+      `Motivo de la devolución de ${venta.folioLabel}:`,
+      "",
+    );
+
+    if (motivo === null) return;
+
+    if (!motivo.trim()) {
+      setError("El motivo de la devolución es obligatorio.");
+      return;
+    }
+
+    const confirmado = window.confirm(
+      `Se devolverá ${formatMoneda(venta.totalPagado || venta.total)}, se reintegrará el stock y la venta quedará como DEVUELTO. ¿Continuar?`,
+    );
+
+    if (!confirmado) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      await ventasService.cancelarVentaPOS(venta.id, {
+        motivo: motivo.trim(),
+      });
+      cerrarDetalle();
+      await cargarVentas();
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "No se pudo devolver la venta POS.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function handleOpenTicket(ventaId: string | number) {
     if (!canReadSales) {
@@ -863,6 +936,21 @@ export default function HistorialVentasPOS({
                           <Eye size={15} />
                           <span>Ver</span>
                         </button>
+
+                        {canRefundSale(venta) &&
+                          String(venta.estado).toUpperCase() === "PAGADO" && (
+                            <button
+                              type="button"
+                              className={styles.iconButton}
+                              onClick={() => void handleRefundSale(venta)}
+                              title="Devolver venta y reintegrar stock"
+                              aria-label={`Devolver venta ${venta.folioLabel}`}
+                              disabled={loading}
+                            >
+                              <RotateCcw size={15} />
+                              <span>Devolver</span>
+                            </button>
+                          )}
 
                         <button
                           type="button"

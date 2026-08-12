@@ -145,6 +145,23 @@ export type CancelarPayload = {
   motivo?: string;
 };
 
+
+export type CancelarVentaPOSPayload = {
+  motivo: string;
+  metodo_reembolso?: string | null;
+  referencia_reembolso?: string | null;
+};
+
+export type CancelarVentaPOSResponse = {
+  ok: boolean;
+  msg?: string;
+  data: {
+    venta: Pedido;
+    reembolso: { id: string; monto: string | number; metodo: string } | null;
+    stock_reintegrado: Array<{ variante_id: string; cantidad: number }>;
+  };
+};
+
 export type CerrarCortePayload = {
   usuario_id: string | number;
   total_real: number;
@@ -285,13 +302,17 @@ function buildQuery(params: ListVentasHistorialParams = {}) {
 }
 
 export const ventasApi = {
-  crearVentaPOS: (payload: VentaPOSPayload, idempotencyKey?: string) =>
+  crearVentaPOS: (payload: VentaPOSPayload, idempotencyKey: string) =>
     apiFetch<PedidoResponse>(API_ENDPOINTS.ventas.pos, {
       method: "POST",
       body: payload,
-      headers: idempotencyKey
-        ? { "Idempotency-Key": idempotencyKey }
-        : undefined,
+      headers: { "Idempotency-Key": idempotencyKey },
+    }),
+
+  cancelarVentaPOS: (id: string | number, payload: CancelarVentaPOSPayload) =>
+    apiFetch<CancelarVentaPOSResponse>(API_ENDPOINTS.ventas.cancelarPos(id), {
+      method: "POST",
+      body: payload,
     }),
 
   crearApartado: (payload: ApartadoPayload) =>
