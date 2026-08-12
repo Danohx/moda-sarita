@@ -19,7 +19,7 @@ const Inventory = lazy(adminRoutePreloaders.inventory);
 const AdminCustomers = lazy(adminRoutePreloaders.customers);
 const CreditsManager = lazy(adminRoutePreloaders.credits);
 const AdminReports = lazy(adminRoutePreloaders.reports);
-const AdminAnalytics = lazy(adminRoutePreloaders.analytics);
+// const AdminAnalytics = lazy(adminRoutePreloaders.analytics);
 const Marketing = lazy(adminRoutePreloaders.marketing);
 const AdminSettings = lazy(adminRoutePreloaders.settings);
 const AdminContent = lazy(adminRoutePreloaders.legalContent);
@@ -194,9 +194,9 @@ export const AppRouter = () => {
                 <Route path="reports" element={<AdminReports />} />
               </Route>
 
-              <Route element={<PermissionRoute permissions={PERMS.analitica} />}>
+              {/* <Route element={<PermissionRoute permissions={PERMS.analitica} />}>
                 <Route path="analytics" element={<AdminAnalytics />} />
-              </Route>
+              </Route> */}
 
               <Route element={<PermissionRoute permissions={PERMS.marketing} />}>
                 <Route path="marketing" element={<Marketing />} />

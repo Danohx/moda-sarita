@@ -18,7 +18,7 @@ import {
   MessageSquare,
   Megaphone,
   HandCoins,
-  BrainCircuit,
+  // BrainCircuit,
 } from "lucide-react";
 
 import styles from "../../../styles/AdminSidebar.module.css";
@@ -230,18 +230,18 @@ function buildAdminItems(mensajesNuevos: number): SidebarItem[] {
       ],
       preload: adminRoutePreloaders.reports,
     },
-    {
-      label: "Analítica",
-      to: "/analytics",
-      icon: BrainCircuit,
-      permissions: [
-        "clientes.clientes.credito.manage",
-        "credito.view",
-        "reportes.productos.view",
-        "inventario.productos.read",
-      ],
-      preload: adminRoutePreloaders.analytics,
-    },
+    // {
+    //   label: "Analítica",
+    //   to: "/analytics",
+    //   icon: BrainCircuit,
+    //   permissions: [
+    //     "clientes.clientes.credito.manage",
+    //     "credito.view",
+    //     "reportes.productos.view",
+    //     "inventario.productos.read",
+    //   ],
+    //   preload: adminRoutePreloaders.analytics,
+    // },
     {
       label: "Contenido Legal",
       to: "/content",
