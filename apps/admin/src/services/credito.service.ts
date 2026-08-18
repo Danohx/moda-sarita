@@ -42,6 +42,16 @@ export const creditoService = {
     return response.data;
   },
 
+  async confirmarTransferencia(creditoId: string, pagoId: string) {
+    const response = await creditoApi.confirmarTransferencia(creditoId, pagoId);
+    return response.data;
+  },
+
+  async rechazarTransferencia(creditoId: string, pagoId: string) {
+    const response = await creditoApi.rechazarTransferencia(creditoId, pagoId);
+    return response.data;
+  },
+
   async procesarVencimientos(fecha?: string) {
     const response = await creditoApi.procesarVencimientos(fecha);
     return response.data;

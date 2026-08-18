@@ -149,6 +149,14 @@ export const API_ENDPOINTS = {
     cancelar: (id: string | number) => `/creditos/${id}/cancelar`,
     comprobante: (creditoId: string | number, pagoId: string | number) =>
       `/creditos/${creditoId}/pagos/${pagoId}/comprobante`,
+    confirmarTransferencia: (
+      creditoId: string | number,
+      pagoId: string | number,
+    ) => `/creditos/${creditoId}/pagos/${pagoId}/confirmar-transferencia`,
+    rechazarTransferencia: (
+      creditoId: string | number,
+      pagoId: string | number,
+    ) => `/creditos/${creditoId}/pagos/${pagoId}/rechazar-transferencia`,
     procesarVencimientos: "/creditos/procesar-vencimientos",
     ultimaEjecucionVencimientos: "/creditos/vencimientos/ultima-ejecucion",
     reporteOperativo: "/creditos/reportes/operativo",

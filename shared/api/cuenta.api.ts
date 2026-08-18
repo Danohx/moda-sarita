@@ -6,9 +6,13 @@ const CUENTA_ENDPOINTS = {
   movimientosCredito: "/cuenta/credito/movimientos",
   creditos: "/cuenta/credito/creditos",
   creditoById: (id: string | number) => `/cuenta/credito/creditos/${id}`,
-  creditoCuotas: (id: string | number) => `/cuenta/credito/creditos/${id}/cuotas`,
+  creditoCuotas: (id: string | number) =>
+    `/cuenta/credito/creditos/${id}/cuotas`,
   creditoPagos: (id: string | number) => `/cuenta/credito/creditos/${id}/pagos`,
-  creditoMovimientos: (id: string | number) => `/cuenta/credito/creditos/${id}/movimientos`,
+  creditoPagoTransferencia: (id: string | number) =>
+    `/cuenta/credito/creditos/${id}/pagos/transferencia`,
+  creditoMovimientos: (id: string | number) =>
+    `/cuenta/credito/creditos/${id}/movimientos`,
   pedidos: "/cuenta/pedidos",
   apartados: "/cuenta/apartados",
   pedidoById: (id: string | number) => `/cuenta/pedidos/${id}`,
@@ -114,6 +118,7 @@ export type CuentaCredito = {
   proximo_vencimiento?: string | null;
   proxima_fecha_pago?: string | null;
   monto_proximo_pago?: string | number | null;
+  monto_proxima_cuota?: string | number | null;
   cuotas_vencidas?: number | string;
   total_vencido?: string | number;
   dias_maximos_atraso?: number | string;
@@ -153,6 +158,23 @@ export type CuentaCreditoPago = {
   estado: string;
   usuario_id?: string | null;
   aplicaciones?: CuentaCreditoAplicacion[];
+};
+
+export type CuentaMetodoPagoTransferencia = {
+  codigo: string;
+  nombre: string;
+  descripcion?: string | null;
+  activo_web?: boolean;
+  requiere_referencia?: boolean;
+  requiere_confirmacion_manual?: boolean;
+  instrucciones_web?: string | null;
+  config_publica?: Record<string, unknown> | null;
+};
+
+export type CuentaPagoTransferenciaResult = {
+  pago: CuentaCreditoPago;
+  metodo: CuentaMetodoPagoTransferencia;
+  reutilizado: boolean;
 };
 
 export type CuentaPedidoResumen = {
@@ -255,44 +277,89 @@ export const cuentaApi = {
     apiFetch<ApiResponse<CuentaCreditoResumenGlobal>>(CUENTA_ENDPOINTS.credito),
 
   getMovimientosCredito: (params?: { limit?: number; offset?: number }) =>
-    apiFetch<ApiResponse<CuentaMovimientoCredito[]> & { pagination?: PaginationMeta }>(
-      CUENTA_ENDPOINTS.movimientosCredito,
-      { method: "GET", query: params },
-    ),
+    apiFetch<
+      ApiResponse<CuentaMovimientoCredito[]> & { pagination?: PaginationMeta }
+    >(CUENTA_ENDPOINTS.movimientosCredito, { method: "GET", query: params }),
 
-  getCreditos: (params?: { estado?: string; limit?: number; offset?: number }) =>
+  getCreditos: (params?: {
+    estado?: string;
+    limit?: number;
+    offset?: number;
+  }) =>
     apiFetch<ApiResponse<Paginated<CuentaCredito>>>(CUENTA_ENDPOINTS.creditos, {
       method: "GET",
       query: params,
     }),
 
   getCreditoById: (id: string | number) =>
-    apiFetch<ApiResponse<CuentaCreditoDetalle>>(CUENTA_ENDPOINTS.creditoById(id)),
+    apiFetch<ApiResponse<CuentaCreditoDetalle>>(
+      CUENTA_ENDPOINTS.creditoById(id),
+    ),
 
-  getCreditoCuotas: (id: string | number, params?: { limit?: number; offset?: number }) =>
-    apiFetch<ApiResponse<CuentaCreditoCuota[]> & { pagination?: PaginationMeta }>(CUENTA_ENDPOINTS.creditoCuotas(id), { method: "GET", query: params }),
+  getCreditoCuotas: (
+    id: string | number,
+    params?: { limit?: number; offset?: number },
+  ) =>
+    apiFetch<
+      ApiResponse<CuentaCreditoCuota[]> & { pagination?: PaginationMeta }
+    >(CUENTA_ENDPOINTS.creditoCuotas(id), { method: "GET", query: params }),
 
-  getCreditoPagos: (id: string | number, params?: { limit?: number; offset?: number }) =>
-    apiFetch<ApiResponse<CuentaCreditoPago[]> & { pagination?: PaginationMeta }>(CUENTA_ENDPOINTS.creditoPagos(id), { method: "GET", query: params }),
+  getCreditoPagos: (
+    id: string | number,
+    params?: { limit?: number; offset?: number },
+  ) =>
+    apiFetch<
+      ApiResponse<CuentaCreditoPago[]> & { pagination?: PaginationMeta }
+    >(CUENTA_ENDPOINTS.creditoPagos(id), { method: "GET", query: params }),
 
-  getCreditoMovimientos: (id: string | number, params?: { limit?: number; offset?: number }) =>
-    apiFetch<ApiResponse<CuentaMovimientoCredito[]> & { pagination?: PaginationMeta }>(CUENTA_ENDPOINTS.creditoMovimientos(id), { method: "GET", query: params }),
+  crearPagoCreditoTransferencia: (id: string | number, monto: number) =>
+    apiFetch<ApiResponse<CuentaPagoTransferenciaResult>>(
+      CUENTA_ENDPOINTS.creditoPagoTransferencia(id),
+      { method: "POST", body: { monto } },
+    ),
+
+  getCreditoMovimientos: (
+    id: string | number,
+    params?: { limit?: number; offset?: number },
+  ) =>
+    apiFetch<
+      ApiResponse<CuentaMovimientoCredito[]> & { pagination?: PaginationMeta }
+    >(CUENTA_ENDPOINTS.creditoMovimientos(id), {
+      method: "GET",
+      query: params,
+    }),
 
   getPedidos: (params?: { estado?: string; limit?: number; offset?: number }) =>
-    apiFetch<PaginatedArrayResponse<CuentaPedidoResumen>>(CUENTA_ENDPOINTS.pedidos, {
-      method: "GET",
-      query: params,
-    }),
+    apiFetch<PaginatedArrayResponse<CuentaPedidoResumen>>(
+      CUENTA_ENDPOINTS.pedidos,
+      {
+        method: "GET",
+        query: params,
+      },
+    ),
 
-  getApartados: (params?: { estado?: string; limit?: number; offset?: number }) =>
-    apiFetch<PaginatedArrayResponse<CuentaPedidoResumen>>(CUENTA_ENDPOINTS.apartados, {
-      method: "GET",
-      query: params,
-    }),
+  getApartados: (params?: {
+    estado?: string;
+    limit?: number;
+    offset?: number;
+  }) =>
+    apiFetch<PaginatedArrayResponse<CuentaPedidoResumen>>(
+      CUENTA_ENDPOINTS.apartados,
+      {
+        method: "GET",
+        query: params,
+      },
+    ),
 
   getPedidoById: (id: string | number) =>
     apiFetch<ApiResponse<CuentaPedidoDetalle>>(CUENTA_ENDPOINTS.pedidoById(id)),
 
-  getPedidoPagos: (id: string | number, params?: { limit?: number; offset?: number }) =>
-    apiFetch<ApiResponse<CuentaPedidoPago[]> & { pagination?: PaginationMeta }>(CUENTA_ENDPOINTS.pedidoPagos(id), { method: "GET", query: params }),
+  getPedidoPagos: (
+    id: string | number,
+    params?: { limit?: number; offset?: number },
+  ) =>
+    apiFetch<ApiResponse<CuentaPedidoPago[]> & { pagination?: PaginationMeta }>(
+      CUENTA_ENDPOINTS.pedidoPagos(id),
+      { method: "GET", query: params },
+    ),
 };

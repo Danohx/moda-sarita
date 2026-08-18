@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Alert, Box, Button, CircularProgress, Typography } from "@mui/material";
-import { ArrowBack, Download, Payment, Cancel } from "@mui/icons-material";
+import { ArrowBack, Download, Payment, Cancel, CheckCircle, Close } from "@mui/icons-material";
 import { useAuth } from "@shared/context/AuthContext";
 import { canAccess } from "../../utils/permissions";
 import { creditoService } from "@admin/services/credito.service";
@@ -70,6 +70,40 @@ export default function CreditDetail() {
     } finally { setBusy(false); }
   }
 
+  async function confirmTransfer(pagoId: string) {
+    if (!credito) return;
+    if (!window.confirm("¿Confirmar esta transferencia y aplicarla al saldo del crédito?")) return;
+
+    try {
+      setBusy(true);
+      setError(null);
+      await creditoService.confirmarTransferencia(credito.credito_id, pagoId);
+      setSuccess("Transferencia confirmada y aplicada al crédito.");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo confirmar la transferencia.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function rejectTransfer(pagoId: string) {
+    if (!credito) return;
+    if (!window.confirm("¿Rechazar esta transferencia pendiente?")) return;
+
+    try {
+      setBusy(true);
+      setError(null);
+      await creditoService.rechazarTransferencia(credito.credito_id, pagoId);
+      setSuccess("Transferencia rechazada.");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo rechazar la transferencia.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function submitCancel(motivo: string) {
     if (!credito) return;
     try {
@@ -110,7 +144,86 @@ export default function CreditDetail() {
 
       {credito.datos_calendario_completos ? <section className={styles.card}><h2>Calendario de cuotas</h2><div className={styles.tableWrap}><table><thead><tr><th>#</th><th>Vencimiento</th><th>Programado</th><th>Pagado</th><th>Saldo</th><th>Estado</th></tr></thead><tbody>{data.cuotas.map((cuota) => <tr key={cuota.id}><td>{cuota.numero_cuota}</td><td>{date(cuota.fecha_vencimiento)}</td><td>{money.format(Number(cuota.monto_programado))}</td><td>{money.format(Number(cuota.monto_pagado))}</td><td>{money.format(Number(cuota.saldo_pendiente))}</td><td><span className={`${styles.installmentStatus} ${styles[`installment_${cuota.estado}`]}`}>{cuota.estado}</span></td></tr>)}</tbody></table></div></section> : null}
 
-      <section className={styles.card}><h2>Pagos</h2>{data.pagos.length === 0 ? <p className={styles.empty}>Sin pagos registrados.</p> : <div className={styles.tableWrap}><table><thead><tr><th>Fecha</th><th>Concepto</th><th>Método</th><th>Monto</th><th>Aplicaciones</th><th>Comprobante</th></tr></thead><tbody>{data.pagos.map((pago) => <tr key={pago.id}><td>{date(pago.fecha_pago)}</td><td>{pago.concepto}</td><td>{pago.metodo}</td><td>{money.format(Number(pago.monto))}</td><td>{pago.aplicaciones?.length ?? 0}</td><td>{["ABONO_CREDITO", "LIQUIDACION_CREDITO"].includes(pago.concepto) ? <button className={styles.downloadButton} onClick={() => void creditoService.descargarComprobante(credito.credito_id, pago.id)}><Download fontSize="small" /> PDF</button> : <span>Ticket de venta</span>}</td></tr>)}</tbody></table></div>}</section>
+      <section className={styles.card}>
+        <h2>Pagos</h2>
+        {data.pagos.length === 0 ? (
+          <p className={styles.empty}>Sin pagos registrados.</p>
+        ) : (
+          <div className={styles.tableWrap}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Concepto</th>
+                  <th>Método</th>
+                  <th>Monto</th>
+                  <th>Estado</th>
+                  <th>Aplicaciones</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.pagos.map((pago) => {
+                  const transferenciaPendiente =
+                    pago.estado === "PENDIENTE" &&
+                    pago.metodo === "TRANSFERENCIA" &&
+                    ["ABONO_CREDITO", "LIQUIDACION_CREDITO"].includes(pago.concepto);
+
+                  return (
+                    <tr key={pago.id}>
+                      <td>{date(pago.fecha_pago)}</td>
+                      <td>{pago.concepto}</td>
+                      <td>{pago.metodo}</td>
+                      <td>{money.format(Number(pago.monto))}</td>
+                      <td>
+                        <span className={`${styles.paymentStatus} ${styles[`payment_${pago.estado}`] ?? ""}`}>
+                          {pago.estado}
+                        </span>
+                        {pago.referencia_externa ? (
+                          <small className={styles.paymentReference}>Ref. {pago.referencia_externa}</small>
+                        ) : null}
+                      </td>
+                      <td>{pago.aplicaciones?.length ?? 0}</td>
+                      <td>
+                        {transferenciaPendiente ? (
+                          <div className={styles.paymentActions}>
+                            <button
+                              type="button"
+                              className={styles.confirmPaymentButton}
+                              disabled={busy}
+                              onClick={() => void confirmTransfer(pago.id)}
+                            >
+                              <CheckCircle fontSize="small" /> Confirmar
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.rejectPaymentButton}
+                              disabled={busy}
+                              onClick={() => void rejectTransfer(pago.id)}
+                            >
+                              <Close fontSize="small" /> Rechazar
+                            </button>
+                          </div>
+                        ) : pago.estado === "CONFIRMADO" &&
+                          ["ABONO_CREDITO", "LIQUIDACION_CREDITO"].includes(pago.concepto) ? (
+                          <button
+                            className={styles.downloadButton}
+                            onClick={() => void creditoService.descargarComprobante(credito.credito_id, pago.id)}
+                          >
+                            <Download fontSize="small" /> PDF
+                          </button>
+                        ) : (
+                          <span>—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
       <section className={styles.card}><h2>Movimientos</h2>{data.movimientos.length === 0 ? <p className={styles.empty}>Sin movimientos.</p> : <div className={styles.timeline}>{data.movimientos.map((mov) => <article key={mov.id}><div><strong>{mov.descripcion}</strong><span>{new Date(mov.fecha).toLocaleString("es-MX")}</span></div><div><strong className={Number(mov.monto) < 0 ? styles.positive : styles.danger}>{money.format(Math.abs(Number(mov.monto)))}</strong><span>Saldo: {money.format(Number(mov.saldo_resultante))}</span></div></article>)}</div>}</section>
 

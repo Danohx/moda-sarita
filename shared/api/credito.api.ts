@@ -6,6 +6,7 @@ import type {
   CreditoDetalle,
   CreditoFilters,
   CreditoResumen,
+  PagoCredito,
   ProcesamientoVencimientos,
   ReporteCreditoOperativo,
   ReporteFinancieroCredito,
@@ -81,6 +82,18 @@ export const creditoApi = {
       },
     ),
 
+  confirmarTransferencia: (creditoId: string, pagoId: string) =>
+    apiFetch<ApiOk<AbonoCreditoResult>>(
+      API_ENDPOINTS.creditos.confirmarTransferencia(creditoId, pagoId),
+      { method: "POST" },
+    ),
+
+  rechazarTransferencia: (creditoId: string, pagoId: string) =>
+    apiFetch<ApiOk<{ pago: PagoCredito; credito: CreditoResumen | null }>>(
+      API_ENDPOINTS.creditos.rechazarTransferencia(creditoId, pagoId),
+      { method: "POST" },
+    ),
+
   procesarVencimientos: (fecha?: string) =>
     apiFetch<ApiOk<ProcesamientoVencimientos>>(
       API_ENDPOINTS.creditos.procesarVencimientos,
@@ -96,7 +109,11 @@ export const creditoApi = {
       { method: "GET" },
     ),
 
-  getReporteOperativo: (filters: { from?: string; to?: string; limit?: number }) =>
+  getReporteOperativo: (filters: {
+    from?: string;
+    to?: string;
+    limit?: number;
+  }) =>
     apiFetch<ApiOk<ReporteCreditoOperativo>>(
       API_ENDPOINTS.creditos.reporteOperativo,
       { method: "GET", query: filters },
@@ -116,7 +133,10 @@ export const creditoApi = {
       format === "pdf"
         ? API_ENDPOINTS.creditos.reporteOperativoPdf
         : API_ENDPOINTS.creditos.reporteOperativoExcel;
-    const blob = await apiFetchBlob(endpoint, { method: "GET", query: filters });
+    const blob = await apiFetchBlob(endpoint, {
+      method: "GET",
+      query: filters,
+    });
     downloadBlob(blob, `reporte-creditos.${format === "pdf" ? "pdf" : "xlsx"}`);
   },
 
@@ -128,8 +148,14 @@ export const creditoApi = {
       format === "pdf"
         ? API_ENDPOINTS.creditos.reporteFinancieroPdf
         : API_ENDPOINTS.creditos.reporteFinancieroExcel;
-    const blob = await apiFetchBlob(endpoint, { method: "GET", query: filters });
-    downloadBlob(blob, `reporte-financiero-credito.${format === "pdf" ? "pdf" : "xlsx"}`);
+    const blob = await apiFetchBlob(endpoint, {
+      method: "GET",
+      query: filters,
+    });
+    downloadBlob(
+      blob,
+      `reporte-financiero-credito.${format === "pdf" ? "pdf" : "xlsx"}`,
+    );
   },
 
   async descargarComprobante(
